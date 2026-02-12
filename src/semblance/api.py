@@ -83,9 +83,14 @@ class SemblanceAPI:
     def as_fastapi(self) -> FastAPI:
         """Build and return a FastAPI application with all registered endpoints."""
         app = FastAPI()
+        seen: set[tuple[str, str]] = set()
 
         for spec in self._specs:
             if "GET" in spec.methods:
+                key = (spec.path, "GET")
+                if key in seen:
+                    raise ValueError(f"Duplicate GET endpoint registered for path {spec.path!r}")
+                seen.add(key)
                 self._register_get(app, spec)
 
         return app

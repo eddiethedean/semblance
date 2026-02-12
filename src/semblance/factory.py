@@ -5,7 +5,7 @@ Builds response instances from output models using resolved overrides.
 Supports single model and list[model] outputs.
 """
 
-from typing import Any, Callable, get_origin
+from typing import Any, get_origin
 
 from pydantic import BaseModel
 from polyfactory.factories.pydantic_factory import ModelFactory
@@ -66,10 +66,16 @@ def build_response(
     if origin is list:
         model = get_output_model_for_type(output_annotation)
         if model is None:
-            raise TypeError(f"Cannot resolve list item model from {output_annotation}")
+            raise TypeError(
+                f"Invalid output type {output_annotation!r}. "
+                "Use list[SomeModel] where SomeModel is a Pydantic BaseModel."
+            )
         return build_list(model, input_model, input_instance, count=list_count)
 
     model = get_output_model_for_type(output_annotation)
     if model is None:
-        raise TypeError(f"Cannot resolve output model from {output_annotation}")
+        raise TypeError(
+            f"Invalid output type {output_annotation!r}. "
+            "Use a Pydantic BaseModel or list[SomeModel] for output."
+        )
     return build_one(model, input_model, input_instance)

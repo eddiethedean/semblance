@@ -11,14 +11,21 @@ from typing import Any
 
 @dataclass(frozen=True)
 class FromInput:
-    """Bind this field to the value of a request input field by name."""
+    """Bind this field to the value of a request input field by name.
+
+    When the input field is None (missing or optional), no override is applied
+    and Polyfactory generates a value for the field.
+    """
 
     field: str
 
 
 @dataclass(frozen=True)
 class DateRangeFrom:
-    """Generate a datetime within the range defined by two date fields on the input."""
+    """Generate a datetime within the range defined by two date fields on the input.
+
+    When end <= start, returns start (no valid range to sample from).
+    """
 
     start: str
     end: str

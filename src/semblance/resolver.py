@@ -35,6 +35,8 @@ def resolve_overrides(
 
         if isinstance(meta, FromInput):
             val = input_data.get(meta.field)
+            # When val is None (missing or optional input), no override is applied;
+            # Polyfactory will generate a value for the field.
             if val is not None:
                 overrides[name] = val
 
@@ -49,6 +51,7 @@ def resolve_overrides(
                     def make_random_datetime(
                         s: datetime = start, e: datetime = end
                     ) -> datetime:
+                        # When end <= start, returns start (no valid range to sample).
                         delta = e - s
                         if delta.total_seconds() <= 0:
                             return s
