@@ -18,15 +18,18 @@ def resolve_overrides(
     output_model: type[BaseModel],
     input_model: type[BaseModel],
     input_instance: BaseModel,
+    seed: int | None = None,
 ) -> dict[str, Any]:
     """
     Build a dict of field overrides for the output model based on
     dependency metadata and the validated input instance.
 
     Returns mapping: field_name -> value or callable() -> value.
+    When seed is set, DateRangeFrom uses a seeded RNG for determinism.
     """
     overrides: dict[str, Any] = {}
     input_data = input_instance.model_dump()
+    rng = random.Random(seed) if seed is not None else random
 
     for name in output_model.model_fields:
         meta = get_field_metadata(output_model, name)
@@ -47,15 +50,18 @@ def resolve_overrides(
                 start = _to_datetime(start_val)
                 end = _to_datetime(end_val)
                 if start is not None and end is not None:
+                    _rng = rng
 
                     def make_random_datetime(
-                        s: datetime = start, e: datetime = end
+                        s: datetime = start,
+                        e: datetime = end,
+                        r: Any = _rng,
                     ) -> datetime:
                         # When end <= start, returns start (no valid range to sample).
                         delta = e - s
                         if delta.total_seconds() <= 0:
                             return s
-                        sec = random.uniform(0, delta.total_seconds())
+                        sec = r.uniform(0, delta.total_seconds())
                         return s + timedelta(seconds=sec)
 
                     overrides[name] = make_random_datetime

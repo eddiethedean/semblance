@@ -178,12 +178,12 @@ integration tests
 
 **Goal:** Real-world testing usefulness
 
--   [ ] POST endpoints with body models
--   [ ] Path parameter support
--   [ ] Pagination helpers
--   [ ] Deterministic seeding
--   [ ] Error response simulation
--   [ ] Response count / limit constraints
+-   [x] POST endpoints with body models
+-   [x] Path parameter support
+-   [x] Pagination helpers
+-   [x] Deterministic seeding
+-   [x] Error response simulation
+-   [x] Response count / limit constraints
 
 ------------------------------------------------------------------------
 

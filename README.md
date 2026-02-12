@@ -62,13 +62,14 @@ data = r.json()
 assert all(u["name"] == "testuser" for u in data)
 ```
 
-## Phase 1 (MVP) status
+## Phase 1 & 2 status
 
-- SemblanceAPI core
-- GET endpoints with query parameter inputs
-- Single and list outputs
-- `FromInput` and `DateRangeFrom` links
-- Polyfactory integration and FastAPI app export
-- Basic pytest client (`semblance.test_client(app)`)
+- SemblanceAPI core, GET and POST endpoints
+- Query parameter and body inputs, path parameters (`/users/{id}`)
+- Single, list, and `PaginatedResponse[Model]` outputs
+- `FromInput`, `DateRangeFrom`, `PageParams`, `PaginatedResponse`
+- `list_count="limit"` to bind list length to input
+- Deterministic seeding: `SemblanceAPI(seed=42)` or `seed_from="seed"`
+- Error simulation: `error_rate=0.1`, `error_codes=[404, 500]`
 
 See [docs/semblance_planning_and_roadmap.md](docs/semblance_planning_and_roadmap.md) for full roadmap.
