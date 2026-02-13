@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-02-13
+
+### Added
+
+- GitHub Actions CI (test matrix, ruff, mypy, bandit, pip-audit)
+- Release workflow with PyPI publish on version tags
+- Pre-commit hooks (ruff, pre-commit-hooks)
+- CONTRIBUTING.md, SECURITY.md, LICENSE.md
+- Bandit and pip-audit in dev dependencies
+
+### Changed
+
+- README: Ruff badge, GitHub links, CONTRIBUTING reference
+- Development Status: Alpha to Beta
+- Package metadata: authors, license, project URLs
+
 ## [0.1.0] - 2025-02-13
 
 ### Added
@@ -42,5 +58,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.1.0
