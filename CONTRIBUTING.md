@@ -49,6 +49,17 @@ Before submitting a pull request, ensure the following pass:
   pip-audit
   ```
 
+## Building documentation
+
+Documentation is built with MkDocs and hosted on [Read the Docs](https://semblance.readthedocs.io/). To build locally:
+
+```bash
+pip install -e ".[docs]"
+mkdocs serve
+```
+
+Open http://127.0.0.1:8000 to preview. Read the Docs builds from `.readthedocs.yaml` on each push.
+
 ## Submitting Changes
 
 1. Create a branch from `main` for your changes

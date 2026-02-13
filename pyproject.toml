@@ -48,7 +48,7 @@ docs = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/eddiethedean/semblance#readme"
+Documentation = "https://semblance.readthedocs.io/"
 Repository = "https://github.com/eddiethedean/semblance"
 
 [tool.setuptools.packages.find]

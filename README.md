@@ -1,6 +1,7 @@
 # Semblance
 
 [![PyPI](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
+[![Read the Docs](https://readthedocs.org/projects/semblance/badge/?version=latest)](https://semblance.readthedocs.io/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -190,6 +191,8 @@ class User(BaseModel):
 | **OpenAPI** | summary, description, tags on endpoints |
 
 ## Documentation
+
+Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.io/)**
 
 - [Getting Started](https://github.com/eddiethedean/semblance/blob/main/docs/guides/getting-started.md)
 - [Input and Output Binding](https://github.com/eddiethedean/semblance/blob/main/docs/guides/input-output-binding.md)

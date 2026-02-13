@@ -1,6 +1,6 @@
 site_name: Semblance
 site_description: Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory
-site_url: https://github.com/eddiethedean/semblance
+site_url: https://semblance.readthedocs.io/
 
 theme:
   name: material
