@@ -111,7 +111,7 @@ semblance export fixtures app:api [-o DIR]
 
 ## Examples
 
-Runnable examples in [examples/](examples/):
+Runnable examples in [examples/](https://github.com/eddiethedean/semblance/tree/main/examples):
 
 ```bash
 semblance run examples.basic.app:api --port 8000
@@ -123,11 +123,11 @@ semblance run examples.advanced.app:api --port 8000
 
 | Example | Description |
 |---------|-------------|
-| [basic](examples/basic/) | Minimal GET list with FromInput, DateRangeFrom |
-| [pagination](examples/pagination/) | PageParams, PaginatedResponse |
-| [nested](examples/nested/) | Nested model linking |
-| [stateful](examples/stateful/) | POST stores items, GET returns stored list |
-| [advanced](examples/advanced/) | WhenInput, ComputedFrom, filter_by |
+| [basic](https://github.com/eddiethedean/semblance/tree/main/examples/basic) | Minimal GET list with FromInput, DateRangeFrom |
+| [pagination](https://github.com/eddiethedean/semblance/tree/main/examples/pagination) | PageParams, PaginatedResponse |
+| [nested](https://github.com/eddiethedean/semblance/tree/main/examples/nested) | Nested model linking |
+| [stateful](https://github.com/eddiethedean/semblance/tree/main/examples/stateful) | POST stores items, GET returns stored list |
+| [advanced](https://github.com/eddiethedean/semblance/tree/main/examples/advanced) | WhenInput, ComputedFrom, filter_by |
 
 ## Testing
 
@@ -187,19 +187,19 @@ class User(BaseModel):
 
 ## Documentation
 
-- [Getting Started](docs/guides/getting-started.md)
-- [Input and Output Binding](docs/guides/input-output-binding.md)
-- [Advanced Links](docs/guides/advanced-links.md)
-- [Pagination](docs/guides/pagination.md)
-- [Testing](docs/guides/testing.md)
-- [Simulation Options](docs/guides/simulation-options.md)
-- [Stateful Mode](docs/guides/stateful-mode.md)
-- [Roadmap](docs/roadmap.md)
-- [API Reference](docs/api/index.md)
+- [Getting Started](https://github.com/eddiethedean/semblance/blob/main/docs/guides/getting-started.md)
+- [Input and Output Binding](https://github.com/eddiethedean/semblance/blob/main/docs/guides/input-output-binding.md)
+- [Advanced Links](https://github.com/eddiethedean/semblance/blob/main/docs/guides/advanced-links.md)
+- [Pagination](https://github.com/eddiethedean/semblance/blob/main/docs/guides/pagination.md)
+- [Testing](https://github.com/eddiethedean/semblance/blob/main/docs/guides/testing.md)
+- [Simulation Options](https://github.com/eddiethedean/semblance/blob/main/docs/guides/simulation-options.md)
+- [Stateful Mode](https://github.com/eddiethedean/semblance/blob/main/docs/guides/stateful-mode.md)
+- [Roadmap](https://github.com/eddiethedean/semblance/blob/main/docs/roadmap.md)
+- [API Reference](https://github.com/eddiethedean/semblance/blob/main/docs/api/index.md)
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and contribution guidelines.
+See [CONTRIBUTING.md](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
 
 ```bash
 git clone https://github.com/eddiethedean/semblance.git
