@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-commit hooks (ruff, pre-commit-hooks)
 - CONTRIBUTING.md, SECURITY.md, LICENSE.md
 - Bandit and pip-audit in dev dependencies
+- CLI guide and Plugins guide
+- Error-simulation and plugins example galleries with runnable scripts
 
 ### Changed
 
