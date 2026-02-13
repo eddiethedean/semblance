@@ -44,6 +44,7 @@ def test_build_response_single_with_seed():
 
 def test_pagination_limit_offset_fallback_on_invalid_limit():
     """Pagination uses fallback when limit cannot be coerced to int."""
+
     class BadLimitQuery(BaseModel):
         limit: str = "not-a-number"
         offset: int = 0
@@ -61,6 +62,7 @@ def test_pagination_limit_offset_fallback_on_invalid_limit():
 
 def test_pagination_limit_offset_fallback_on_invalid_offset():
     """Pagination uses fallback when offset cannot be coerced to int."""
+
     class BadOffsetQuery(BaseModel):
         limit: int = 5
         offset: str = "invalid"
@@ -95,8 +97,9 @@ def test_build_response_list_output():
 
 def test_evaluate_overrides_callable_path():
     """build_one evaluates callables from DateRangeFrom in overrides."""
-    query = UserQuery(name="callable_test", start_date=date(2024, 1, 1), end_date=date(2024, 12, 31))
+    query = UserQuery(
+        name="callable_test", start_date=date(2024, 1, 1), end_date=date(2024, 12, 31)
+    )
     result = build_one(User, UserQuery, query)
     assert result.name == "callable_test"
     assert result.created_at is not None
-

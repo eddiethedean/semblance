@@ -53,9 +53,7 @@ def build_one(
     seed: int | None = None,
 ) -> BaseModel:
     """Build a single instance of output_model with dependencies from input_instance."""
-    overrides = resolve_overrides(
-        output_model, input_model, input_instance, seed=seed
-    )
+    overrides = resolve_overrides(output_model, input_model, input_instance, seed=seed)
     resolved = _evaluate_overrides(overrides, seed=seed)
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
@@ -72,9 +70,7 @@ def build_list(
     filter_by: str | None = None,
 ) -> list[BaseModel]:
     """Build a list of instances of output_model with dependencies from input_instance."""
-    overrides = resolve_overrides(
-        output_model, input_model, input_instance, seed=seed
-    )
+    overrides = resolve_overrides(output_model, input_model, input_instance, seed=seed)
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
         factory_class.seed_random(seed)
@@ -168,7 +164,11 @@ def build_response(
                 "Use list[SomeModel] where SomeModel is a Pydantic BaseModel."
             )
         return build_list(
-            model, input_model, input_instance, count=list_count, seed=seed,
+            model,
+            input_model,
+            input_instance,
+            count=list_count,
+            seed=seed,
             filter_by=filter_by,
         )
 

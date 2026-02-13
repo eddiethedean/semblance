@@ -20,7 +20,10 @@ def _get_routes(app: Any) -> list[tuple[str, str, str]]:
         if hasattr(route, "path") and hasattr(route, "methods"):
             for method in route.methods - {"HEAD", "OPTIONS"}:
                 route_id = (
-                    route.path.strip("/").replace("/", "_").replace("{", "").replace("}", "")
+                    route.path.strip("/")
+                    .replace("/", "_")
+                    .replace("{", "")
+                    .replace("}", "")
                     or "root"
                 )
                 routes.append((route.path, method, f"{route_id}_{method}"))
@@ -98,12 +101,13 @@ def export_fixtures(app: Any, output_path: str | Path) -> None:
                 sample = _sample_request(client, path, method.upper())
                 if sample is not None:
                     route_id = (
-                        path.strip("/").replace("/", "_").replace("{", "").replace("}", "")
+                        path.strip("/")
+                        .replace("/", "_")
+                        .replace("{", "")
+                        .replace("}", "")
                         or "root"
                     )
                     filename = f"{route_id}_{method.upper()}.json"
-                    (output_dir / filename).write_text(
-                        json.dumps(sample, indent=2)
-                    )
+                    (output_dir / filename).write_text(json.dumps(sample, indent=2))
 
     (output_dir / "openapi.json").write_text(json.dumps(schema, indent=2))

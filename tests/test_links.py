@@ -3,7 +3,6 @@
 from datetime import date, datetime
 from typing import Annotated
 
-import pytest
 from pydantic import BaseModel
 
 from semblance.links import DateRangeFrom, FromInput, get_field_metadata
@@ -42,6 +41,7 @@ def test_no_metadata_returns_none():
 
 def test_get_field_metadata_fallback_to_model_fields():
     """get_field_metadata falls back to model_fields when get_type_hints fails."""
+
     # Create a model that might trigger fallback (e.g. forward ref or edge case)
     # When get_type_hints fails, we fall back to model_fields[field].annotation
     class ModelWithAnnotation(BaseModel):

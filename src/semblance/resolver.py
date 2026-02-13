@@ -66,7 +66,10 @@ def resolve_overrides(
                 nested_overrides = resolve_overrides(
                     nested_model, input_model, input_instance, seed=seed
                 )
-                overrides[name] = {"_nested": nested_model, "_overrides": nested_overrides}
+                overrides[name] = {
+                    "_nested": nested_model,
+                    "_overrides": nested_overrides,
+                }
                 continue
 
         meta = get_field_metadata(output_model, name)

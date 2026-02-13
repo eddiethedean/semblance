@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from semblance import SemblanceAPI, test_client
+from semblance import SemblanceAPI
 from semblance.cli import _load_app, cmd_export_fixtures, cmd_export_openapi
 
 from tests.example_models import User, UserQuery
@@ -15,7 +15,6 @@ from tests.example_models import User, UserQuery
 class TestLoadApp:
     def test_load_semblance_api(self):
         app = _load_app("tests.sample_app:api")
-        from fastapi import FastAPI
 
         assert hasattr(app, "openapi")
 
@@ -40,7 +39,11 @@ class TestLoadApp:
 
 class TestExportOpenAPI:
     def test_export_stdout(self, capsys):
-        args = type("Args", (), {"app": "tests.sample_app:app", "output": None, "include_examples": False})()
+        args = type(
+            "Args",
+            (),
+            {"app": "tests.sample_app:app", "output": None, "include_examples": False},
+        )()
         cmd_export_openapi(args)
         out, _ = capsys.readouterr()
         schema = json.loads(out)
@@ -52,7 +55,15 @@ class TestExportOpenAPI:
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             path = f.name
         try:
-            args = type("Args", (), {"app": "tests.sample_app:app", "output": path, "include_examples": False})()
+            args = type(
+                "Args",
+                (),
+                {
+                    "app": "tests.sample_app:app",
+                    "output": path,
+                    "include_examples": False,
+                },
+            )()
             cmd_export_openapi(args)
             schema = json.load(open(path))
             assert "/users" in schema["paths"]

@@ -2,6 +2,7 @@
 Run all documentation examples and print real outputs.
 Used to verify examples work and capture output for docs.
 """
+
 import json
 import sys
 
@@ -26,6 +27,7 @@ from semblance import (
 
 def example_quick_start():
     """README / Getting Started quick start."""
+
     class UserQuery(BaseModel):
         name: str = "alice"
         start_date: date = date(2020, 1, 1)
@@ -48,6 +50,7 @@ def example_quick_start():
 
 def example_when_input():
     """Advanced Links: WhenInput."""
+
     class UserWithStatus(BaseModel):
         name: Annotated[str, FromInput("name")]
         status: Annotated[str, WhenInput("include_status", True, FromInput("status"))]
@@ -67,6 +70,7 @@ def example_when_input():
 
 def example_computed_from():
     """Advanced Links: ComputedFrom."""
+
     class UserWithFullName(BaseModel):
         first: Annotated[str, FromInput("first")]
         last: Annotated[str, FromInput("last")]
@@ -86,6 +90,7 @@ def example_computed_from():
 
 def example_nested_model():
     """Advanced Links: Nested model."""
+
     class Address(BaseModel):
         city: Annotated[str, FromInput("city")]
 
@@ -107,6 +112,7 @@ def example_nested_model():
 
 def example_pagination():
     """Pagination: PageParams, PaginatedResponse."""
+
     class User(BaseModel):
         name: Annotated[str, FromInput("name")]
 
@@ -123,6 +129,7 @@ def example_pagination():
 
 def example_stateful():
     """Stateful mode."""
+
     class CreateUser(BaseModel):
         name: str
 

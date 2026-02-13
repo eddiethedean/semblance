@@ -30,7 +30,12 @@ class QueryWithCity(BaseModel):
 api = SemblanceAPI()
 
 
-@api.get("/user", input=QueryWithCity, output=UserWithAddress, summary="Get user with address")
+@api.get(
+    "/user",
+    input=QueryWithCity,
+    output=UserWithAddress,
+    summary="Get user with address",
+)
 def user():
     """Returns user with nested address; city comes from query."""
     pass

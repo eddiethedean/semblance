@@ -2,7 +2,6 @@
 
 from typing import Annotated
 
-import pytest
 from pydantic import BaseModel
 
 from semblance import SemblanceAPI, register_link, test_client
@@ -17,6 +16,7 @@ class FromEnv:
 
     def resolve(self, input_data: dict, rng) -> str | None:
         import os
+
         return os.environ.get(self.env_var)
 
 
@@ -43,7 +43,9 @@ def test_custom_link_resolve():
     register_link(FromEnv)
     try:
         import os
+
         os.environ["TEST_VAR"] = "custom_value"
+
         class Query(BaseModel):
             name: str = "alice"
 
@@ -60,6 +62,7 @@ def test_custom_link_resolve():
         assert data["name"] == "custom_value"
     finally:
         import os
+
         os.environ.pop("TEST_VAR", None)
 
 

@@ -1,6 +1,5 @@
 """Tests for Phase 2 features: POST, path params, pagination, seeding, errors."""
 
-import pytest
 from semblance import (
     PageParams,
     PaginatedResponse,
@@ -62,22 +61,15 @@ def test_get_with_path_param():
 
 def test_list_count_from_input():
     """list_count='limit' uses input field for list length."""
-    api = SemblanceAPI()
-    api.get("/users", input=UserQuery, output=list[User], list_count="limit")(
-        lambda: None
-    )
-    app = api.as_fastapi()
-    client = client_for(app)
-
     class UserQueryWithLimit(BaseModel):
         name: str = "alice"
         limit: int = 3
 
     # Need input model with limit - UserQuery doesn't have limit
     api2 = SemblanceAPI()
-    api2.get("/users2", input=UserQueryWithLimit, output=list[User], list_count="limit")(
-        lambda: None
-    )
+    api2.get(
+        "/users2", input=UserQueryWithLimit, output=list[User], list_count="limit"
+    )(lambda: None)
     app2 = api2.as_fastapi()
     client2 = client_for(app2)
     r = client2.get("/users2?name=x&limit=4")
@@ -89,9 +81,7 @@ def test_list_count_from_input():
 def test_paginated_response():
     """PaginatedResponse[User] returns items, total, limit, offset."""
     api = SemblanceAPI()
-    api.get("/users", input=UserListQuery, output=PaginatedResponse[User])(
-        lambda: None
-    )
+    api.get("/users", input=UserListQuery, output=PaginatedResponse[User])(lambda: None)
     app = api.as_fastapi()
     client = client_for(app)
     r = client.get("/users?name=paged&limit=3&offset=1")
@@ -123,6 +113,7 @@ def test_deterministic_seed():
 
 def test_seed_from_input():
     """seed_from='seed' uses query param for determinism."""
+
     class UserQueryWithSeed(BaseModel):
         name: str = "alice"
         seed: int | None = None
@@ -174,6 +165,7 @@ def test_error_rate_one_returns_errors():
 
 def test_post_with_path_param():
     """POST /users/{id} with path param merges path into body for build_response."""
+
     class CreateUserWithId(BaseModel):
         id: str = ""
         name: str
@@ -190,6 +182,7 @@ def test_post_with_path_param():
 
 def test_post_with_seed_from_input():
     """seed_from='seed' uses body field for determinism on POST."""
+
     class CreateWithSeed(BaseModel):
         name: str
         seed: int | None = None
@@ -213,6 +206,7 @@ def test_post_with_seed_from_input():
 
 def test_list_count_fallback_when_field_invalid():
     """list_count='limit' falls back to 5 when limit cannot be coerced to int."""
+
     class QueryWithInvalidLimit(BaseModel):
         name: str = "x"
         limit: str = "not-a-number"

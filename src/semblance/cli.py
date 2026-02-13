@@ -33,9 +33,7 @@ def _load_app(path: str):
     spec.loader.exec_module(module)
 
     if not hasattr(module, attr):
-        raise SystemExit(
-            f"Attribute {attr!r} not found in module {module_path!r}"
-        )
+        raise SystemExit(f"Attribute {attr!r} not found in module {module_path!r}")
 
     app = getattr(module, attr)
     if hasattr(app, "as_fastapi"):
@@ -47,26 +45,26 @@ def cmd_run(args: argparse.Namespace) -> None:
     """Run a Semblance app with uvicorn."""
     if args.reload:
         cmd = [
-            sys.executable, "-m", "uvicorn",
+            sys.executable,
+            "-m",
+            "uvicorn",
             args.app,
-            "--host", args.host,
-            "--port", str(args.port),
+            "--host",
+            args.host,
+            "--port",
+            str(args.port),
             "--reload",
         ]
         try:
             subprocess.run(cmd, check=True)
         except FileNotFoundError:
-            raise SystemExit(
-                "uvicorn not found. Install with: pip install uvicorn"
-            )
+            raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
     else:
         app = _load_app(args.app)
         try:
             import uvicorn
         except ImportError:
-            raise SystemExit(
-                "uvicorn not found. Install with: pip install uvicorn"
-            )
+            raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
         uvicorn.run(app, host=args.host, port=args.port)
 
 
@@ -113,8 +111,12 @@ def main() -> None:
         "app",
         help="Module:attr path (e.g. app:api). If attr has as_fastapi(), it is called.",
     )
-    run_parser.add_argument("--host", default="127.0.0.1", help="Host (default: 127.0.0.1)")
-    run_parser.add_argument("--port", type=int, default=8000, help="Port (default: 8000)")
+    run_parser.add_argument(
+        "--host", default="127.0.0.1", help="Host (default: 127.0.0.1)"
+    )
+    run_parser.add_argument(
+        "--port", type=int, default=8000, help="Port (default: 8000)"
+    )
     run_parser.add_argument("--reload", action="store_true", help="Enable reload")
     run_parser.set_defaults(func=cmd_run)
 
@@ -124,12 +126,16 @@ def main() -> None:
     openapi_parser = export_sub.add_parser("openapi", help="Export OpenAPI schema")
     openapi_parser.add_argument("app", help="Module:attr path (e.g. app:api)")
     openapi_parser.add_argument("-o", "--output", help="Output file (- for stdout)")
-    openapi_parser.add_argument("--examples", dest="include_examples", action="store_true")
+    openapi_parser.add_argument(
+        "--examples", dest="include_examples", action="store_true"
+    )
     openapi_parser.set_defaults(func=cmd_export_openapi)
 
     fixtures_parser = export_sub.add_parser("fixtures", help="Export fixtures")
     fixtures_parser.add_argument("app", help="Module:attr path (e.g. app:api)")
-    fixtures_parser.add_argument("-o", "--output", default="fixtures", help="Output directory")
+    fixtures_parser.add_argument(
+        "-o", "--output", default="fixtures", help="Output directory"
+    )
     fixtures_parser.set_defaults(func=cmd_export_fixtures)
 
     args = parser.parse_args()

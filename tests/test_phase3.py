@@ -3,7 +3,6 @@
 import time
 from typing import Annotated
 
-import pytest
 from pydantic import BaseModel
 
 from semblance import (
@@ -47,6 +46,7 @@ def test_latency_zero_no_delay():
 
 def test_when_input_condition_met_applies_link():
     """WhenInput applies inner link when condition is met."""
+
     class UserWithStatus(BaseModel):
         name: Annotated[str, FromInput("name")]
         status: Annotated[str, WhenInput("include_status", True, FromInput("status"))]
@@ -85,6 +85,7 @@ def test_when_input_condition_not_met_uses_generated():
 
 def test_nested_model_linking():
     """Nested model with FromInput resolves links from input."""
+
     class Address(BaseModel):
         city: Annotated[str, FromInput("city")]
 
@@ -110,6 +111,7 @@ def test_nested_model_linking():
 
 def test_computed_from():
     """ComputedFrom computes field from other output fields."""
+
     class UserWithFullName(BaseModel):
         first: Annotated[str, FromInput("first")]
         last: Annotated[str, FromInput("last")]
@@ -134,6 +136,7 @@ def test_computed_from():
 
 def test_filter_by():
     """filter_by filters list items to those matching input field."""
+
     class UserWithStatus(BaseModel):
         name: Annotated[str, FromInput("name")]
         status: Annotated[str, FromInput("status")]
@@ -164,6 +167,7 @@ def test_filter_by():
 
 def test_stateful_mode():
     """Stateful mode: POST creates and stores; GET returns stored."""
+
     class CreateUser(BaseModel):
         name: str
 

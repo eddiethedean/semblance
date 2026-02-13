@@ -1,16 +1,39 @@
 # Semblance
 
+[![PyPI](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Schema-driven REST API simulation** with FastAPI, Pydantic, and Polyfactory.
 
-Define API behavior declaratively using schemas and dependency metadata—no endpoint logic required.
+Define API behavior declaratively using schemas and dependency metadata—no endpoint logic required. Semblance is built for **contract testing**, **prototyping**, **frontend development**, and **integration testing** against realistic API simulators.
 
-## Install
+## Features
+
+- **Zero endpoint logic** — Schemas and link metadata define responses
+- **FastAPI-native** — Full OpenAPI, validation, async
+- **Deterministic** — Seeded generation for reproducible tests
+- **Extensible** — Custom link types via plugins
+- **Production-ready** — Error simulation, latency, pagination, stateful mode
+
+## Requirements
+
+- Python 3.10+
+- FastAPI, Pydantic, Polyfactory, Uvicorn (installed with semblance)
+
+## Installation
 
 ```bash
 pip install semblance
 ```
 
-Requires Python 3.10+.
+From source (development):
+
+```bash
+git clone https://github.com/eddiethedean/semblance.git
+cd semblance
+pip install -e ".[dev]"
+```
 
 ## Quick Start
 
@@ -63,6 +86,15 @@ curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024
 
 Responses are generated from your output model: `name` comes from the query, `created_at` is random in the date range.
 
+## Use Cases
+
+| Use Case | Description |
+|----------|-------------|
+| **Contract testing** | Validate client behavior against a schema-accurate mock |
+| **Frontend development** | Run a mock API for UI work without a backend |
+| **Prototyping** | Ship realistic API shapes before implementation |
+| **Integration tests** | Deterministic, isolated API simulators in CI |
+
 ## CLI
 
 ```bash
@@ -110,6 +142,13 @@ data = r.json()
 assert all(u["name"] == "testuser" for u in data)
 ```
 
+Deterministic seeding for reproducible tests:
+
+```python
+api = SemblanceAPI(seed=42)
+# or per-endpoint: seed_from="seed" with a query param
+```
+
 ## Plugins
 
 Register custom link types:
@@ -131,6 +170,20 @@ class User(BaseModel):
     name: Annotated[str, FromEnv("USER_NAME")]
 ```
 
+## API Overview
+
+| Feature | Description |
+|---------|-------------|
+| **SemblanceAPI** | GET and POST endpoints with input/output models |
+| **Links** | FromInput, DateRangeFrom, WhenInput, ComputedFrom |
+| **Pagination** | PageParams, PaginatedResponse[T] |
+| **Seeding** | `SemblanceAPI(seed=42)` or `seed_from="seed"` |
+| **Error simulation** | `error_rate`, `error_codes` |
+| **Latency** | `latency_ms`, `jitter_ms` |
+| **Filtering** | `filter_by` for list endpoints |
+| **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores, GET returns stored |
+| **OpenAPI** | summary, description, tags on endpoints |
+
 ## Documentation
 
 - [Getting Started](docs/guides/getting-started.md)
@@ -143,15 +196,15 @@ class User(BaseModel):
 - [Roadmap](docs/roadmap.md)
 - [API Reference](docs/api/index.md)
 
-## Features
+## Development
 
-- **SemblanceAPI** – GET and POST endpoints with input/output models
-- **Links** – FromInput, DateRangeFrom, WhenInput, ComputedFrom
-- **Pagination** – PageParams, PaginatedResponse[T]
-- **Deterministic seeding** – `SemblanceAPI(seed=42)` or `seed_from="seed"`
-- **Error simulation** – `error_rate`, `error_codes`
-- **Latency** – `latency_ms`, `jitter_ms`
-- **Filtering** – `filter_by` for list endpoints
-- **Stateful mode** – POST stores, GET returns stored
-- **OpenAPI** – summary, description, tags on endpoints
-- **Plugins** – custom link types via `register_link`
+```bash
+git clone https://github.com/eddiethedean/semblance.git
+cd semblance
+pip install -e ".[dev]"
+pytest tests/ -v
+```
+
+## License
+
+MIT License.

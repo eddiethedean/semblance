@@ -92,9 +92,7 @@ class SemblanceAPI:
             return stored instances instead of generating new ones.
     """
 
-    def __init__(
-        self, seed: int | None = None, stateful: bool = False
-    ) -> None:
+    def __init__(self, seed: int | None = None, stateful: bool = False) -> None:
         self._specs: list[EndpointSpec] = []
         self._seed = seed
         self._store: StatefulStore | None = StatefulStore() if stateful else None
@@ -131,8 +129,20 @@ class SemblanceAPI:
                 pass
         """
         return self._register(
-            path, "GET", input, output, list_count, seed_from, error_rate, error_codes,
-            latency_ms, jitter_ms, filter_by, summary, description, tags,
+            path,
+            "GET",
+            input,
+            output,
+            list_count,
+            seed_from,
+            error_rate,
+            error_codes,
+            latency_ms,
+            jitter_ms,
+            filter_by,
+            summary,
+            description,
+            tags,
         )
 
     def post(
@@ -162,8 +172,20 @@ class SemblanceAPI:
                 pass
         """
         return self._register(
-            path, "POST", input, output, list_count, seed_from, error_rate, error_codes,
-            latency_ms, jitter_ms, filter_by, summary, description, tags,
+            path,
+            "POST",
+            input,
+            output,
+            list_count,
+            seed_from,
+            error_rate,
+            error_codes,
+            latency_ms,
+            jitter_ms,
+            filter_by,
+            summary,
+            description,
+            tags,
         )
 
     def _register(
@@ -216,7 +238,9 @@ class SemblanceAPI:
             for method in spec.methods:
                 key = (spec.path, method)
                 if key in seen:
-                    raise ValueError(f"Duplicate {method} endpoint registered for path {spec.path!r}")
+                    raise ValueError(
+                        f"Duplicate {method} endpoint registered for path {spec.path!r}"
+                    )
                 seen.add(key)
                 if method == "GET":
                     self._register_get(app, spec)
@@ -324,7 +348,7 @@ class SemblanceAPI:
         else:
 
             async def handler(
-                query: Annotated[input_model, Query()]  # type: ignore[valid-type]
+                query: Annotated[input_model, Query()],  # type: ignore[valid-type]
             ) -> output_annotation:  # type: ignore[valid-type]
                 seed = self._resolve_seed(seed_from, query)
                 self._maybe_raise_error(error_rate, error_codes, seed)
@@ -392,7 +416,7 @@ class SemblanceAPI:
         else:
 
             async def handler(
-                body: input_model  # type: ignore[valid-type]
+                body: input_model,  # type: ignore[valid-type]
             ) -> output_annotation:  # type: ignore[valid-type]
                 seed = self._resolve_seed(seed_from, body)
                 self._maybe_raise_error(error_rate, error_codes, seed)

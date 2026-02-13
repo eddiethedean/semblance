@@ -81,7 +81,11 @@ def get_field_metadata(model_class: type, field_name: str) -> Any | None:
         hint = annotations.get(field_name)
     except Exception:
         pass
-    if hint is None and hasattr(model_class, "model_fields") and field_name in model_class.model_fields:
+    if (
+        hint is None
+        and hasattr(model_class, "model_fields")
+        and field_name in model_class.model_fields
+    ):
         hint = getattr(model_class.model_fields[field_name], "annotation", None)
     if hint is None:
         return None
