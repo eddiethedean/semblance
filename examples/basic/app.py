@@ -9,7 +9,6 @@ from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel
-
 from semblance import DateRangeFrom, FromInput, SemblanceAPI
 
 
@@ -34,7 +33,9 @@ class User(BaseModel):
 api = SemblanceAPI(seed=42)
 
 
-@api.get("/users", input=UserQuery, output=list[User], list_count=2, summary="List users")
+@api.get(
+    "/users", input=UserQuery, output=list[User], list_count=2, summary="List users"
+)
 def users():
     """Returns users with name from query and created_at in date range."""
     pass

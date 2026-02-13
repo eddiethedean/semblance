@@ -7,7 +7,6 @@ Run: semblance run examples.nested.app:api --port 8000
 from typing import Annotated
 
 from pydantic import BaseModel
-
 from semblance import FromInput, SemblanceAPI
 
 

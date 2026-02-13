@@ -10,7 +10,6 @@ Set USER_NAME env var to override the default:
 from typing import Annotated
 
 from pydantic import BaseModel
-
 from semblance import FromInput, SemblanceAPI, register_link
 
 
@@ -22,6 +21,7 @@ class FromEnv:
 
     def resolve(self, input_data: dict, rng):
         import os
+
         return os.environ.get(self.env_var)
 
 
