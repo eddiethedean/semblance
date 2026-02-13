@@ -71,11 +71,10 @@ def _get_paginated_inner(annotation: type) -> type[BaseModel] | None:
     except TypeError:
         return None
     # PaginatedResponse[User] has items: list[User]; extract User
-    items_annotation = getattr(
-        annotation.model_fields.get("items"),
-        "annotation",
-        None,
-    )
+    items_field = annotation.model_fields.get("items")
+    if items_field is None:
+        return None
+    items_annotation = getattr(items_field, "annotation", None)
     if items_annotation is None:
         return None
     origin = get_origin(items_annotation)
@@ -101,8 +100,14 @@ def build_response(
     inner = _get_paginated_inner(output_annotation)
     if inner is not None:
         input_data = input_instance.model_dump()
-        limit = int(input_data.get("limit", 10))
-        offset = int(input_data.get("offset", 0))
+        try:
+            limit = int(input_data.get("limit", 10))
+        except (TypeError, ValueError):
+            limit = 10
+        try:
+            offset = int(input_data.get("offset", 0))
+        except (TypeError, ValueError):
+            offset = 0
         limit = max(1, limit)
         offset = max(0, offset)
         all_items = build_list(

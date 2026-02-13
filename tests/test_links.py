@@ -38,3 +38,20 @@ def test_date_range_from_metadata():
 def test_no_metadata_returns_none():
     # UserQuery has no Annotated links
     assert get_field_metadata(UserQuery, "name") is None
+
+
+def test_get_field_metadata_fallback_to_model_fields():
+    """get_field_metadata falls back to model_fields when get_type_hints fails."""
+    # Create a model that might trigger fallback (e.g. forward ref or edge case)
+    # When get_type_hints fails, we fall back to model_fields[field].annotation
+    class ModelWithAnnotation(BaseModel):
+        x: Annotated[int, "custom"] = 0
+
+    # Field without Semblance metadata - should return None
+    meta = get_field_metadata(ModelWithAnnotation, "x")
+    assert meta is None
+
+
+def test_get_field_metadata_field_not_in_model_returns_none():
+    """get_field_metadata returns None for non-existent field."""
+    assert get_field_metadata(User, "nonexistent") is None

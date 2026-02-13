@@ -8,7 +8,7 @@ and exports a FastAPI application that validates input and generates responses.
 import random
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
@@ -19,8 +19,6 @@ from semblance.factory import build_response
 def _parse_path_params(path: str) -> list[str]:
     """Extract path param names from template, e.g. '/users/{id}' -> ['id']."""
     return re.findall(r"\{(\w+)\}", path)
-
-T = TypeVar("T", bound=BaseModel)
 
 
 class EndpointSpec:

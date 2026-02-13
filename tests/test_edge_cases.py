@@ -47,6 +47,20 @@ def test_duplicate_path_raises():
         api.as_fastapi()
 
 
+def test_duplicate_post_path_raises():
+    """Registering the same POST path twice raises ValueError when building the app."""
+    from pydantic import BaseModel
+
+    class CreateRequest(BaseModel):
+        name: str
+
+    api = SemblanceAPI()
+    api.post("/users", input=CreateRequest, output=User)(lambda: None)
+    api.post("/users", input=CreateRequest, output=User)(lambda: None)
+    with pytest.raises(ValueError, match="Duplicate POST endpoint"):
+        api.as_fastapi()
+
+
 @pytest.fixture
 def api():
     api = SemblanceAPI()
