@@ -1,0 +1,35 @@
+site_name: Semblance
+site_description: Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory
+site_url: https://github.com/yourusername/semblance
+
+theme:
+  name: material
+
+docs_dir: docs
+
+nav:
+  - Home: index.md
+  - Guides:
+    - Getting Started: guides/getting-started.md
+    - Input and Output Binding: guides/input-output-binding.md
+    - Pagination: guides/pagination.md
+    - Advanced Links: guides/advanced-links.md
+    - Stateful Mode: guides/stateful-mode.md
+    - Simulation Options: guides/simulation-options.md
+    - Testing: guides/testing.md
+  - Examples:
+    - Overview: examples/README.md
+    - Basic: examples/basic.md
+    - Pagination: examples/pagination.md
+    - Nested: examples/nested.md
+    - Stateful: examples/stateful.md
+    - Advanced: examples/advanced.md
+  - Roadmap: roadmap.md
+  - API Reference: api/index.md
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search

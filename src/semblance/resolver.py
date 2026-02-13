@@ -18,6 +18,7 @@ from semblance.links import (
     WhenInput,
     get_field_metadata,
 )
+from semblance.plugins import is_registered
 
 
 def _get_nested_model(field_annotation: Any) -> type[BaseModel] | None:
@@ -130,6 +131,11 @@ def resolve_overrides(
 
         elif isinstance(meta, ComputedFrom):
             overrides[name] = {"_computed": meta.fields, "_fn": meta.fn}
+
+        elif is_registered(meta):
+            val = meta.resolve(input_data, rng)
+            if val is not None:
+                overrides[name] = val
 
     return overrides
 

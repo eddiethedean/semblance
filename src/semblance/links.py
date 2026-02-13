@@ -79,7 +79,11 @@ def get_field_metadata(model_class: type, field_name: str) -> Any | None:
 
     # Annotated[T, x, y, ...] has __metadata__ as tuple of the extra args
     if hasattr(hint, "__metadata__"):
+        from semblance.plugins import is_registered
+
         for meta in hint.__metadata__:
             if isinstance(meta, (FromInput, DateRangeFrom, WhenInput, ComputedFrom)):
+                return meta
+            if is_registered(meta):
                 return meta
     return None

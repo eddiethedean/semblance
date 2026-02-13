@@ -39,6 +39,9 @@ class EndpointSpec:
         "latency_ms",
         "jitter_ms",
         "filter_by",
+        "summary",
+        "description",
+        "tags",
     )
 
     def __init__(
@@ -55,6 +58,9 @@ class EndpointSpec:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
     ):
         self.path = path
         self.methods = methods
@@ -68,6 +74,9 @@ class EndpointSpec:
         self.latency_ms = latency_ms
         self.jitter_ms = jitter_ms
         self.filter_by = filter_by
+        self.summary = summary
+        self.description = description
+        self.tags = tags
 
 
 class SemblanceAPI:
@@ -101,6 +110,9 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a GET endpoint. Query parameters are validated against `input`.
@@ -113,7 +125,7 @@ class SemblanceAPI:
         """
         return self._register(
             path, "GET", input, output, list_count, seed_from, error_rate, error_codes,
-            latency_ms, jitter_ms, filter_by,
+            latency_ms, jitter_ms, filter_by, summary, description, tags,
         )
 
     def post(
@@ -129,6 +141,9 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a POST endpoint. Request body is validated against `input`.
@@ -141,7 +156,7 @@ class SemblanceAPI:
         """
         return self._register(
             path, "POST", input, output, list_count, seed_from, error_rate, error_codes,
-            latency_ms, jitter_ms, filter_by,
+            latency_ms, jitter_ms, filter_by, summary, description, tags,
         )
 
     def _register(
@@ -157,6 +172,9 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self._specs.append(
@@ -173,6 +191,9 @@ class SemblanceAPI:
                     latency_ms=latency_ms,
                     jitter_ms=jitter_ms,
                     filter_by=filter_by,
+                    summary=summary,
+                    description=description,
+                    tags=tags,
                 )
             )
             return func
@@ -313,7 +334,14 @@ class SemblanceAPI:
                     filter_by=filter_by,
                 )
 
-        app.get(spec.path, response_model=output_annotation)(handler)
+        kwargs: dict[str, Any] = {"response_model": output_annotation}
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        app.get(spec.path, **kwargs)(handler)
 
     def _register_post(self, app: FastAPI, spec: EndpointSpec) -> None:
         input_model = spec.input_model
@@ -375,4 +403,11 @@ class SemblanceAPI:
                     response = store.add(path, response)
                 return response
 
-        app.post(spec.path, response_model=output_annotation)(handler)
+        kwargs: dict[str, Any] = {"response_model": output_annotation}
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        app.post(spec.path, **kwargs)(handler)
