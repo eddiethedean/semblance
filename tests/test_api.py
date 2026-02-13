@@ -62,9 +62,9 @@ def test_date_range_in_range(api):
 def test_seed_from_field_provides_determinism():
     """When seed_from is set, input field value is used as seed."""
     api = SemblanceAPI()
-    api.get("/users", input=UserQuery, output=list[User], list_count=2, seed_from="name")(
-        lambda: None
-    )
+    api.get(
+        "/users", input=UserQuery, output=list[User], list_count=2, seed_from="name"
+    )(lambda: None)
     client = client_for(api.as_fastapi())
     # seed_from="name" - name is str, not int; _resolve_seed tries int(val) and fails
     # so seed is None - test that it still works

@@ -16,7 +16,7 @@ r = client.get("/users?name=testuser")
 assert r.status_code == 200
 data = r.json()
 assert all(u["name"] == "testuser" for u in data)
-# data: [{"name": "testuser", "created_at": "2024-..."}, ...]
+# data: [{"name": "testuser", "created_at": "2024-08-21T09:22:43.516168"}, ...]
 ```
 
 `test_client` wraps your FastAPI app in Starlette's `TestClient`. No server process is started.

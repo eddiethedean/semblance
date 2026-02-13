@@ -35,6 +35,7 @@ Before submitting a pull request, ensure the following pass:
 - **Lint (ruff)**
   ```bash
   ruff check src tests
+  ruff format --check src tests
   ```
 
 - **Type check (mypy)**

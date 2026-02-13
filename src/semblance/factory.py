@@ -30,7 +30,9 @@ def _evaluate_overrides(
             nested_model = value["_nested"]
             nested_overrides = value["_overrides"]
             nested_resolved = _evaluate_overrides(nested_overrides, seed=seed)
-            factory_class: type[ModelFactory[Any]] = ModelFactory.create_factory(nested_model)
+            factory_class: type[ModelFactory[Any]] = ModelFactory.create_factory(
+                nested_model
+            )
             if seed is not None:
                 factory_class.seed_random(seed)
             result[key] = factory_class.build(**nested_resolved)

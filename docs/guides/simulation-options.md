@@ -57,6 +57,16 @@ def users():
 
 Only items whose `status` matches `input.status` are returned. Requires the output model to have a `status` field. Oversampling is used internally to approximate the requested list size.
 
+**Example output (`GET /users?name=x&status=active` with `list_count=3`, seed=1):**
+
+```json
+[
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"}
+]
+```
+
 ## Combining Options
 
 ```python

@@ -127,6 +127,120 @@ def example_pagination():
     return r.json()
 
 
+def example_filter_by():
+    """Simulation Options: filter_by."""
+
+    class UserWithStatus(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        status: Annotated[str, FromInput("status")]
+
+    class QueryWithStatus(BaseModel):
+        name: str = "alice"
+        status: str = "active"
+
+    api = SemblanceAPI(seed=1)
+    api.get(
+        "/users",
+        input=QueryWithStatus,
+        output=list[UserWithStatus],
+        list_count=3,
+        filter_by="status",
+    )(lambda: None)
+    app = api.as_fastapi()
+    client = test_client(app)
+    r = client.get("/users?name=x&status=active")
+    return r.json()
+
+
+def example_error_rate_success():
+    """Simulation Options: error_rate=0 (always success)."""
+
+    class User(BaseModel):
+        name: Annotated[str, FromInput("name")]
+
+    class UserQuery(BaseModel):
+        name: str = "alice"
+
+    api = SemblanceAPI(seed=99)
+    api.get(
+        "/users",
+        input=UserQuery,
+        output=list[User],
+        list_count=2,
+        error_rate=0,
+    )(lambda: None)
+    app = api.as_fastapi()
+    client = test_client(app)
+    r = client.get("/users?name=alice")
+    return r.json()
+
+
+def example_plugins_from_env():
+    """Plugins: FromEnv custom link."""
+
+    class FromEnv:
+        def __init__(self, env_var: str):
+            self.env_var = env_var
+
+        def resolve(self, input_data: dict, rng):
+            import os
+            return os.environ.get(self.env_var)
+
+    from semblance import register_link
+
+    register_link(FromEnv)
+
+    class User(BaseModel):
+        name: Annotated[str, FromEnv("USER_NAME")]
+        role: Annotated[str, FromInput("role")]
+
+    class UserQuery(BaseModel):
+        role: str = "viewer"
+
+    api = SemblanceAPI(seed=42)
+    api.get("/user", input=UserQuery, output=User)(lambda: None)
+    app = api.as_fastapi()
+    client = test_client(app)
+    import os
+    os.environ["USER_NAME"] = "DocBot"
+    try:
+        r = client.get("/user?role=admin")
+        return r.json()
+    finally:
+        os.environ.pop("USER_NAME", None)
+
+
+def example_plugins_random_choice():
+    """Plugins: RandomChoice custom link."""
+
+    class RandomChoice:
+        def __init__(self, field: str):
+            self.field = field
+
+        def resolve(self, input_data: dict, rng):
+            opts = input_data.get(self.field)
+            if opts and isinstance(opts, (list, tuple)):
+                return rng.choice(opts)
+            return None
+
+    from semblance import register_link
+
+    register_link(RandomChoice)
+
+    class Item(BaseModel):
+        choice: Annotated[str, RandomChoice("options")]
+
+    class QueryWithOptions(BaseModel):
+        options: list[str] = ["a", "b", "c"]
+
+    api = SemblanceAPI(seed=42)
+    api.get("/item", input=QueryWithOptions, output=Item)(lambda: None)
+    app = api.as_fastapi()
+    client = test_client(app)
+    r = client.get("/item?options=a&options=b&options=c")
+    return r.json()
+
+
 def example_stateful():
     """Stateful mode."""
 
@@ -149,15 +263,22 @@ def example_stateful():
     return {"create_alice": r1.json(), "create_bob": r2.json(), "list": r3.json()}
 
 
+EXAMPLES = [
+    ("quick_start", example_quick_start),
+    ("when_input", example_when_input),
+    ("computed_from", example_computed_from),
+    ("nested_model", example_nested_model),
+    ("pagination", example_pagination),
+    ("filter_by", example_filter_by),
+    ("error_rate_success", example_error_rate_success),
+    ("plugins_from_env", example_plugins_from_env),
+    ("plugins_random_choice", example_plugins_random_choice),
+    ("stateful", example_stateful),
+]
+
+
 def main():
-    examples = [
-        ("quick_start", example_quick_start),
-        ("when_input", example_when_input),
-        ("computed_from", example_computed_from),
-        ("nested_model", example_nested_model),
-        ("pagination", example_pagination),
-        ("stateful", example_stateful),
-    ]
+    examples = EXAMPLES
     results = {}
     for name, fn in examples:
         try:

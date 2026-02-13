@@ -248,12 +248,12 @@ class TestCmdExportNonFastAPI:
             cmd_export_fixtures(args)
 
 
-
-
 class TestMain:
     def test_main_export_openapi_via_argv(self, capsys):
         """main() with export openapi args dispatches to cmd_export_openapi."""
-        with patch.object(sys, "argv", ["semblance", "export", "openapi", "tests.sample_app:app"]):
+        with patch.object(
+            sys, "argv", ["semblance", "export", "openapi", "tests.sample_app:app"]
+        ):
             main()
         out, _ = capsys.readouterr()
         schema = json.loads(out)
@@ -265,7 +265,14 @@ class TestMain:
         with patch.object(
             sys,
             "argv",
-            ["semblance", "export", "fixtures", "tests.sample_app:app", "-o", str(tmp_path)],
+            [
+                "semblance",
+                "export",
+                "fixtures",
+                "tests.sample_app:app",
+                "-o",
+                str(tmp_path),
+            ],
         ):
             main()
         assert (tmp_path / "openapi.json").exists()
@@ -276,7 +283,15 @@ class TestMain:
         with patch.object(
             sys,
             "argv",
-            ["semblance", "run", "tests.sample_app:app", "--host", "0.0.0.0", "--port", "9999"],
+            [
+                "semblance",
+                "run",
+                "tests.sample_app:app",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "9999",
+            ],
         ):
             with patch("uvicorn.run") as mock_run:
                 main()
@@ -287,7 +302,14 @@ class TestMain:
     def test_cli_module_main_entrypoint(self):
         """Running semblance.cli as __main__ invokes main()."""
         result = subprocess.run(
-            [sys.executable, "-m", "semblance.cli", "export", "openapi", "tests.sample_app:app"],
+            [
+                sys.executable,
+                "-m",
+                "semblance.cli",
+                "export",
+                "openapi",
+                "tests.sample_app:app",
+            ],
             capture_output=True,
             text=True,
             cwd=Path(__file__).resolve().parent.parent,

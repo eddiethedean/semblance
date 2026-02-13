@@ -25,3 +25,5 @@ uvicorn examples.<name>.app:app --reload
 | [nested](nested.md) | Nested model linking |
 | [stateful](stateful.md) | POST stores items, GET returns stored list |
 | [advanced](advanced.md) | WhenInput, ComputedFrom, filter_by |
+| [error_simulation](error_simulation.md) | error_rate, error_codes |
+| [plugins](plugins.md) | Custom link (FromEnv) |

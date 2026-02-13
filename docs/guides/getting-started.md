@@ -59,7 +59,7 @@ uvicorn app:app --reload
 curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31"
 ```
 
-Example response:
+Example response (with default list_count=5; shown with `list_count=2` for brevity):
 
 ```json
 [
@@ -68,7 +68,7 @@ Example response:
 ]
 ```
 
-Each user's `name` comes from the query (`alice`), and `created_at` is a random datetime in the date range.
+*Output above is from `SemblanceAPI(seed=42)` and `list_count=2` for reproducibility. Each user's `name` comes from the query (`alice`), and `created_at` is a random datetime in the date range.*
 
 ## How It Works
 

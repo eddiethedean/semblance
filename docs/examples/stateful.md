@@ -19,6 +19,24 @@ curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -
 curl "http://127.0.0.1:8000/users?name=x"
 ```
 
+Example responses:
+
+```json
+// POST alice
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+
+// POST bob
+{"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+
+// GET /users
+[
+  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"},
+  {"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+]
+```
+
+*IDs are auto-generated UUIDs; values vary per run.*
+
 ## Concepts
 
 - **stateful=True** – SemblanceAPI stores POST responses

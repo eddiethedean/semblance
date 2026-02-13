@@ -16,6 +16,8 @@ nav:
     - Advanced Links: guides/advanced-links.md
     - Stateful Mode: guides/stateful-mode.md
     - Simulation Options: guides/simulation-options.md
+    - CLI: guides/cli.md
+    - Plugins: guides/plugins.md
     - Testing: guides/testing.md
   - Examples:
     - Overview: examples/README.md
@@ -24,6 +26,8 @@ nav:
     - Nested: examples/nested.md
     - Stateful: examples/stateful.md
     - Advanced: examples/advanced.md
+    - Error Simulation: examples/error_simulation.md
+    - Plugins: examples/plugins.md
   - Roadmap: roadmap.md
   - API Reference: api/index.md
 

@@ -21,6 +21,23 @@ curl "http://127.0.0.1:8000/user/fullname?first=Jane&last=Smith"
 curl "http://127.0.0.1:8000/users?name=x&status=active"
 ```
 
+Example responses:
+
+```json
+// GET /user/status?name=alice&include_status=true&status=active
+{"name": "alice", "status": "active"}
+
+// GET /user/fullname?first=Jane&last=Smith
+{"first": "Jane", "last": "Smith", "full": "Jane Smith"}
+
+// GET /users?name=x&status=active (filter_by)
+[
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"}
+]
+```
+
 ## Concepts
 
 - **WhenInput(cond, val, link)** – apply link only when cond matches

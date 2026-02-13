@@ -119,6 +119,8 @@ semblance run examples.pagination.app:api --port 8000
 semblance run examples.nested.app:api --port 8000
 semblance run examples.stateful.app:api --port 8000
 semblance run examples.advanced.app:api --port 8000
+semblance run examples.error_simulation.app:api --port 8000
+semblance run examples.plugins.app:api --port 8000
 ```
 
 | Example | Description |
@@ -128,6 +130,8 @@ semblance run examples.advanced.app:api --port 8000
 | [nested](https://github.com/eddiethedean/semblance/tree/main/examples/nested) | Nested model linking |
 | [stateful](https://github.com/eddiethedean/semblance/tree/main/examples/stateful) | POST stores items, GET returns stored list |
 | [advanced](https://github.com/eddiethedean/semblance/tree/main/examples/advanced) | WhenInput, ComputedFrom, filter_by |
+| [error_simulation](https://github.com/eddiethedean/semblance/tree/main/examples/error_simulation) | error_rate, error_codes |
+| [plugins](https://github.com/eddiethedean/semblance/tree/main/examples/plugins) | Custom link (FromEnv) |
 
 ## Testing
 
@@ -191,9 +195,11 @@ class User(BaseModel):
 - [Input and Output Binding](https://github.com/eddiethedean/semblance/blob/main/docs/guides/input-output-binding.md)
 - [Advanced Links](https://github.com/eddiethedean/semblance/blob/main/docs/guides/advanced-links.md)
 - [Pagination](https://github.com/eddiethedean/semblance/blob/main/docs/guides/pagination.md)
-- [Testing](https://github.com/eddiethedean/semblance/blob/main/docs/guides/testing.md)
 - [Simulation Options](https://github.com/eddiethedean/semblance/blob/main/docs/guides/simulation-options.md)
 - [Stateful Mode](https://github.com/eddiethedean/semblance/blob/main/docs/guides/stateful-mode.md)
+- [CLI](https://github.com/eddiethedean/semblance/blob/main/docs/guides/cli.md)
+- [Plugins](https://github.com/eddiethedean/semblance/blob/main/docs/guides/plugins.md)
+- [Testing](https://github.com/eddiethedean/semblance/blob/main/docs/guides/testing.md)
 - [Roadmap](https://github.com/eddiethedean/semblance/blob/main/docs/roadmap.md)
 - [API Reference](https://github.com/eddiethedean/semblance/blob/main/docs/api/index.md)
 

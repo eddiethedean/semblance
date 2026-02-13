@@ -43,12 +43,20 @@ curl -X POST http://127.0.0.1:8000/users -H "Content-Type: application/json" -d 
 curl http://127.0.0.1:8000/users
 ```
 
-Example responses (IDs are UUIDs, values vary per run):
+Example responses (IDs are auto-generated UUIDs):
 
 ```json
-# POST alice → {"id": "gSNnzxHPebRwNaxLlXUb", "name": "alice"}
-# POST bob   → {"id": "bCWtlvblwzmmlxpbRCHj", "name": "bob"}
-# GET /users → [{"id": "gSNnzxHPebRwNaxLlXUb", "name": "alice"}, {"id": "bCWtlvblwzmmlxpbRCHj", "name": "bob"}]
+// POST alice
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+
+// POST bob
+{"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+
+// GET /users
+[
+  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"},
+  {"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+]
 ```
 
 ## ID Generation
