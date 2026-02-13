@@ -2,7 +2,8 @@
 Semblance --- Schema-driven REST API simulation.
 
 Build fast, realistic API simulators using FastAPI, Pydantic, and Polyfactory
-with zero endpoint logic. Behavior is defined by schemas and dependency metadata.
+with zero endpoint logic. Behavior is defined by schemas and link metadata
+(FromInput, DateRangeFrom, WhenInput, ComputedFrom, or custom via register_link).
 """
 
 from semblance.api import SemblanceAPI

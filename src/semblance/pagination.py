@@ -1,7 +1,8 @@
 """
 Pagination helpers for list endpoints.
 
-PageParams and PaginatedResponse support offset/limit pagination.
+PageParams mixes into input models for limit/offset query params.
+PaginatedResponse[T] wraps a list of items with total, limit, and offset.
 """
 
 from typing import Generic, TypeVar
@@ -12,14 +13,14 @@ T = TypeVar("T")
 
 
 class PageParams(BaseModel):
-    """Query/body params for pagination: limit and offset."""
+    """Mixin for pagination query/body params: limit and offset."""
 
     limit: int = 10
     offset: int = 0
 
 
 class PaginatedResponse(BaseModel, Generic[T]):
-    """Paginated list response with items, total, limit, and offset."""
+    """Paginated list response: items, total count, limit, and offset."""
 
     items: list[T]
     total: int

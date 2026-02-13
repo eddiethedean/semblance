@@ -1,8 +1,8 @@
 # Semblance
 
-**Schema-driven REST API simulation** using FastAPI, Pydantic, and Polyfactory.
+**Schema-driven REST API simulation** with FastAPI, Pydantic, and Polyfactory.
 
-Define API behaviour with schemas and dependency metadata—no endpoint logic required.
+Define API behavior declaratively using schemas and dependency metadata—no endpoint logic required.
 
 ## Install
 
@@ -12,7 +12,7 @@ pip install semblance
 
 Requires Python 3.10+.
 
-## Quick start
+## Quick Start
 
 ```python
 from datetime import date, datetime
@@ -38,44 +38,69 @@ class User(BaseModel):
 
 api = SemblanceAPI()
 
+
 @api.get("/users", input=UserQuery, output=list[User])
 def users():
     pass
 
+
 app = api.as_fastapi()
 ```
 
-Run with `uvicorn app:app` and call `GET /users?name=alice&start_date=2024-01-01&end_date=2024-12-31`. Example response:
+Run:
 
-```json
-[
-  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
-  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
-]
+```bash
+semblance run app:api --port 8000
+# or
+uvicorn app:app --reload
 ```
 
-Responses are generated from your output model, with `name` bound from the query and `created_at` random in the date range.
+Try:
 
-## Documentation
+```bash
+curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31"
+```
 
-User guides in [docs/guides/](docs/guides/):
+Responses are generated from your output model: `name` comes from the query, `created_at` is random in the date range.
 
-- [Getting Started](docs/guides/getting-started.md) – Install, first API, run
-- [Input and Output Binding](docs/guides/input-output-binding.md) – FromInput, DateRangeFrom, query/body/path
-- [Advanced Links](docs/guides/advanced-links.md) – WhenInput, ComputedFrom, nested models
-- [Pagination](docs/guides/pagination.md) – PageParams, PaginatedResponse
-- [Testing](docs/guides/testing.md) – test_client, deterministic seeding
-- [Simulation Options](docs/guides/simulation-options.md) – Error rate, latency, filter_by
-- [Stateful Mode](docs/guides/stateful-mode.md) – POST stores, GET returns stored
+## CLI
 
-See also [Roadmap](docs/semblance_planning_and_roadmap.md).
+```bash
+# Run a Semblance app
+semblance run app:api [--host HOST] [--port PORT] [--reload]
+
+# Export OpenAPI schema (optionally with response examples)
+semblance export openapi app:api [-o FILE] [--examples]
+
+# Export JSON fixtures per endpoint
+semblance export fixtures app:api [-o DIR]
+```
+
+## Examples
+
+Runnable examples in [examples/](examples/):
+
+```bash
+semblance run examples.basic.app:api --port 8000
+semblance run examples.pagination.app:api --port 8000
+semblance run examples.nested.app:api --port 8000
+semblance run examples.stateful.app:api --port 8000
+semblance run examples.advanced.app:api --port 8000
+```
+
+| Example | Description |
+|---------|-------------|
+| [basic](examples/basic/) | Minimal GET list with FromInput, DateRangeFrom |
+| [pagination](examples/pagination/) | PageParams, PaginatedResponse |
+| [nested](examples/nested/) | Nested model linking |
+| [stateful](examples/stateful/) | POST stores items, GET returns stored list |
+| [advanced](examples/advanced/) | WhenInput, ComputedFrom, filter_by |
 
 ## Testing
 
 ```python
 from semblance import SemblanceAPI, test_client
 
-# Build app (register endpoints as above)
 app = api.as_fastapi()
 client = test_client(app)
 
@@ -83,22 +108,50 @@ r = client.get("/users?name=testuser")
 assert r.status_code == 200
 data = r.json()
 assert all(u["name"] == "testuser" for u in data)
-# data: [{"name": "testuser", "created_at": "2024-..."}, ...]
 ```
 
-## Phase 1, 2 & 3 status
+## Plugins
 
-- SemblanceAPI core, GET and POST endpoints
-- Query parameter and body inputs, path parameters (`/users/{id}`)
-- Single, list, and `PaginatedResponse[Model]` outputs
-- `FromInput`, `DateRangeFrom`, `WhenInput`, `ComputedFrom`, `PageParams`, `PaginatedResponse`
-- `list_count="limit"` to bind list length to input
-- Deterministic seeding: `SemblanceAPI(seed=42)` or `seed_from="seed"`
-- Error simulation: `error_rate=0.1`, `error_codes=[404, 500]`
-- Latency simulation: `latency_ms=100`, `jitter_ms=20`
-- Conditional dependencies: `WhenInput("field", value, FromInput("x"))`
-- Cross-field: `ComputedFrom(("a", "b"), lambda a, b: f"{a} {b}")`
-- Nested model linking (links resolved inside nested BaseModel fields)
-- Collection filtering: `filter_by="status"`
-- Stateful mode: `SemblanceAPI(stateful=True)` - POST stores, GET returns stored
+Register custom link types:
 
+```python
+from semblance import register_link, SemblanceAPI
+from typing import Annotated
+
+class FromEnv:
+    def __init__(self, env_var: str):
+        self.env_var = env_var
+    def resolve(self, input_data, rng):
+        import os
+        return os.environ.get(self.env_var)
+
+register_link(FromEnv)
+
+class User(BaseModel):
+    name: Annotated[str, FromEnv("USER_NAME")]
+```
+
+## Documentation
+
+- [Getting Started](docs/guides/getting-started.md)
+- [Input and Output Binding](docs/guides/input-output-binding.md)
+- [Advanced Links](docs/guides/advanced-links.md)
+- [Pagination](docs/guides/pagination.md)
+- [Testing](docs/guides/testing.md)
+- [Simulation Options](docs/guides/simulation-options.md)
+- [Stateful Mode](docs/guides/stateful-mode.md)
+- [Roadmap](docs/roadmap.md)
+- [API Reference](docs/api/index.md)
+
+## Features
+
+- **SemblanceAPI** – GET and POST endpoints with input/output models
+- **Links** – FromInput, DateRangeFrom, WhenInput, ComputedFrom
+- **Pagination** – PageParams, PaginatedResponse[T]
+- **Deterministic seeding** – `SemblanceAPI(seed=42)` or `seed_from="seed"`
+- **Error simulation** – `error_rate`, `error_codes`
+- **Latency** – `latency_ms`, `jitter_ms`
+- **Filtering** – `filter_by` for list endpoints
+- **Stateful mode** – POST stores, GET returns stored
+- **OpenAPI** – summary, description, tags on endpoints
+- **Plugins** – custom link types via `register_link`

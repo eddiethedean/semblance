@@ -1,8 +1,9 @@
 """
 Polyfactory integration layer.
 
-Builds response instances from output models using resolved overrides.
-Supports single model, list[model], and PaginatedResponse[model] outputs.
+Builds response instances from output models using overrides produced by the
+resolver. Supports single model, list[model], and PaginatedResponse[model]
+outputs. Handles nested models, ComputedFrom, filter_by, and determinism via seed.
 """
 
 from typing import Any, get_origin
@@ -130,8 +131,11 @@ def build_response(
     filter_by: str | None = None,
 ) -> BaseModel | list[BaseModel]:
     """
-    Build the response (single, list, or PaginatedResponse) according to output_annotation.
-    output_annotation is the type passed to @api.get(..., output=...).
+    Build the response according to output_annotation.
+
+    Handles single model, list[model], and PaginatedResponse[model].
+    Uses input_instance for link resolution; list_count and filter_by
+    affect list generation.
     """
     # PaginatedResponse[Model]
     inner = _get_paginated_inner(output_annotation)

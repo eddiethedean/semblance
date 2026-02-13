@@ -1,8 +1,9 @@
 """
 Plugin system for custom link types.
 
-Register custom link classes that implement the LinkProtocol.
-The resolver will call meta.resolve(input_data, rng) for registered links.
+Define custom link classes that implement the LinkProtocol (resolve method),
+then register them with register_link. The resolver calls meta.resolve(input_data, rng)
+for instances of registered types, using the return value as the field override.
 """
 
 import random
@@ -12,12 +13,18 @@ from typing import Any, Protocol
 class LinkProtocol(Protocol):
     """Protocol for custom link types.
 
-    Custom links must implement resolve(input_data, rng) and return
-    the override value (or a callable that returns the value when called).
+    Custom links must implement resolve(input_data, rng). Return the override
+    value for the field, or a callable that returns the value when invoked.
     """
 
     def resolve(self, input_data: dict[str, Any], rng: random.Random) -> Any:
-        """Return the override value for this field."""
+        """
+        Return the override value for this field.
+
+        Args:
+            input_data: Validated request input as a dict (from model_dump()).
+            rng: Random instance for deterministic generation when seed is set.
+        """
         ...
 
 
@@ -25,7 +32,7 @@ _REGISTRY: set[type] = set()
 
 
 def register_link(link_class: type) -> None:
-    """Register a custom link type. Resolver will call meta.resolve(input_data, rng) for instances."""
+    """Register a custom link type. The resolver will call meta.resolve(input_data, rng) for its instances."""
     _REGISTRY.add(link_class)
 
 

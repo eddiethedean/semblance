@@ -1,8 +1,10 @@
 """
 Dependency metadata and DSL for model-embedded constraints.
 
-Relationships are declared inside output models using typing.Annotated.
-Dependencies live with the fields they affect.
+Declare how output fields relate to input using typing.Annotated and link
+types (FromInput, DateRangeFrom, WhenInput, ComputedFrom). The resolver
+builds Polyfactory overrides from these metadata; custom links are supported
+via the plugin system (register_link).
 """
 
 from __future__ import annotations
@@ -13,8 +15,9 @@ from typing import Any, Callable
 
 @dataclass(frozen=True)
 class FromInput:
-    """Bind this field to the value of a request input field by name.
+    """Bind this output field to the value of a request input field by name.
 
+    Use with typing.Annotated, e.g. Annotated[str, FromInput("name")].
     When the input field is None (missing or optional), no override is applied
     and Polyfactory generates a value for the field.
     """
@@ -24,8 +27,9 @@ class FromInput:
 
 @dataclass(frozen=True)
 class DateRangeFrom:
-    """Generate a datetime within the range defined by two date fields on the input.
+    """Generate a datetime within the range defined by two date fields on input.
 
+    Use with typing.Annotated, e.g. Annotated[datetime, DateRangeFrom("start_date", "end_date")].
     When end <= start, returns start (no valid range to sample from).
     """
 
@@ -37,6 +41,7 @@ class DateRangeFrom:
 class WhenInput:
     """Apply the inner link only when condition_field equals condition_value.
 
+    Use with typing.Annotated, e.g. Annotated[str, WhenInput("include_status", True, FromInput("status"))].
     When the condition is not met, no override is applied and Polyfactory
     generates a value for the field.
     """
@@ -50,6 +55,7 @@ class WhenInput:
 class ComputedFrom:
     """Compute this field from other output fields in the same model.
 
+    Use with typing.Annotated, e.g. Annotated[str, ComputedFrom(("first", "last"), lambda a, b: f"{a} {b}")].
     The fn receives dependency values in order: fn(*[resolved[f] for f in fields]).
     Dependencies must be resolved before this field (topological order).
     """
@@ -61,7 +67,10 @@ class ComputedFrom:
 def get_field_metadata(model_class: type, field_name: str) -> Any | None:
     """
     Extract dependency metadata from a Pydantic model field's Annotated type.
-    Returns the first non-type annotation that looks like a Semblance link.
+
+    Returns the first metadata that looks like a Semblance link (FromInput,
+    DateRangeFrom, WhenInput, ComputedFrom) or a registered custom link.
+    Returns None if no link metadata is found.
     """
     import typing
 

@@ -1,7 +1,8 @@
 """
 Export mocks for frontend integration.
 
-Export OpenAPI schema (optionally with examples) and JSON fixtures per endpoint.
+Export OpenAPI schema (optionally with response examples from live calls) and
+JSON fixtures per endpoint for MSW, fixtures, or OpenAPI-driven tooling.
 """
 
 import json
@@ -50,8 +51,10 @@ def _sample_request(client: TestClient, path: str, method: str) -> Any:
 
 def export_openapi(app: Any, include_examples: bool = False) -> dict[str, Any]:
     """
-    Export OpenAPI schema. If include_examples, populate response examples
-    by calling each endpoint with minimal input.
+    Export OpenAPI schema for the FastAPI app.
+
+    If include_examples is True, calls each endpoint with minimal input and
+    populates response examples from the returned JSON.
     """
     schema = app.openapi()
     if not include_examples:
@@ -77,8 +80,10 @@ def export_openapi(app: Any, include_examples: bool = False) -> dict[str, Any]:
 
 def export_fixtures(app: Any, output_path: str | Path) -> None:
     """
-    Export JSON fixtures per endpoint. Calls each endpoint with minimal input
-    and saves the response to output_path/{route_id}.json.
+    Export JSON fixtures per endpoint to output_path.
+
+    Calls each GET/POST endpoint with minimal input and saves the response
+    to output_path/{route_id}_{METHOD}.json. Also writes openapi.json.
     """
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)

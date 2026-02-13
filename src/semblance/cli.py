@@ -1,10 +1,8 @@
 """
-CLI for Semblance - run apps and export mocks.
+CLI for Semblance: run apps and export mocks.
 
-Usage:
-    semblance run app:api [--host HOST] [--port PORT] [--reload]
-    semblance export openapi app:api [-o FILE] [--examples]
-    semblance export fixtures app:api [-o DIR]
+Run a Semblance app with uvicorn, or export OpenAPI schema and JSON fixtures
+for frontend integration. Use module:attr path (e.g. app:api or app:app).
 """
 
 import argparse
@@ -15,7 +13,7 @@ from pathlib import Path
 
 
 def _load_app(path: str):
-    """Load app from module:attr (e.g. app:api). If attr has as_fastapi(), it is called."""
+    """Load app from module:attr. If attr has as_fastapi(), it is called to get FastAPI app."""
     if ":" not in path:
         raise SystemExit(
             f"Invalid path {path!r}. Use module:attr (e.g. app:api or app:app)"

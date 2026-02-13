@@ -1,8 +1,10 @@
 """
 Endpoint registration and FastAPI app creation.
 
-SemblanceAPI collects GET (and later POST) routes with input/output models
-and exports a FastAPI application that validates input and generates responses.
+SemblanceAPI collects GET and POST routes with input/output models and exports
+a FastAPI application. Input models validate requests (query params, body, path);
+output models define response shapes. Endpoint handlers are optional—Semblance
+generates responses from schemas and link metadata.
 """
 
 import asyncio
@@ -83,6 +85,11 @@ class SemblanceAPI:
     """
     Core API builder. Register endpoints with input/output models;
     endpoint bodies are optional and ignored.
+
+    Args:
+        seed: Optional seed for deterministic random generation.
+        stateful: If True, POST responses are stored and GET list endpoints
+            return stored instances instead of generating new ones.
     """
 
     def __init__(

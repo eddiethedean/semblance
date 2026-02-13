@@ -1,7 +1,7 @@
 """
-Pytest utilities for Semblance APIs.
+Testing utilities for Semblance APIs.
 
-Provides test client helpers for SemblanceAPI.as_fastapi().
+Provides test_client for FastAPI apps built with SemblanceAPI.as_fastapi().
 """
 
 from typing import Any
@@ -12,15 +12,16 @@ from fastapi.testclient import TestClient
 
 def test_client(app: FastAPI, **kwargs: Any) -> TestClient:
     """
-    Return a TestClient for the given FastAPI app.
+    Return an httpx TestClient for the given FastAPI app.
 
-    Use with SemblanceAPI.as_fastapi():
+    Use with SemblanceAPI.as_fastapi() for integration tests:
 
         api = SemblanceAPI()
-        # ... register endpoints ...
+        api.get("/users", input=UserQuery, output=list[User])(lambda: None)
         app = api.as_fastapi()
-        client = semblance.test_client(app)
+        client = test_client(app)
         r = client.get("/users?name=alice")
         assert r.status_code == 200
+        data = r.json()
     """
     return TestClient(app, **kwargs)

@@ -1,8 +1,10 @@
 """
 Constraint resolution engine.
 
-Inspects output models for dependency metadata, resolves against the request input,
-and produces a dict of field overrides (values or callables) for Polyfactory.
+Inspects output models for dependency metadata (FromInput, DateRangeFrom,
+WhenInput, ComputedFrom, or registered custom links), resolves against the
+validated request input, and produces a dict of field overrides (values or
+callables) for the Polyfactory layer.
 """
 
 import random
@@ -42,12 +44,13 @@ def resolve_overrides(
     seed: int | None = None,
 ) -> dict[str, Any]:
     """
-    Build a dict of field overrides for the output model based on
-    dependency metadata and the validated input instance.
+    Build a dict of field overrides for the output model.
 
-    Returns mapping: field_name -> value or callable() -> value.
-    For nested BaseModel fields, value is {_nested: model, _overrides: dict}.
-    When seed is set, DateRangeFrom uses a seeded RNG for determinism.
+    Walks output_model fields, inspects Annotated metadata for links, and
+    resolves each against input_instance. Returns mapping field_name -> value
+    or callable() -> value. For nested BaseModel fields, value is
+    {_nested: model, _overrides: dict}. When seed is set, uses a seeded RNG
+    for determinism.
     """
     overrides: dict[str, Any] = {}
     input_data = input_instance.model_dump()
