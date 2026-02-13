@@ -4,7 +4,7 @@ from typing import Annotated, Protocol, cast
 
 from pydantic import BaseModel
 
-from semblance import SemblanceAPI, register_link, test_client
+from semblance import SemblanceAPI, register_link, test_client as client_for
 from semblance.plugins import get_registered_links, is_registered
 
 
@@ -61,7 +61,7 @@ def test_custom_link_resolve():
         api = SemblanceAPI()
         api.get("/user", input=Query, output=User)(lambda: None)
         app = api.as_fastapi()
-        client = test_client(app)
+        client = client_for(app)
         r = client.get("/user?name=x")
         assert r.status_code == 200
         data = r.json()
@@ -84,7 +84,7 @@ def test_custom_link_random_choice():
     api = SemblanceAPI(seed=42)
     api.get("/item", input=QueryWithOptions, output=Item)(lambda: None)
     app = api.as_fastapi()
-    client = test_client(app)
+    client = client_for(app)
     r = client.get("/item?options=a&options=b&options=c")
     assert r.status_code == 200
     data = r.json()

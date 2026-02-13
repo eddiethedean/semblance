@@ -102,3 +102,12 @@ def test_evaluate_overrides_callable_path():
     result = build_one(User, UserQuery, query)
     assert result.name == "callable_test"
     assert result.created_at is not None
+
+
+def test_build_list_with_filter_by():
+    """build_list with filter_by returns items matching input field value."""
+    query = UserQuery(name="alice")
+    result = build_list(User, UserQuery, query, count=3, filter_by="name", seed=1)
+    assert len(result) == 3
+    for item in result:
+        assert item.name == "alice"
