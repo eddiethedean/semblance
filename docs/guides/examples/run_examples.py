@@ -1,12 +1,18 @@
 """
 Run all documentation examples and print real outputs.
 Used to verify examples work and capture output for docs.
+
+Run from project root: python docs/guides/examples/run_examples.py
 """
 
 import json
 import sys
+from pathlib import Path
 
-sys.path.insert(0, "src")
+# Project root (parent of docs/guides/examples/)
+_root = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(_root / "src"))
+sys.path.insert(0, str(_root))
 
 from datetime import date, datetime
 from typing import Annotated
@@ -263,6 +269,85 @@ def example_stateful():
     return {"create_alice": r1.json(), "create_bob": r2.json(), "list": r3.json()}
 
 
+def example_doc_basic():
+    """docs/examples/basic.md - load from examples.basic.app."""
+    from examples.basic.app import app
+
+    client = test_client(app)
+    r = client.get("/users?name=alice&start_date=2024-01-01&end_date=2024-12-31")
+    return r.json()
+
+
+def example_doc_pagination():
+    """docs/examples/pagination.md - load from examples.pagination.app."""
+    from examples.pagination.app import app
+
+    client = test_client(app)
+    r = client.get("/users?limit=3&offset=0&name=alice")
+    return r.json()
+
+
+def example_doc_nested():
+    """docs/examples/nested.md - load from examples.nested.app."""
+    from examples.nested.app import app
+
+    client = test_client(app)
+    r = client.get("/user?name=foo&city=Boston")
+    return r.json()
+
+
+def example_doc_stateful():
+    """docs/examples/stateful.md - load from examples.stateful.app."""
+    from examples.stateful.app import app, api
+
+    client = test_client(app)
+    api.clear_store("/users")
+    r1 = client.post("/users", json={"name": "alice"})
+    r2 = client.post("/users", json={"name": "bob"})
+    r3 = client.get("/users?name=x")
+    return {"post_alice": r1.json(), "post_bob": r2.json(), "get_list": r3.json()}
+
+
+def example_doc_advanced():
+    """docs/examples/advanced.md - load from examples.advanced.app."""
+    from examples.advanced.app import app
+
+    client = test_client(app)
+    r1 = client.get("/user/status?name=alice&include_status=true&status=active")
+    r2 = client.get("/user/fullname?first=Jane&last=Smith")
+    r3 = client.get("/users?name=x&status=active&include_status=true")
+    return {"status": r1.json(), "fullname": r2.json(), "users": r3.json()}
+
+
+def example_doc_error_simulation():
+    """docs/examples/error_simulation.md - load from examples.error_simulation.app."""
+    from examples.error_simulation.app import app
+
+    client = test_client(app)
+    successes = []
+    for _ in range(10):
+        r = client.get("/users?name=alice")
+        if r.status_code == 200:
+            successes.append(r.json())
+            break
+    return successes[0] if successes else {"note": "all requests failed (error_rate)"}
+
+
+def example_doc_plugins():
+    """docs/examples/plugins.md - load from examples.plugins.app with USER_NAME."""
+    import os
+
+    os.environ["USER_NAME"] = "DocBot"
+    try:
+        from examples.plugins.app import app
+
+        client = test_client(app)
+        r = client.get("/user?role=admin")
+        return r.json()
+    finally:
+        os.environ.pop("USER_NAME", None)
+
+
 EXAMPLES = [
     ("quick_start", example_quick_start),
     ("when_input", example_when_input),
@@ -274,6 +359,14 @@ EXAMPLES = [
     ("plugins_from_env", example_plugins_from_env),
     ("plugins_random_choice", example_plugins_random_choice),
     ("stateful", example_stateful),
+    # docs/examples/*.md - run actual example apps
+    ("doc_basic", example_doc_basic),
+    ("doc_pagination", example_doc_pagination),
+    ("doc_nested", example_doc_nested),
+    ("doc_stateful", example_doc_stateful),
+    ("doc_advanced", example_doc_advanced),
+    ("doc_error_simulation", example_doc_error_simulation),
+    ("doc_plugins", example_doc_plugins),
 ]
 
 

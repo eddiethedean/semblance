@@ -27,7 +27,7 @@ class QueryWithCity(BaseModel):
     city: str = "NYC"
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
 @api.get(

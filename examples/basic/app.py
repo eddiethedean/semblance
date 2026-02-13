@@ -31,10 +31,10 @@ class User(BaseModel):
     ]
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
-@api.get("/users", input=UserQuery, output=list[User], summary="List users")
+@api.get("/users", input=UserQuery, output=list[User], list_count=2, summary="List users")
 def users():
     """Returns users with name from query and created_at in date range."""
     pass

@@ -21,7 +21,7 @@ class User(BaseModel):
     name: Annotated[str, FromInput("name")]
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
 @api.get(

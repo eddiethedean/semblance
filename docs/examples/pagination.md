@@ -2,6 +2,48 @@
 
 List endpoint with `PageParams` and `PaginatedResponse`.
 
+## Code
+
+```python
+"""
+Pagination example - PageParams and PaginatedResponse.
+"""
+
+from typing import Annotated
+
+from pydantic import BaseModel
+
+from semblance import FromInput, PageParams, PaginatedResponse, SemblanceAPI
+
+
+class UserQuery(PageParams, BaseModel):
+    """Query with limit and offset."""
+
+    name: str = "alice"
+
+
+class User(BaseModel):
+    name: Annotated[str, FromInput("name")]
+
+
+api = SemblanceAPI(seed=42)
+
+
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=PaginatedResponse[User],
+    list_count="limit",
+    summary="List users (paginated)",
+)
+def users():
+    """Returns paginated user list."""
+    pass
+
+
+app = api.as_fastapi()
+```
+
 ## Run
 
 ```bash

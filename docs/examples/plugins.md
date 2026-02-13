@@ -2,6 +2,63 @@
 
 Custom link type (`FromEnv`) that reads values from environment variables.
 
+## Code
+
+```python
+"""
+Plugins example - custom link (FromEnv).
+
+Set USER_NAME env var to override the default:
+  USER_NAME=Bob semblance run examples.plugins.app:api --port 8000
+"""
+
+from typing import Annotated
+
+from pydantic import BaseModel
+
+from semblance import FromInput, SemblanceAPI, register_link
+
+
+class FromEnv:
+    """Custom link: read value from environment variable."""
+
+    def __init__(self, env_var: str):
+        self.env_var = env_var
+
+    def resolve(self, input_data: dict, rng):
+        import os
+        return os.environ.get(self.env_var)
+
+
+register_link(FromEnv)
+
+
+class User(BaseModel):
+    name: Annotated[str, FromEnv("USER_NAME")]
+    role: Annotated[str, FromInput("role")]
+
+
+class UserQuery(BaseModel):
+    role: str = "viewer"
+
+
+api = SemblanceAPI(seed=42)
+
+
+@api.get(
+    "/user",
+    input=UserQuery,
+    output=User,
+    summary="Get user (name from USER_NAME env)",
+)
+def user():
+    """name comes from USER_NAME env; role from query."""
+    pass
+
+
+app = api.as_fastapi()
+```
+
 ## Run
 
 ```bash
@@ -31,6 +88,8 @@ Example output with `USER_NAME=DocBot`:
 ```json
 {"name": "DocBot", "role": "admin"}
 ```
+
+*Without `USER_NAME`, Polyfactory generates the name (values vary per run).*
 
 ## Concepts
 

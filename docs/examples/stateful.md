@@ -2,6 +2,49 @@
 
 POST creates and stores items; GET list returns stored instances.
 
+## Code
+
+```python
+"""
+Stateful example - POST stores items, GET returns stored list.
+"""
+
+from typing import Annotated
+
+from pydantic import BaseModel
+
+from semblance import FromInput, SemblanceAPI
+
+
+class CreateUser(BaseModel):
+    """POST body for creating a user."""
+
+    name: str = "alice"
+
+
+class UserWithId(BaseModel):
+    id: str = ""
+    name: Annotated[str, FromInput("name")]
+
+
+api = SemblanceAPI(stateful=True)
+
+
+@api.post("/users", input=CreateUser, output=UserWithId, summary="Create user")
+def create_user():
+    """Creates user and stores in state. Returns stored instance with id."""
+    pass
+
+
+@api.get("/users", input=CreateUser, output=list[UserWithId], summary="List users")
+def list_users():
+    """Returns all stored users (stateful)."""
+    pass
+
+
+app = api.as_fastapi()
+```
+
 ## Run
 
 ```bash
@@ -19,23 +62,21 @@ curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -
 curl "http://127.0.0.1:8000/users?name=x"
 ```
 
-Example responses:
+Example responses (IDs vary per run):
 
 ```json
 // POST alice
-{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+{"id": "hCnVvpUeXBVQBtxIbCrv", "name": "alice"}
 
 // POST bob
-{"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+{"id": "HCmJJfYwGIBzngQDycHu", "name": "bob"}
 
 // GET /users
 [
-  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"},
-  {"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
+  {"id": "hCnVvpUeXBVQBtxIbCrv", "name": "alice"},
+  {"id": "HCmJJfYwGIBzngQDycHu", "name": "bob"}
 ]
 ```
-
-*IDs are auto-generated UUIDs; values vary per run.*
 
 ## Concepts
 

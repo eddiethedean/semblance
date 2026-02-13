@@ -33,7 +33,7 @@ class QueryWithNames(BaseModel):
     last: str = "Doe"
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
 @api.get(
