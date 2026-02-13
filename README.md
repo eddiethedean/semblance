@@ -62,14 +62,20 @@ data = r.json()
 assert all(u["name"] == "testuser" for u in data)
 ```
 
-## Phase 1 & 2 status
+## Phase 1, 2 & 3 status
 
 - SemblanceAPI core, GET and POST endpoints
 - Query parameter and body inputs, path parameters (`/users/{id}`)
 - Single, list, and `PaginatedResponse[Model]` outputs
-- `FromInput`, `DateRangeFrom`, `PageParams`, `PaginatedResponse`
+- `FromInput`, `DateRangeFrom`, `WhenInput`, `ComputedFrom`, `PageParams`, `PaginatedResponse`
 - `list_count="limit"` to bind list length to input
 - Deterministic seeding: `SemblanceAPI(seed=42)` or `seed_from="seed"`
 - Error simulation: `error_rate=0.1`, `error_codes=[404, 500]`
+- Latency simulation: `latency_ms=100`, `jitter_ms=20`
+- Conditional dependencies: `WhenInput("field", value, FromInput("x"))`
+- Cross-field: `ComputedFrom(("a", "b"), lambda a, b: f"{a} {b}")`
+- Nested model linking (links resolved inside nested BaseModel fields)
+- Collection filtering: `filter_by="status"`
+- Stateful mode: `SemblanceAPI(stateful=True)` - POST stores, GET returns stored
 
 See [docs/semblance_planning_and_roadmap.md](docs/semblance_planning_and_roadmap.md) for full roadmap.

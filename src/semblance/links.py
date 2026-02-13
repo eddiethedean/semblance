@@ -5,8 +5,10 @@ Relationships are declared inside output models using typing.Annotated.
 Dependencies live with the fields they affect.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,31 @@ class DateRangeFrom:
     end: str
 
 
+@dataclass(frozen=True)
+class WhenInput:
+    """Apply the inner link only when condition_field equals condition_value.
+
+    When the condition is not met, no override is applied and Polyfactory
+    generates a value for the field.
+    """
+
+    condition_field: str
+    condition_value: Any
+    then_link: FromInput | DateRangeFrom
+
+
+@dataclass(frozen=True)
+class ComputedFrom:
+    """Compute this field from other output fields in the same model.
+
+    The fn receives dependency values in order: fn(*[resolved[f] for f in fields]).
+    Dependencies must be resolved before this field (topological order).
+    """
+
+    fields: tuple[str, ...]
+    fn: Callable[..., Any]
+
+
 def get_field_metadata(model_class: type, field_name: str) -> Any | None:
     """
     Extract dependency metadata from a Pydantic model field's Annotated type.
@@ -53,6 +80,6 @@ def get_field_metadata(model_class: type, field_name: str) -> Any | None:
     # Annotated[T, x, y, ...] has __metadata__ as tuple of the extra args
     if hasattr(hint, "__metadata__"):
         for meta in hint.__metadata__:
-            if isinstance(meta, (FromInput, DateRangeFrom)):
+            if isinstance(meta, (FromInput, DateRangeFrom, WhenInput, ComputedFrom)):
                 return meta
     return None

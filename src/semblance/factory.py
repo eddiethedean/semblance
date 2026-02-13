@@ -14,14 +14,34 @@ from semblance.pagination import PaginatedResponse
 from semblance.resolver import get_output_model_for_type, resolve_overrides
 
 
-def _evaluate_overrides(overrides: dict[str, Any]) -> dict[str, Any]:
-    """Replace callables in overrides with their return values."""
+def _evaluate_overrides(
+    overrides: dict[str, Any],
+    seed: int | None = None,
+) -> dict[str, Any]:
+    """Replace callables and nested specs in overrides with their resolved values."""
     result: dict[str, Any] = {}
+    computed: dict[str, tuple[tuple[str, ...], Any]] = {}
+
     for key, value in overrides.items():
-        if callable(value) and not isinstance(value, type):
+        if isinstance(value, dict) and "_computed" in value and "_fn" in value:
+            computed[key] = (value["_computed"], value["_fn"])
+        elif isinstance(value, dict) and "_nested" in value and "_overrides" in value:
+            nested_model = value["_nested"]
+            nested_overrides = value["_overrides"]
+            nested_resolved = _evaluate_overrides(nested_overrides, seed=seed)
+            factory_class = ModelFactory.create_factory(nested_model)
+            if seed is not None:
+                factory_class.seed_random(seed)
+            result[key] = factory_class.build(**nested_resolved)
+        elif callable(value) and not isinstance(value, type):
             result[key] = value()
         else:
             result[key] = value
+
+    for key, (dep_fields, fn) in computed.items():
+        dep_values = [result[f] for f in dep_fields]
+        result[key] = fn(*dep_values)
+
     return result
 
 
@@ -35,7 +55,7 @@ def build_one(
     overrides = resolve_overrides(
         output_model, input_model, input_instance, seed=seed
     )
-    resolved = _evaluate_overrides(overrides)
+    resolved = _evaluate_overrides(overrides, seed=seed)
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
         factory_class.seed_random(seed)
@@ -48,6 +68,7 @@ def build_list(
     input_instance: BaseModel,
     count: int = 5,
     seed: int | None = None,
+    filter_by: str | None = None,
 ) -> list[BaseModel]:
     """Build a list of instances of output_model with dependencies from input_instance."""
     overrides = resolve_overrides(
@@ -56,9 +77,24 @@ def build_list(
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
         factory_class.seed_random(seed)
-    result: list[BaseModel] = []
+
+    if filter_by:
+        target_val = input_instance.model_dump().get(filter_by)
+        oversample = count * 5
+        result: list[BaseModel] = []
+        for _ in range(oversample):
+            resolved = _evaluate_overrides(overrides, seed=seed)
+            item = factory_class.build(**resolved)
+            item_val = getattr(item, filter_by, None)
+            if item_val == target_val:
+                result.append(item)
+                if len(result) >= count:
+                    break
+        return result[:count]
+
+    result = []
     for _ in range(count):
-        resolved = _evaluate_overrides(overrides)
+        resolved = _evaluate_overrides(overrides, seed=seed)
         result.append(factory_class.build(**resolved))
     return result
 
@@ -91,6 +127,7 @@ def build_response(
     input_instance: BaseModel,
     list_count: int = 5,
     seed: int | None = None,
+    filter_by: str | None = None,
 ) -> BaseModel | list[BaseModel]:
     """
     Build the response (single, list, or PaginatedResponse) according to output_annotation.
@@ -127,7 +164,8 @@ def build_response(
                 "Use list[SomeModel] where SomeModel is a Pydantic BaseModel."
             )
         return build_list(
-            model, input_model, input_instance, count=list_count, seed=seed
+            model, input_model, input_instance, count=list_count, seed=seed,
+            filter_by=filter_by,
         )
 
     # Single Model

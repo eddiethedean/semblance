@@ -211,12 +211,12 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 
 **Goal:** Expressive behavior modeling
 
--   [ ] Conditional dependencies
--   [ ] Cross-field constraints
--   [ ] Collection filtering constraints
--   [ ] Nested model linking
--   [ ] Optional stateful mode (opt-in)
--   [ ] Latency & jitter simulation
+-   [x] Conditional dependencies (WhenInput)
+-   [x] Cross-field constraints (ComputedFrom)
+-   [x] Collection filtering constraints (filter_by=)
+-   [x] Nested model linking
+-   [x] Optional stateful mode (SemblanceAPI(stateful=True))
+-   [x] Latency & jitter simulation (latency_ms=, jitter_ms=)
 
 ------------------------------------------------------------------------
 

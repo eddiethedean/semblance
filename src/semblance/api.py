@@ -5,15 +5,17 @@ SemblanceAPI collects GET (and later POST) routes with input/output models
 and exports a FastAPI application that validates input and generates responses.
 """
 
+import asyncio
 import random
 import re
 from collections.abc import Callable
-from typing import Annotated, Any
+from typing import Annotated, Any, get_origin
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from semblance.factory import build_response
+from semblance.state import StatefulStore
 
 
 def _parse_path_params(path: str) -> list[str]:
@@ -34,6 +36,9 @@ class EndpointSpec:
         "seed_from",
         "error_rate",
         "error_codes",
+        "latency_ms",
+        "jitter_ms",
+        "filter_by",
     )
 
     def __init__(
@@ -47,6 +52,9 @@ class EndpointSpec:
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
     ):
         self.path = path
         self.methods = methods
@@ -57,6 +65,9 @@ class EndpointSpec:
         self.seed_from = seed_from
         self.error_rate = error_rate
         self.error_codes = error_codes or [404, 500]
+        self.latency_ms = latency_ms
+        self.jitter_ms = jitter_ms
+        self.filter_by = filter_by
 
 
 class SemblanceAPI:
@@ -65,9 +76,17 @@ class SemblanceAPI:
     endpoint bodies are optional and ignored.
     """
 
-    def __init__(self, seed: int | None = None) -> None:
+    def __init__(
+        self, seed: int | None = None, stateful: bool = False
+    ) -> None:
         self._specs: list[EndpointSpec] = []
         self._seed = seed
+        self._store: StatefulStore | None = StatefulStore() if stateful else None
+
+    def clear_store(self, path: str | None = None) -> None:
+        """Clear the stateful store. Only available when stateful=True."""
+        if self._store is not None:
+            self._store.clear(path)
 
     def get(
         self,
@@ -79,6 +98,9 @@ class SemblanceAPI:
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a GET endpoint. Query parameters are validated against `input`.
@@ -90,7 +112,8 @@ class SemblanceAPI:
                 pass
         """
         return self._register(
-            path, "GET", input, output, list_count, seed_from, error_rate, error_codes
+            path, "GET", input, output, list_count, seed_from, error_rate, error_codes,
+            latency_ms, jitter_ms, filter_by,
         )
 
     def post(
@@ -103,6 +126,9 @@ class SemblanceAPI:
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a POST endpoint. Request body is validated against `input`.
@@ -114,7 +140,8 @@ class SemblanceAPI:
                 pass
         """
         return self._register(
-            path, "POST", input, output, list_count, seed_from, error_rate, error_codes
+            path, "POST", input, output, list_count, seed_from, error_rate, error_codes,
+            latency_ms, jitter_ms, filter_by,
         )
 
     def _register(
@@ -127,6 +154,9 @@ class SemblanceAPI:
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self._specs.append(
@@ -140,6 +170,9 @@ class SemblanceAPI:
                     seed_from=seed_from,
                     error_rate=error_rate,
                     error_codes=error_codes,
+                    latency_ms=latency_ms,
+                    jitter_ms=jitter_ms,
+                    filter_by=filter_by,
                 )
             )
             return func
@@ -178,6 +211,16 @@ class SemblanceAPI:
                 except (TypeError, ValueError):
                     pass
         return None
+
+    async def _await_latency(self, latency_ms: float, jitter_ms: float) -> None:
+        """Await latency simulation. Call from async handler."""
+        if latency_ms <= 0 and jitter_ms <= 0:
+            return
+        base_s = latency_ms / 1000
+        jitter_s = random.uniform(-jitter_ms, jitter_ms) / 1000
+        duration = max(0, base_s + jitter_s)
+        if duration > 0:
+            await asyncio.sleep(duration)
 
     def _maybe_raise_error(
         self, error_rate: float, error_codes: list[int], seed: int | None
@@ -219,7 +262,12 @@ class SemblanceAPI:
         seed_from = spec.seed_from
         error_rate = spec.error_rate
         error_codes = spec.error_codes
+        latency_ms = spec.latency_ms
+        jitter_ms = spec.jitter_ms
+        filter_by = spec.filter_by
         path_params = _parse_path_params(spec.path)
+        store = self._store
+        path = spec.path
 
         if path_params:
 
@@ -232,6 +280,9 @@ class SemblanceAPI:
                 )
                 seed = self._resolve_seed(seed_from, merged)
                 self._maybe_raise_error(error_rate, error_codes, seed)
+                await self._await_latency(latency_ms, jitter_ms)
+                if store is not None and get_origin(output_annotation) is list:
+                    return store.get_all(path)
                 count = self._resolve_list_count(list_count, merged)
                 return build_response(
                     output_annotation,
@@ -239,6 +290,7 @@ class SemblanceAPI:
                     merged,
                     list_count=count,
                     seed=seed,
+                    filter_by=filter_by,
                 )
 
         else:
@@ -248,6 +300,9 @@ class SemblanceAPI:
             ) -> output_annotation:  # type: ignore[valid-type]
                 seed = self._resolve_seed(seed_from, query)
                 self._maybe_raise_error(error_rate, error_codes, seed)
+                await self._await_latency(latency_ms, jitter_ms)
+                if store is not None and get_origin(output_annotation) is list:
+                    return store.get_all(path)
                 count = self._resolve_list_count(list_count, query)
                 return build_response(
                     output_annotation,
@@ -255,6 +310,7 @@ class SemblanceAPI:
                     query,
                     list_count=count,
                     seed=seed,
+                    filter_by=filter_by,
                 )
 
         app.get(spec.path, response_model=output_annotation)(handler)
@@ -266,7 +322,12 @@ class SemblanceAPI:
         seed_from = spec.seed_from
         error_rate = spec.error_rate
         error_codes = spec.error_codes
+        latency_ms = spec.latency_ms
+        jitter_ms = spec.jitter_ms
+        filter_by = spec.filter_by
         path_params = _parse_path_params(spec.path)
+        store = self._store
+        path = spec.path
 
         if path_params:
 
@@ -279,14 +340,19 @@ class SemblanceAPI:
                 )
                 seed = self._resolve_seed(seed_from, merged)
                 self._maybe_raise_error(error_rate, error_codes, seed)
+                await self._await_latency(latency_ms, jitter_ms)
                 count = self._resolve_list_count(list_count, merged)
-                return build_response(
+                response = build_response(
                     output_annotation,
                     input_model,
                     merged,
                     list_count=count,
                     seed=seed,
+                    filter_by=filter_by,
                 )
+                if store is not None and not isinstance(response, list):
+                    response = store.add(path, response)
+                return response
 
         else:
 
@@ -295,13 +361,18 @@ class SemblanceAPI:
             ) -> output_annotation:  # type: ignore[valid-type]
                 seed = self._resolve_seed(seed_from, body)
                 self._maybe_raise_error(error_rate, error_codes, seed)
+                await self._await_latency(latency_ms, jitter_ms)
                 count = self._resolve_list_count(list_count, body)
-                return build_response(
+                response = build_response(
                     output_annotation,
                     input_model,
                     body,
                     list_count=count,
                     seed=seed,
+                    filter_by=filter_by,
                 )
+                if store is not None and not isinstance(response, list):
+                    response = store.add(path, response)
+                return response
 
         app.post(spec.path, response_model=output_annotation)(handler)
