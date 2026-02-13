@@ -8,11 +8,11 @@ version = "0.1.0"
 description = "Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-authors = []
+license = {text = "MIT"}
+authors = [{name = "Semblance Contributors"}]
 keywords = ["fastapi", "pydantic", "polyfactory", "api", "mock", "simulation", "testing"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -37,6 +37,9 @@ dev = [
     "httpx>=0.25.0",
     "ruff>=0.8.0",
     "mypy>=1.0.0",
+    "bandit>=1.7.0",
+    "pip-audit>=2.0.0",
+    "pre-commit>=4.0.0",
 ]
 docs = [
     "mkdocs>=1.5.0",
@@ -45,8 +48,8 @@ docs = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/yourusername/semblance#readme"
-Repository = "https://github.com/yourusername/semblance"
+Documentation = "https://github.com/eddiethedean/semblance#readme"
+Repository = "https://github.com/eddiethedean/semblance"
 
 [tool.setuptools.packages.find]
 where = ["src"]

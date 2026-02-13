@@ -4,7 +4,8 @@ from typing import Annotated, Protocol, cast
 
 from pydantic import BaseModel
 
-from semblance import SemblanceAPI, register_link, test_client as client_for
+from semblance import SemblanceAPI, register_link
+from semblance import test_client as client_for
 from semblance.plugins import get_registered_links, is_registered
 
 

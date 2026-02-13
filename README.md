@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Schema-driven REST API simulation** with FastAPI, Pydantic, and Polyfactory.
@@ -198,6 +198,8 @@ class User(BaseModel):
 - [API Reference](docs/api/index.md)
 
 ## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and contribution guidelines.
 
 ```bash
 git clone https://github.com/eddiethedean/semblance.git
