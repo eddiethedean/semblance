@@ -5,16 +5,15 @@ from typing import Annotated
 import pytest
 from pydantic import BaseModel
 
-from semblance import SemblanceAPI, test_client as client_for
+from semblance import SemblanceAPI
+from semblance import test_client as client_for
 from semblance.factory import build_response
-
 from tests.example_models import User, UserQuery
 
 
 def test_import_semblance_without_pytest():
     """semblance can be imported without pytest installed (no dev deps)."""
     import semblance  # noqa: F401
-
     from semblance import SemblanceAPI, test_client
 
     assert SemblanceAPI is not None

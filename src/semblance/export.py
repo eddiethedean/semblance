@@ -8,12 +8,13 @@ JSON fixtures per endpoint for MSW, fixtures, or OpenAPI-driven tooling.
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 
-def _get_routes(app: Any) -> list[tuple[str, str, str]]:
+def _get_routes(app: FastAPI) -> list[tuple[str, str, str]]:
     """Return (path, method, route_id) for each API route."""
     routes = []
     for route in app.routes:
@@ -35,7 +36,9 @@ def _fill_path_params(path: str) -> str:
     return re.sub(r"\{\w+\}", "1", path)
 
 
-def _sample_request(client: TestClient, path: str, method: str) -> Any:
+def _sample_request(
+    client: TestClient, path: str, method: str
+) -> dict[str, object] | list[object] | object | None:
     """Make a minimal request to the endpoint and return the JSON response."""
     url = _fill_path_params(path)
     if method == "GET":
@@ -46,20 +49,23 @@ def _sample_request(client: TestClient, path: str, method: str) -> Any:
         return None
     if r.status_code == 200:
         try:
-            return r.json()
+            return cast(
+                dict[str, object] | list[object] | object,
+                r.json(),
+            )
         except Exception:
             return None
     return None
 
 
-def export_openapi(app: Any, include_examples: bool = False) -> dict[str, Any]:
+def export_openapi(app: FastAPI, include_examples: bool = False) -> dict[str, Any]:
     """
     Export OpenAPI schema for the FastAPI app.
 
     If include_examples is True, calls each endpoint with minimal input and
     populates response examples from the returned JSON.
     """
-    schema = app.openapi()
+    schema = cast(dict[str, Any], app.openapi())
     if not include_examples:
         return schema
 
@@ -81,7 +87,7 @@ def export_openapi(app: Any, include_examples: bool = False) -> dict[str, Any]:
     return schema
 
 
-def export_fixtures(app: Any, output_path: str | Path) -> None:
+def export_fixtures(app: FastAPI, output_path: str | Path) -> None:
     """
     Export JSON fixtures per endpoint to output_path.
 
@@ -91,7 +97,7 @@ def export_fixtures(app: Any, output_path: str | Path) -> None:
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    schema = app.openapi()
+    schema = cast(dict[str, Any], app.openapi())
     with TestClient(app) as client:
         for path, methods in schema.get("paths", {}).items():
             for method in ("get", "post"):

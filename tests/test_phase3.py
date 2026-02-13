@@ -7,12 +7,13 @@ from pydantic import BaseModel
 
 from semblance import (
     ComputedFrom,
-    SemblanceAPI,
     FromInput,
+    SemblanceAPI,
     WhenInput,
+)
+from semblance import (
     test_client as client_for,
 )
-
 from tests.example_models import User, UserQuery
 
 

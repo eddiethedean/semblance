@@ -1,13 +1,15 @@
 """Tests for Phase 2 features: POST, path params, pagination, seeding, errors."""
 
+from pydantic import BaseModel
+
 from semblance import (
     PageParams,
     PaginatedResponse,
     SemblanceAPI,
+)
+from semblance import (
     test_client as client_for,
 )
-from pydantic import BaseModel
-
 from tests.example_models import User, UserQuery
 
 
@@ -61,6 +63,7 @@ def test_get_with_path_param():
 
 def test_list_count_from_input():
     """list_count='limit' uses input field for list length."""
+
     class UserQueryWithLimit(BaseModel):
         name: str = "alice"
         limit: int = 3

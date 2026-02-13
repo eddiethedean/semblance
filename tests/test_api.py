@@ -1,8 +1,9 @@
 """Tests for SemblanceAPI, GET endpoints, and FastAPI app export."""
 
 import pytest
-from semblance import SemblanceAPI, test_client as client_for
 
+from semblance import SemblanceAPI
+from semblance import test_client as client_for
 from tests.example_models import User, UserQuery
 
 

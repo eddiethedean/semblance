@@ -11,7 +11,6 @@ from semblance.factory import (
     build_response,
 )
 from semblance.pagination import PaginatedResponse
-
 from tests.example_models import User, UserQuery
 
 

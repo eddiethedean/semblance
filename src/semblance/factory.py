@@ -6,10 +6,10 @@ resolver. Supports single model, list[model], and PaginatedResponse[model]
 outputs. Handles nested models, ComputedFrom, filter_by, and determinism via seed.
 """
 
-from typing import Any, get_origin
+from typing import Any, cast, get_origin
 
-from pydantic import BaseModel
 from polyfactory.factories.pydantic_factory import ModelFactory
+from pydantic import BaseModel
 
 from semblance.pagination import PaginatedResponse
 from semblance.resolver import get_output_model_for_type, resolve_overrides
@@ -58,7 +58,7 @@ def build_one(
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
         factory_class.seed_random(seed)
-    return factory_class.build(**resolved)
+    return cast(BaseModel, factory_class.build(**resolved))
 
 
 def build_list(

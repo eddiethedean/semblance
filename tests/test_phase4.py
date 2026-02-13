@@ -8,7 +8,6 @@ import pytest
 
 from semblance import SemblanceAPI
 from semblance.cli import _load_app, cmd_export_fixtures, cmd_export_openapi
-
 from tests.example_models import User, UserQuery
 
 

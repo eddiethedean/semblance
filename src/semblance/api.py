@@ -317,53 +317,30 @@ class SemblanceAPI:
         latency_ms = spec.latency_ms
         jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
-        path_params = _parse_path_params(spec.path)
         store = self._store
         path = spec.path
 
-        if path_params:
-
-            async def handler(
-                request: Request,
-                query: Annotated[input_model, Query()],  # type: ignore[valid-type]
-            ) -> output_annotation:  # type: ignore[valid-type]
-                merged = self._merge_path_params(
-                    input_model, query, dict(request.path_params)
-                )
-                seed = self._resolve_seed(seed_from, merged)
-                self._maybe_raise_error(error_rate, error_codes, seed)
-                await self._await_latency(latency_ms, jitter_ms)
-                if store is not None and get_origin(output_annotation) is list:
-                    return store.get_all(path)
-                count = self._resolve_list_count(list_count, merged)
-                return build_response(
-                    output_annotation,
-                    input_model,
-                    merged,
-                    list_count=count,
-                    seed=seed,
-                    filter_by=filter_by,
-                )
-
-        else:
-
-            async def handler(
-                query: Annotated[input_model, Query()],  # type: ignore[valid-type]
-            ) -> output_annotation:  # type: ignore[valid-type]
-                seed = self._resolve_seed(seed_from, query)
-                self._maybe_raise_error(error_rate, error_codes, seed)
-                await self._await_latency(latency_ms, jitter_ms)
-                if store is not None and get_origin(output_annotation) is list:
-                    return store.get_all(path)
-                count = self._resolve_list_count(list_count, query)
-                return build_response(
-                    output_annotation,
-                    input_model,
-                    query,
-                    list_count=count,
-                    seed=seed,
-                    filter_by=filter_by,
-                )
+        async def handler(
+            request: Request,
+            query: Annotated[input_model, Query()],
+        ) -> output_annotation:
+            merged = self._merge_path_params(
+                input_model, query, dict(request.path_params)
+            )
+            seed = self._resolve_seed(seed_from, merged)
+            self._maybe_raise_error(error_rate, error_codes, seed)
+            await self._await_latency(latency_ms, jitter_ms)
+            if store is not None and get_origin(output_annotation) is list:
+                return store.get_all(path)
+            count = self._resolve_list_count(list_count, merged)
+            return build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=count,
+                seed=seed,
+                filter_by=filter_by,
+            )
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
         if spec.summary is not None:
@@ -384,55 +361,31 @@ class SemblanceAPI:
         latency_ms = spec.latency_ms
         jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
-        path_params = _parse_path_params(spec.path)
         store = self._store
         path = spec.path
 
-        if path_params:
-
-            async def handler(
-                request: Request,
-                body: input_model,  # type: ignore[valid-type]
-            ) -> output_annotation:  # type: ignore[valid-type]
-                merged = self._merge_path_params(
-                    input_model, body, dict(request.path_params)
-                )
-                seed = self._resolve_seed(seed_from, merged)
-                self._maybe_raise_error(error_rate, error_codes, seed)
-                await self._await_latency(latency_ms, jitter_ms)
-                count = self._resolve_list_count(list_count, merged)
-                response = build_response(
-                    output_annotation,
-                    input_model,
-                    merged,
-                    list_count=count,
-                    seed=seed,
-                    filter_by=filter_by,
-                )
-                if store is not None and not isinstance(response, list):
-                    response = store.add(path, response)
-                return response
-
-        else:
-
-            async def handler(
-                body: input_model,  # type: ignore[valid-type]
-            ) -> output_annotation:  # type: ignore[valid-type]
-                seed = self._resolve_seed(seed_from, body)
-                self._maybe_raise_error(error_rate, error_codes, seed)
-                await self._await_latency(latency_ms, jitter_ms)
-                count = self._resolve_list_count(list_count, body)
-                response = build_response(
-                    output_annotation,
-                    input_model,
-                    body,
-                    list_count=count,
-                    seed=seed,
-                    filter_by=filter_by,
-                )
-                if store is not None and not isinstance(response, list):
-                    response = store.add(path, response)
-                return response
+        async def handler(
+            request: Request,
+            body: input_model,
+        ) -> output_annotation:
+            merged = self._merge_path_params(
+                input_model, body, dict(request.path_params)
+            )
+            seed = self._resolve_seed(seed_from, merged)
+            self._maybe_raise_error(error_rate, error_codes, seed)
+            await self._await_latency(latency_ms, jitter_ms)
+            count = self._resolve_list_count(list_count, merged)
+            response = build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=count,
+                seed=seed,
+                filter_by=filter_by,
+            )
+            if store is not None and not isinstance(response, list):
+                response = store.add(path, response)
+            return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
         if spec.summary is not None:

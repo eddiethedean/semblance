@@ -1,11 +1,15 @@
 """Tests for plugin system: register_link, custom links."""
 
-from typing import Annotated
+from typing import Annotated, Protocol, cast
 
 from pydantic import BaseModel
 
 from semblance import SemblanceAPI, register_link, test_client
 from semblance.plugins import get_registered_links, is_registered
+
+
+class _ChoiceProtocol(Protocol):
+    def choice(self, seq: object) -> object: ...
 
 
 class FromEnv:
@@ -26,10 +30,12 @@ class RandomChoice:
     def __init__(self, field: str):
         self.field = field
 
-    def resolve(self, input_data: dict, rng) -> str | None:
+    def resolve(
+        self, input_data: dict[str, object], rng: _ChoiceProtocol
+    ) -> str | None:
         opts = input_data.get(self.field)
         if opts and isinstance(opts, (list, tuple)):
-            return rng.choice(opts)
+            return cast(str, rng.choice(opts))
         return None
 
 

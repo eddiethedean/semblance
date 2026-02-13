@@ -8,8 +8,9 @@ callables) for the Polyfactory layer.
 """
 
 import random
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
-from typing import Any, get_origin
+from typing import Any, Protocol, get_origin
 
 from pydantic import BaseModel
 
@@ -23,7 +24,28 @@ from semblance.links import (
 from semblance.plugins import is_registered
 
 
-def _get_nested_model(field_annotation: Any) -> type[BaseModel] | None:
+class _RandomLike(Protocol):
+    def uniform(self, a: float, b: float) -> float: ...
+
+
+def _make_random_datetime_closure(
+    start_dt: datetime, end_dt: datetime, rng: _RandomLike
+) -> Callable[[], datetime]:
+    def fn(
+        s: datetime = start_dt,
+        e: datetime = end_dt,
+        r: _RandomLike = rng,
+    ) -> datetime:
+        delta = e - s
+        if delta.total_seconds() <= 0:
+            return s
+        sec = r.uniform(0, delta.total_seconds())
+        return s + timedelta(seconds=sec)
+
+    return fn
+
+
+def _get_nested_model(field_annotation: object) -> type[BaseModel] | None:
     """Extract BaseModel from field annotation (handles Optional[BaseModel])."""
     origin = get_origin(field_annotation)
     if origin is not None:
@@ -97,20 +119,9 @@ def resolve_overrides(
                         start = _to_datetime(start_val)
                         end = _to_datetime(end_val)
                         if start is not None and end is not None:
-                            _rng = rng
-
-                            def make_random_datetime(
-                                s: datetime = start,
-                                e: datetime = end,
-                                r: Any = _rng,
-                            ) -> datetime:
-                                delta = e - s
-                                if delta.total_seconds() <= 0:
-                                    return s
-                                sec = r.uniform(0, delta.total_seconds())
-                                return s + timedelta(seconds=sec)
-
-                            overrides[name] = make_random_datetime
+                            overrides[name] = _make_random_datetime_closure(
+                                start, end, rng
+                            )
 
         elif isinstance(meta, DateRangeFrom):
             start_val = input_data.get(meta.start)
@@ -119,21 +130,7 @@ def resolve_overrides(
                 start = _to_datetime(start_val)
                 end = _to_datetime(end_val)
                 if start is not None and end is not None:
-                    _rng = rng
-
-                    def make_random_datetime(
-                        s: datetime = start,
-                        e: datetime = end,
-                        r: Any = _rng,
-                    ) -> datetime:
-                        # When end <= start, returns start (no valid range to sample).
-                        delta = e - s
-                        if delta.total_seconds() <= 0:
-                            return s
-                        sec = r.uniform(0, delta.total_seconds())
-                        return s + timedelta(seconds=sec)
-
-                    overrides[name] = make_random_datetime
+                    overrides[name] = _make_random_datetime_closure(start, end, rng)
 
         elif isinstance(meta, ComputedFrom):
             overrides[name] = {"_computed": meta.fields, "_fn": meta.fn}

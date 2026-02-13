@@ -5,11 +5,10 @@ from datetime import date, datetime
 from pydantic import BaseModel
 
 from semblance.resolver import (
+    _to_datetime,
     get_output_model_for_type,
     resolve_overrides,
-    _to_datetime,
 )
-
 from tests.example_models import User, UserQuery
 
 
