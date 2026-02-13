@@ -61,6 +61,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# MkDocs
+site/
+
 # Jupyter
 .ipynb_checkpoints/
 
