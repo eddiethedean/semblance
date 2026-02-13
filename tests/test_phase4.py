@@ -1,13 +1,22 @@
 """Tests for Phase 4: CLI, export, plugins."""
 
 import json
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from semblance import SemblanceAPI
-from semblance.cli import _load_app, cmd_export_fixtures, cmd_export_openapi
+from semblance.cli import (
+    _load_app,
+    cmd_export_fixtures,
+    cmd_export_openapi,
+    cmd_run,
+    main,
+)
 from tests.example_models import User, UserQuery
 
 
@@ -154,3 +163,136 @@ class TestExportFixturesWithPost:
             assert post_file.exists()
             data = json.loads(post_file.read_text())
             assert data["name"] == "fixture"
+
+
+class TestCmdRun:
+    def test_cmd_run_without_reload_mocks_uvicorn(self):
+        """cmd_run without reload loads app and calls uvicorn.run."""
+        args = type(
+            "Args",
+            (),
+            {
+                "app": "tests.sample_app:app",
+                "host": "127.0.0.1",
+                "port": 8000,
+                "reload": False,
+            },
+        )()
+        with patch("uvicorn.run") as mock_run:
+            cmd_run(args)
+            mock_run.assert_called_once()
+            call_kw = mock_run.call_args[1]
+            assert call_kw["host"] == "127.0.0.1"
+            assert call_kw["port"] == 8000
+
+    def test_cmd_run_with_reload_uses_subprocess(self):
+        """cmd_run with reload uses subprocess to run uvicorn -m uvicorn."""
+        args = type(
+            "Args",
+            (),
+            {
+                "app": "tests.sample_app:app",
+                "host": "127.0.0.1",
+                "port": 8000,
+                "reload": True,
+            },
+        )()
+        with patch("semblance.cli.subprocess.run") as mock_run:
+            cmd_run(args)
+            mock_run.assert_called_once()
+            cmd = mock_run.call_args[0][0]
+            assert "uvicorn" in cmd
+            assert "--reload" in cmd
+            assert "tests.sample_app:app" in cmd
+
+    def test_cmd_run_reload_uvicorn_not_found_exits(self):
+        """cmd_run with reload raises SystemExit when uvicorn subprocess fails."""
+        args = type(
+            "Args",
+            (),
+            {
+                "app": "tests.sample_app:app",
+                "host": "127.0.0.1",
+                "port": 8000,
+                "reload": True,
+            },
+        )()
+        with patch("semblance.cli.subprocess.run", side_effect=FileNotFoundError):
+            with pytest.raises(SystemExit, match="uvicorn not found"):
+                cmd_run(args)
+
+
+class TestCmdExportNonFastAPI:
+    def test_cmd_export_openapi_raises_when_app_not_fastapi(self):
+        """cmd_export_openapi raises SystemExit when loaded app is not FastAPI."""
+        args = type(
+            "Args",
+            (),
+            {
+                "app": "tests.cli_test_module:not_fastapi",
+                "output": None,
+                "include_examples": False,
+            },
+        )()
+        with pytest.raises(SystemExit, match="App must be a FastAPI instance"):
+            cmd_export_openapi(args)
+
+    def test_cmd_export_fixtures_raises_when_app_not_fastapi(self):
+        """cmd_export_fixtures raises SystemExit when loaded app is not FastAPI."""
+        args = type(
+            "Args",
+            (),
+            {"app": "tests.cli_test_module:not_fastapi", "output": "fixtures"},
+        )()
+        with pytest.raises(SystemExit, match="App must be a FastAPI instance"):
+            cmd_export_fixtures(args)
+
+
+
+
+class TestMain:
+    def test_main_export_openapi_via_argv(self, capsys):
+        """main() with export openapi args dispatches to cmd_export_openapi."""
+        with patch.object(sys, "argv", ["semblance", "export", "openapi", "tests.sample_app:app"]):
+            main()
+        out, _ = capsys.readouterr()
+        schema = json.loads(out)
+        assert "openapi" in schema
+        assert "/users" in schema["paths"]
+
+    def test_main_export_fixtures_via_argv(self, tmp_path):
+        """main() with export fixtures args dispatches to cmd_export_fixtures."""
+        with patch.object(
+            sys,
+            "argv",
+            ["semblance", "export", "fixtures", "tests.sample_app:app", "-o", str(tmp_path)],
+        ):
+            main()
+        assert (tmp_path / "openapi.json").exists()
+        assert (tmp_path / "users_GET.json").exists()
+
+    def test_main_run_via_argv_mocks_uvicorn(self):
+        """main() with run args dispatches to cmd_run."""
+        with patch.object(
+            sys,
+            "argv",
+            ["semblance", "run", "tests.sample_app:app", "--host", "0.0.0.0", "--port", "9999"],
+        ):
+            with patch("uvicorn.run") as mock_run:
+                main()
+                mock_run.assert_called_once()
+                assert mock_run.call_args[1]["host"] == "0.0.0.0"
+                assert mock_run.call_args[1]["port"] == 9999
+
+    def test_cli_module_main_entrypoint(self):
+        """Running semblance.cli as __main__ invokes main()."""
+        result = subprocess.run(
+            [sys.executable, "-m", "semblance.cli", "export", "openapi", "tests.sample_app:app"],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).resolve().parent.parent,
+        )
+        assert result.returncode == 0
+        schema = json.loads(result.stdout)
+        assert "openapi" in schema
+        assert "/users" in schema["paths"]
