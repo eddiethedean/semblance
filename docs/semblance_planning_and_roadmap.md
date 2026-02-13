@@ -233,6 +233,17 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 
 ------------------------------------------------------------------------
 
+### Phase 5 --- Testing & Validation
+
+**Goal:** Schemathesis-style property-based testing and broader HTTP method support
+
+-   [ ] Property-based testing (Hypothesis integration)
+-   [ ] PUT, PATCH, DELETE endpoint support
+-   [ ] Optional response schema validation
+-   [ ] Rate limiting simulation
+
+------------------------------------------------------------------------
+
 ## 9. Risks & Design Guardrails
 
 -   Avoid model-to-model imports to prevent coupling

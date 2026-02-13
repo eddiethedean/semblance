@@ -38,3 +38,10 @@
 - Frontend mock export (OpenAPI + fixtures)
 - Documentation site (MkDocs)
 - Example galleries
+
+## Phase 5 — Testing & Validation
+
+- **Property-based testing** — Hypothesis integration, Schemathesis-style: generate diverse inputs from input models, validate mock responses match output schema and invariants; pytest plugin; reproducible failure reporting (minimal reproduction, curl commands)
+- PUT, PATCH, DELETE endpoint support
+- Optional response schema validation — verify generated responses conform to OpenAPI/response model
+- Rate limiting simulation — `rate_limit=N` requests per second per endpoint
