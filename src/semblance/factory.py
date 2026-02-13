@@ -150,7 +150,12 @@ def build_response(
         limit = max(1, limit)
         offset = max(0, offset)
         all_items = build_list(
-            inner, input_model, input_instance, count=offset + limit, seed=seed
+            inner,
+            input_model,
+            input_instance,
+            count=offset + limit,
+            seed=seed,
+            filter_by=filter_by,
         )
         items = all_items[offset : offset + limit]
         total = offset + len(items)

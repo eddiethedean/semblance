@@ -1,10 +1,12 @@
 """Tests for semblance.factory - build_response, pagination, edge cases."""
 
 from datetime import date
+from typing import Annotated
 
 import pytest
 from pydantic import BaseModel
 
+from semblance import FromInput
 from semblance.factory import (
     build_list,
     build_one,
@@ -111,3 +113,31 @@ def test_build_list_with_filter_by():
     assert len(result) == 3
     for item in result:
         assert item.name == "alice"
+
+
+def test_build_response_paginated_with_filter_by():
+    """build_response with PaginatedResponse and filter_by filters items correctly."""
+
+    class UserWithStatus(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        status: Annotated[str, FromInput("status")]
+
+    class QueryWithStatus(BaseModel):
+        name: str = "x"
+        status: str = "active"
+        limit: int = 5
+        offset: int = 0
+
+    query = QueryWithStatus(name="alice", status="active", limit=3, offset=0)
+    result = build_response(
+        PaginatedResponse[UserWithStatus],
+        QueryWithStatus,
+        query,
+        seed=1,
+        filter_by="status",
+    )
+    assert result.limit == 3
+    assert result.offset == 0
+    assert len(result.items) <= 3
+    for item in result.items:
+        assert item.status == "active"
