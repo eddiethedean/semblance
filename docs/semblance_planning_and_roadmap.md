@@ -92,14 +92,15 @@ Dependencies live with the fields they affect.
 ### Key Components
 
 -   `semblance.api` --- endpoint registration & app creation
--   `semblance.links` --- dependency metadata & DSL
+-   `semblance.links` --- dependency metadata & DSL (FromInput, DateRangeFrom)
 -   `semblance.resolver` --- constraint resolution engine
 -   `semblance.factory` --- Polyfactory integration layer
--   `semblance.testing` --- pytest utilities
+-   `semblance.pagination` --- PageParams, PaginatedResponse
+-   `semblance.testing` --- test_client for pytest
 
 ------------------------------------------------------------------------
 
-## 5. Public API (Proposed)
+## 5. Public API
 
 ``` python
 from semblance import SemblanceAPI
@@ -146,17 +147,36 @@ Example resolved override:
 ### Pytest Harness
 
 ``` python
-@pytest.fixture
-def client():
-    return semblance.test_client()
+from semblance import test_client
+
+app = api.as_fastapi()
+client = test_client(app)
+r = client.get("/users?name=alice")
+assert r.status_code == 200
 ```
 
-Supports: - Contract testing - Snapshot testing - Frontend-backend
-integration tests
+### Test Coverage
+
+-   `test_api` --- SemblanceAPI, GET endpoints, FastAPI app export
+-   `test_factory` --- build_response, pagination, seed determinism, edge cases
+-   `test_resolver` --- resolve_overrides, DateRangeFrom, _to_datetime, get_output_model_for_type
+-   `test_links` --- FromInput, DateRangeFrom, get_field_metadata
+-   `test_phase2` --- POST, path params, pagination, seeding, error simulation
+-   `test_edge_cases` --- validation, duplicate paths, FromInput with None
+
+Supports: - Contract testing - Snapshot testing - Frontend-backend integration tests - pytest-cov for coverage reporting (95%+)
 
 ------------------------------------------------------------------------
 
 ## 8. Roadmap
+
+### Recent Updates
+
+-   Bug fixes: unused TypeVar removal, pagination limit/offset coercion robustness, null-safety in _get_paginated_inner
+-   Test coverage expanded to 95%+ with 46 tests across api, factory, resolver, links, phase2, and edge cases
+-   pytest-cov added to dev dependencies
+
+------------------------------------------------------------------------
 
 ### Phase 1 --- MVP (Foundations)
 
@@ -179,11 +199,11 @@ integration tests
 **Goal:** Real-world testing usefulness
 
 -   [x] POST endpoints with body models
--   [x] Path parameter support
--   [x] Pagination helpers
--   [x] Deterministic seeding
--   [x] Error response simulation
--   [x] Response count / limit constraints
+-   [x] Path parameter support (GET and POST)
+-   [x] Pagination helpers (PageParams, PaginatedResponse)
+-   [x] Deterministic seeding (SemblanceAPI(seed=), seed_from=)
+-   [x] Error response simulation (error_rate, error_codes)
+-   [x] Response count / limit constraints (list_count=, list_count="field")
 
 ------------------------------------------------------------------------
 
