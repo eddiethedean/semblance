@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2025-02-13
+
+### Fixed
+
+- `filter_by` now applied when using `PaginatedResponse[Model]` (was ignored previously)
+
+### Added
+
+- Phase 5 to roadmap: property-based testing, PUT/PATCH/DELETE, response validation, rate limiting
+
+### Changed
+
+- README: feature matrix replacing competitors table, Read the Docs links, emoji icons with hover tooltips
+
 ## [0.2.1] - 2025-02-13
 
 ### Added
@@ -72,7 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.2
 [0.2.1]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.1.0
