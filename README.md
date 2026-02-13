@@ -112,7 +112,7 @@ semblance export fixtures app:api [-o DIR]
 
 ## Examples
 
-Runnable examples in [examples/](https://github.com/eddiethedean/semblance/tree/main/examples):
+Runnable examples in [examples/](https://semblance.readthedocs.io/en/latest/examples/):
 
 ```bash
 semblance run examples.basic.app:api --port 8000
@@ -126,13 +126,13 @@ semblance run examples.plugins.app:api --port 8000
 
 | Example | Description |
 |---------|-------------|
-| [basic](https://github.com/eddiethedean/semblance/tree/main/examples/basic) | Minimal GET list with FromInput, DateRangeFrom |
-| [pagination](https://github.com/eddiethedean/semblance/tree/main/examples/pagination) | PageParams, PaginatedResponse |
-| [nested](https://github.com/eddiethedean/semblance/tree/main/examples/nested) | Nested model linking |
-| [stateful](https://github.com/eddiethedean/semblance/tree/main/examples/stateful) | POST stores items, GET returns stored list |
-| [advanced](https://github.com/eddiethedean/semblance/tree/main/examples/advanced) | WhenInput, ComputedFrom, filter_by |
-| [error_simulation](https://github.com/eddiethedean/semblance/tree/main/examples/error_simulation) | error_rate, error_codes |
-| [plugins](https://github.com/eddiethedean/semblance/tree/main/examples/plugins) | Custom link (FromEnv) |
+| [basic](https://semblance.readthedocs.io/en/latest/examples/basic/) | Minimal GET list with FromInput, DateRangeFrom |
+| [pagination](https://semblance.readthedocs.io/en/latest/examples/pagination/) | PageParams, PaginatedResponse |
+| [nested](https://semblance.readthedocs.io/en/latest/examples/nested/) | Nested model linking |
+| [stateful](https://semblance.readthedocs.io/en/latest/examples/stateful/) | POST stores items, GET returns stored list |
+| [advanced](https://semblance.readthedocs.io/en/latest/examples/advanced/) | WhenInput, ComputedFrom, filter_by |
+| [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | error_rate, error_codes |
+| [plugins](https://semblance.readthedocs.io/en/latest/examples/plugins/) | Custom link (FromEnv) |
 
 ## Testing
 
@@ -190,21 +190,41 @@ class User(BaseModel):
 | **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores, GET returns stored |
 | **OpenAPI** | summary, description, tags on endpoints |
 
+## Competitors & Alternatives
+
+| Feature | [Semblance](https://pypi.org/project/semblance/) | [fastapi-mock](https://pypi.org/project/fastapi-mock/) | [Prism](https://stoplight.io/open-source/prism) | [json-server](https://github.com/typicode/json-server) | [Schemathesis](https://schemathesis.readthedocs.io/) | [Mockoon](https://mockoon.com/) |
+|---------|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Mock API server** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Python / FastAPI native** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| **Zero endpoint logic** | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
+| **Realistic example generation** | ✅ | <span title="Uses predefined Pydantic examples or Field defaults, not auto-generated faker-style data">🟡</span> | ✅ | ❌ | ❌ | <span title="Faker templating in rules, but not schema-driven auto-generation">🟡</span> |
+| **Input→output binding** | ✅ | ❌ | ❌ | ❌ | ❌ | <span title="Rules can reference request data via templating, but not schema-driven link metadata">🟡</span> |
+| **Deterministic seeding** | ✅ | ❌ | ✅ | ❌ | ✅ | <span title="Some dynamic values; true deterministic seeding not primary focus">🟡</span> |
+| **Pagination helpers** | ✅ | ❌ | <span title="May derive pagination from OpenAPI examples; no dedicated helpers">🟡</span> | ✅ | ❌ | <span title="Can configure response rules, no built-in pagination helpers">🟡</span> |
+| **Error simulation** | ✅ | ❌ | <span title="Can return error responses defined in OpenAPI spec">🟡</span> | ❌ | ❌ | <span title="Rules can return different status codes per condition">🟡</span> |
+| **Stateful mode** | ✅ | ❌ | ❌ | ✅ | ❌ | <span title="Rules can simulate state; not true POST-store/GET-return">🟡</span> |
+| **Extensible (plugins)** | ✅ | <span title="Middleware-based; custom behavior via decorators or wrappers">🟡</span> | ❌ | ❌ | ✅ | <span title="Templates and response rules provide extensibility">🟡</span> |
+| **OpenAPI schema** | ✅ | ✅ | ✅ | ❌ | ✅ | <span title="Can import/export OpenAPI; design is GUI-first, not schema-first">🟡</span> |
+| **CI / pytest integration** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Property-based testing** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+
+🟡 = partial or configurable
+
 ## Documentation
 
 Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.io/)**
 
-- [Getting Started](https://github.com/eddiethedean/semblance/blob/main/docs/guides/getting-started.md)
-- [Input and Output Binding](https://github.com/eddiethedean/semblance/blob/main/docs/guides/input-output-binding.md)
-- [Advanced Links](https://github.com/eddiethedean/semblance/blob/main/docs/guides/advanced-links.md)
-- [Pagination](https://github.com/eddiethedean/semblance/blob/main/docs/guides/pagination.md)
-- [Simulation Options](https://github.com/eddiethedean/semblance/blob/main/docs/guides/simulation-options.md)
-- [Stateful Mode](https://github.com/eddiethedean/semblance/blob/main/docs/guides/stateful-mode.md)
-- [CLI](https://github.com/eddiethedean/semblance/blob/main/docs/guides/cli.md)
-- [Plugins](https://github.com/eddiethedean/semblance/blob/main/docs/guides/plugins.md)
-- [Testing](https://github.com/eddiethedean/semblance/blob/main/docs/guides/testing.md)
-- [Roadmap](https://github.com/eddiethedean/semblance/blob/main/docs/roadmap.md)
-- [API Reference](https://github.com/eddiethedean/semblance/blob/main/docs/api/index.md)
+- [Getting Started](https://semblance.readthedocs.io/en/latest/guides/getting-started/)
+- [Input and Output Binding](https://semblance.readthedocs.io/en/latest/guides/input-output-binding/)
+- [Advanced Links](https://semblance.readthedocs.io/en/latest/guides/advanced-links/)
+- [Pagination](https://semblance.readthedocs.io/en/latest/guides/pagination/)
+- [Simulation Options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/)
+- [Stateful Mode](https://semblance.readthedocs.io/en/latest/guides/stateful-mode/)
+- [CLI](https://semblance.readthedocs.io/en/latest/guides/cli/)
+- [Plugins](https://semblance.readthedocs.io/en/latest/guides/plugins/)
+- [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/)
+- [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/)
+- [API Reference](https://semblance.readthedocs.io/en/latest/api/)
 
 ## Development
 
