@@ -185,8 +185,8 @@ class TestCmdRun:
             assert call_kw["host"] == "127.0.0.1"
             assert call_kw["port"] == 8000
 
-    def test_cmd_run_with_reload_uses_subprocess(self):
-        """cmd_run with reload uses subprocess to run uvicorn -m uvicorn."""
+    def test_cmd_run_with_reload_calls_uvicorn_with_reload(self):
+        """cmd_run with reload loads app and calls uvicorn.run with reload=True."""
         args = type(
             "Args",
             (),
@@ -197,16 +197,16 @@ class TestCmdRun:
                 "reload": True,
             },
         )()
-        with patch("semblance.cli.subprocess.run") as mock_run:
+        with patch("uvicorn.run") as mock_run:
             cmd_run(args)
             mock_run.assert_called_once()
-            cmd = mock_run.call_args[0][0]
-            assert "uvicorn" in cmd
-            assert "--reload" in cmd
-            assert "tests.sample_app:app" in cmd
+            call_kw = mock_run.call_args[1]
+            assert call_kw["host"] == "127.0.0.1"
+            assert call_kw["port"] == 8000
+            assert call_kw["reload"] is True
 
-    def test_cmd_run_reload_uvicorn_not_found_exits(self):
-        """cmd_run with reload raises SystemExit when uvicorn subprocess fails."""
+    def test_cmd_run_uvicorn_not_found_exits(self):
+        """cmd_run raises SystemExit when uvicorn import fails."""
         args = type(
             "Args",
             (),
@@ -214,10 +214,19 @@ class TestCmdRun:
                 "app": "tests.sample_app:app",
                 "host": "127.0.0.1",
                 "port": 8000,
-                "reload": True,
+                "reload": False,
             },
         )()
-        with patch("semblance.cli.subprocess.run", side_effect=FileNotFoundError):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "uvicorn":
+                raise ImportError("No module named 'uvicorn'")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", fake_import):
             with pytest.raises(SystemExit, match="uvicorn not found"):
                 cmd_run(args)
 

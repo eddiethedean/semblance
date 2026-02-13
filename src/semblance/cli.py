@@ -7,7 +7,6 @@ for frontend integration. Use module:attr path (e.g. app:api or app:app).
 
 import argparse
 import importlib.util
-import subprocess
 import sys
 from pathlib import Path
 
@@ -25,6 +24,10 @@ def _load_app(path: str):
     spec = importlib.util.find_spec(module_path)
     if spec is None or spec.origin is None:
         raise SystemExit(f"Module {module_path!r} not found")
+    if spec.loader is None:
+        raise SystemExit(
+            f"Module {module_path!r} cannot be loaded (e.g. namespace package)"
+        )
 
     loader = importlib.util.LazyLoader(spec.loader)  # type: ignore
     spec.loader = loader
@@ -43,29 +46,12 @@ def _load_app(path: str):
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Run a Semblance app with uvicorn."""
-    if args.reload:
-        cmd = [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            args.app,
-            "--host",
-            args.host,
-            "--port",
-            str(args.port),
-            "--reload",
-        ]
-        try:
-            subprocess.run(cmd, check=True)
-        except FileNotFoundError:
-            raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
-    else:
-        app = _load_app(args.app)
-        try:
-            import uvicorn
-        except ImportError:
-            raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
-        uvicorn.run(app, host=args.host, port=args.port)
+    app = _load_app(args.app)
+    try:
+        import uvicorn
+    except ImportError:
+        raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
+    uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
 
 
 def cmd_export_openapi(args: argparse.Namespace) -> None:
