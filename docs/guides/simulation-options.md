@@ -1,6 +1,6 @@
 # Simulation Options
 
-Semblance lets you simulate realistic API behavior: errors, latency, and filtering.
+Semblance lets you simulate realistic API behavior: errors, latency, rate limiting, filtering, and optional response validation.
 
 ## Error Simulation
 
@@ -67,6 +67,34 @@ Only items whose `status` matches `input.status` are returned. Requires the outp
 ]
 ```
 
+## Rate Limiting
+
+Simulate rate limits per endpoint (sliding 1-second window). When exceeded, the endpoint returns `429 Too Many Requests`:
+
+```python
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=list[User],
+    rate_limit=10,
+)
+def users():
+    pass
+```
+
+- `rate_limit=N` — allow at most N requests per second for this (path, method). Additional requests in the same second get 429.
+- Per-process, in-memory; suitable for simulation and testing, not distributed production.
+
+## Response Validation
+
+In development or CI, you can validate that generated responses conform to the output model:
+
+```python
+api = SemblanceAPI(validate_responses=True)
+```
+
+When `validate_responses=True`, every response is checked with the output model before returning. Schema drift raises a validation error. Adds overhead; use for development or CI, not necessarily in production mocks.
+
 ## Combining Options
 
 ```python
@@ -80,6 +108,7 @@ Only items whose `status` matches `input.status` are returned. Requires the outp
     error_codes=[503],
     latency_ms=50,
     jitter_ms=10,
+    rate_limit=20,
     filter_by="status",
 )
 def users():

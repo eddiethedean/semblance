@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 def _get_routes(app: FastAPI) -> list[tuple[str, str, str]]:
     """Return (path, method, route_id) for each API route."""
-    routes = []
+    routes: list[tuple[str, str, str]] = []
     for route in app.routes:
         if hasattr(route, "path") and hasattr(route, "methods"):
             for method in route.methods - {"HEAD", "OPTIONS"}:

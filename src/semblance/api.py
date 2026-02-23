@@ -13,10 +13,12 @@ import re
 from collections.abc import Callable
 from typing import Annotated, Any, get_origin
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Body, FastAPI, HTTPException, Query, Request
+from fastapi.responses import Response
 from pydantic import BaseModel
 
-from semblance.factory import build_response
+from semblance.factory import build_response, validate_response
+from semblance.rate_limit import get_limiter
 from semblance.state import StatefulStore
 
 
@@ -41,6 +43,7 @@ class EndpointSpec:
         "latency_ms",
         "jitter_ms",
         "filter_by",
+        "rate_limit",
         "summary",
         "description",
         "tags",
@@ -51,7 +54,7 @@ class EndpointSpec:
         path: str,
         methods: list[str],
         input_model: type[BaseModel],
-        output_annotation: type,
+        output_annotation: type | None,
         handler: Callable[..., Any],
         list_count: int | str = 5,
         seed_from: str | None = None,
@@ -60,6 +63,7 @@ class EndpointSpec:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        rate_limit: float | None = None,
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
@@ -76,6 +80,7 @@ class EndpointSpec:
         self.latency_ms = latency_ms
         self.jitter_ms = jitter_ms
         self.filter_by = filter_by
+        self.rate_limit = rate_limit
         self.summary = summary
         self.description = description
         self.tags = tags
@@ -90,12 +95,20 @@ class SemblanceAPI:
         seed: Optional seed for deterministic random generation.
         stateful: If True, POST responses are stored and GET list endpoints
             return stored instances instead of generating new ones.
+        validate_responses: If True, generated responses are validated against
+            the output model (for development/CI; adds overhead).
     """
 
-    def __init__(self, seed: int | None = None, stateful: bool = False) -> None:
+    def __init__(
+        self,
+        seed: int | None = None,
+        stateful: bool = False,
+        validate_responses: bool = False,
+    ) -> None:
         self._specs: list[EndpointSpec] = []
         self._seed = seed
         self._store: StatefulStore | None = StatefulStore() if stateful else None
+        self._validate_responses = validate_responses
 
     def clear_store(self, path: str | None = None) -> None:
         """Clear the stateful store. Only available when stateful=True."""
@@ -115,6 +128,7 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        rate_limit: float | None = None,
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
@@ -140,6 +154,7 @@ class SemblanceAPI:
             latency_ms,
             jitter_ms,
             filter_by,
+            rate_limit,
             summary,
             description,
             tags,
@@ -158,6 +173,7 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        rate_limit: float | None = None,
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
@@ -183,16 +199,17 @@ class SemblanceAPI:
             latency_ms,
             jitter_ms,
             filter_by,
+            rate_limit,
             summary,
             description,
             tags,
         )
 
-    def _register(
+    def put(
         self,
         path: str,
-        method: str,
-        input_model: type[BaseModel],
+        *,
+        input: type[BaseModel],
         output: type,
         list_count: int | str = 5,
         seed_from: str | None = None,
@@ -201,6 +218,136 @@ class SemblanceAPI:
         latency_ms: float = 0,
         jitter_ms: float = 0,
         filter_by: str | None = None,
+        rate_limit: float | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Register a PUT endpoint. Request body is validated against `input`.
+        Response is generated from `output` (single model or list[model]).
+
+        Usage:
+            @api.put("/users/{id}", input=UpdateUserRequest, output=User)
+            def update_user():
+                pass
+        """
+        return self._register(
+            path,
+            "PUT",
+            input,
+            output,
+            list_count,
+            seed_from,
+            error_rate,
+            error_codes,
+            latency_ms,
+            jitter_ms,
+            filter_by,
+            rate_limit,
+            summary,
+            description,
+            tags,
+        )
+
+    def patch(
+        self,
+        path: str,
+        *,
+        input: type[BaseModel],
+        output: type,
+        list_count: int | str = 5,
+        seed_from: str | None = None,
+        error_rate: float = 0,
+        error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
+        rate_limit: float | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Register a PATCH endpoint. Request body is validated against `input`.
+        Response is generated from `output` (single model or list[model]).
+
+        Usage:
+            @api.patch("/users/{id}", input=PatchUserRequest, output=User)
+            def patch_user():
+                pass
+        """
+        return self._register(
+            path,
+            "PATCH",
+            input,
+            output,
+            list_count,
+            seed_from,
+            error_rate,
+            error_codes,
+            latency_ms,
+            jitter_ms,
+            filter_by,
+            rate_limit,
+            summary,
+            description,
+            tags,
+        )
+
+    def delete(
+        self,
+        path: str,
+        *,
+        input: type[BaseModel],
+        output: type | None = None,
+        rate_limit: float | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+        """
+        Register a DELETE endpoint. Path params (and optional body) are validated
+        against `input`. If `output` is None, returns 204 No Content.
+        If `output` is a model, returns 200 with generated body.
+
+        Usage:
+            @api.delete("/users/{id}", input=DeleteUserQuery)
+            def delete_user():
+                pass
+        """
+        return self._register(
+            path,
+            "DELETE",
+            input,
+            output,
+            list_count=1,
+            seed_from=None,
+            error_rate=0,
+            error_codes=None,
+            latency_ms=0,
+            jitter_ms=0,
+            filter_by=None,
+            rate_limit=rate_limit,
+            summary=summary,
+            description=description,
+            tags=tags,
+        )
+
+    def _register(
+        self,
+        path: str,
+        method: str,
+        input_model: type[BaseModel],
+        output: type | None,
+        list_count: int | str = 5,
+        seed_from: str | None = None,
+        error_rate: float = 0,
+        error_codes: list[int] | None = None,
+        latency_ms: float = 0,
+        jitter_ms: float = 0,
+        filter_by: str | None = None,
+        rate_limit: float | None = None,
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
@@ -220,6 +367,7 @@ class SemblanceAPI:
                     latency_ms=latency_ms,
                     jitter_ms=jitter_ms,
                     filter_by=filter_by,
+                    rate_limit=rate_limit,
                     summary=summary,
                     description=description,
                     tags=tags,
@@ -246,6 +394,12 @@ class SemblanceAPI:
                     self._register_get(app, spec)
                 elif method == "POST":
                     self._register_post(app, spec)
+                elif method == "PUT":
+                    self._register_put(app, spec)
+                elif method == "PATCH":
+                    self._register_patch(app, spec)
+                elif method == "DELETE":
+                    self._register_delete(app, spec)
 
         return app
 
@@ -307,6 +461,17 @@ class SemblanceAPI:
         merged = {**data.model_dump(), **path_params}
         return input_model.model_validate(merged)
 
+    def _check_rate_limit(self, spec: EndpointSpec) -> None:
+        """Raise HTTPException 429 if rate limit exceeded."""
+        if spec.rate_limit is None or spec.rate_limit <= 0:
+            return
+        limiter = get_limiter()
+        method = spec.methods[0]
+        if not limiter.check_and_record(spec.path, method, spec.rate_limit):
+            raise HTTPException(
+                status_code=429, detail="Rate limit exceeded (simulated)"
+            )
+
     def _register_get(self, app: FastAPI, spec: EndpointSpec) -> None:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
@@ -324,23 +489,30 @@ class SemblanceAPI:
             request: Request,
             query: Annotated[input_model, Query()],
         ) -> output_annotation:
+            assert output_annotation is not None
+            self._check_rate_limit(spec)
             merged = self._merge_path_params(
                 input_model, query, dict(request.path_params)
             )
             seed = self._resolve_seed(seed_from, merged)
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
+            response: BaseModel | list[BaseModel]
             if store is not None and get_origin(output_annotation) is list:
-                return store.get_all(path)
-            count = self._resolve_list_count(list_count, merged)
-            return build_response(
-                output_annotation,
-                input_model,
-                merged,
-                list_count=count,
-                seed=seed,
-                filter_by=filter_by,
-            )
+                response = store.get_all(path)
+            else:
+                count = self._resolve_list_count(list_count, merged)
+                response = build_response(
+                    output_annotation,
+                    input_model,
+                    merged,
+                    list_count=count,
+                    seed=seed,
+                    filter_by=filter_by,
+                )
+            if self._validate_responses:
+                validate_response(output_annotation, response)
+            return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
         if spec.summary is not None:
@@ -352,6 +524,7 @@ class SemblanceAPI:
         app.get(spec.path, **kwargs)(handler)
 
     def _register_post(self, app: FastAPI, spec: EndpointSpec) -> None:
+        assert spec.output_annotation is not None
         input_model = spec.input_model
         output_annotation = spec.output_annotation
         list_count = spec.list_count
@@ -368,6 +541,7 @@ class SemblanceAPI:
             request: Request,
             body: input_model,
         ) -> output_annotation:
+            self._check_rate_limit(spec)
             merged = self._merge_path_params(
                 input_model, body, dict(request.path_params)
             )
@@ -385,6 +559,8 @@ class SemblanceAPI:
             )
             if store is not None and not isinstance(response, list):
                 response = store.add(path, response)
+            if self._validate_responses:
+                validate_response(output_annotation, response)
             return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
@@ -395,3 +571,138 @@ class SemblanceAPI:
         if spec.tags is not None:
             kwargs["tags"] = spec.tags
         app.post(spec.path, **kwargs)(handler)
+
+    def _register_put(self, app: FastAPI, spec: EndpointSpec) -> None:
+        assert spec.output_annotation is not None
+        input_model = spec.input_model
+        output_annotation = spec.output_annotation
+        list_count = spec.list_count
+        seed_from = spec.seed_from
+        error_rate = spec.error_rate
+        error_codes = spec.error_codes
+        latency_ms = spec.latency_ms
+        jitter_ms = spec.jitter_ms
+        filter_by = spec.filter_by
+
+        async def handler(
+            request: Request,
+            body: input_model,
+        ) -> output_annotation:
+            self._check_rate_limit(spec)
+            merged = self._merge_path_params(
+                input_model, body, dict(request.path_params)
+            )
+            seed = self._resolve_seed(seed_from, merged)
+            self._maybe_raise_error(error_rate, error_codes, seed)
+            await self._await_latency(latency_ms, jitter_ms)
+            count = self._resolve_list_count(list_count, merged)
+            response = build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=count,
+                seed=seed,
+                filter_by=filter_by,
+            )
+            if self._validate_responses:
+                validate_response(output_annotation, response)
+            return response
+
+        kwargs: dict[str, Any] = {"response_model": output_annotation}
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        app.put(spec.path, **kwargs)(handler)
+
+    def _register_patch(self, app: FastAPI, spec: EndpointSpec) -> None:
+        assert spec.output_annotation is not None
+        input_model = spec.input_model
+        output_annotation = spec.output_annotation
+        list_count = spec.list_count
+        seed_from = spec.seed_from
+        error_rate = spec.error_rate
+        error_codes = spec.error_codes
+        latency_ms = spec.latency_ms
+        jitter_ms = spec.jitter_ms
+        filter_by = spec.filter_by
+
+        async def handler(
+            request: Request,
+            body: input_model,
+        ) -> output_annotation:
+            self._check_rate_limit(spec)
+            merged = self._merge_path_params(
+                input_model, body, dict(request.path_params)
+            )
+            seed = self._resolve_seed(seed_from, merged)
+            self._maybe_raise_error(error_rate, error_codes, seed)
+            await self._await_latency(latency_ms, jitter_ms)
+            count = self._resolve_list_count(list_count, merged)
+            response = build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=count,
+                seed=seed,
+                filter_by=filter_by,
+            )
+            if self._validate_responses:
+                validate_response(output_annotation, response)
+            return response
+
+        kwargs: dict[str, Any] = {"response_model": output_annotation}
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        app.patch(spec.path, **kwargs)(handler)
+
+    def _register_delete(self, app: FastAPI, spec: EndpointSpec) -> None:
+        input_model = spec.input_model
+        output_annotation = spec.output_annotation
+        seed_from = spec.seed_from
+        error_rate = spec.error_rate
+        error_codes = spec.error_codes
+        latency_ms = spec.latency_ms
+        jitter_ms = spec.jitter_ms
+
+        async def handler(
+            request: Request,
+            body: input_model | None = Body(None),
+        ) -> Any:
+            self._check_rate_limit(spec)
+            path_params = dict(request.path_params)
+            data: dict[str, Any] = body.model_dump() if body is not None else {}
+            merged = input_model.model_validate({**data, **path_params})
+            seed = self._resolve_seed(seed_from, merged)
+            self._maybe_raise_error(error_rate, error_codes, seed)
+            await self._await_latency(latency_ms, jitter_ms)
+            if output_annotation is None:
+                return Response(status_code=204)
+            response = build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=1,
+                seed=seed,
+                filter_by=None,
+            )
+            if self._validate_responses:
+                validate_response(output_annotation, response)
+            return response
+
+        kwargs: dict[str, Any] = {}
+        if output_annotation is not None:
+            kwargs["response_model"] = output_annotation
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        app.delete(spec.path, **kwargs)(handler)

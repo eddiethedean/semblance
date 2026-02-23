@@ -9,11 +9,17 @@
 Main API builder. Register endpoints with input/output models.
 
 ```python
-api = SemblanceAPI(seed=None, stateful=False)
-api.get(path, *, input, output, ...)
-api.post(path, *, input, output, ...)
+api = SemblanceAPI(seed=None, stateful=False, validate_responses=False)
+api.get(path, *, input, output, list_count=5, seed_from=..., error_rate=0, error_codes=..., latency_ms=0, jitter_ms=0, filter_by=..., rate_limit=..., summary=..., description=..., tags=...)
+api.post(path, *, input, output, ...)   # same options as get
+api.put(path, *, input, output, ...)    # same options as post
+api.patch(path, *, input, output, ...)  # same options as post
+api.delete(path, *, input, output=None) # output=None → 204 No Content; else 200 with body
 app = api.as_fastapi()
 ```
+
+- **validate_responses** — when `True`, validates every generated response against the output model (for dev/CI).
+- **rate_limit** — optional; max requests per second per endpoint (returns 429 when exceeded).
 
 ### Links
 
@@ -43,6 +49,15 @@ app = api.as_fastapi()
 `from semblance import test_client`
 
 - **test_client(app)** — httpx TestClient for FastAPI app
+
+### Property-based Testing
+
+`from semblance.property_testing import strategy_for_input_model, test_endpoint`
+
+- **strategy_for_input_model(model, path_template=None)** — Hypothesis strategy that generates instances of the input model (for GET query or POST/PUT/PATCH body).
+- **test_endpoint(client, method, path, input_strategy, output_model, path_params=..., validate_response=True, invariants=())** — runs a property-based test: draws input, calls endpoint, validates response; optional invariants (input, output) → bool.
+
+Requires `hypothesis` (included in `[dev]`).
 
 ## CLI
 

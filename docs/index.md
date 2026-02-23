@@ -66,13 +66,19 @@ curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024
 
 - **Zero endpoint logic** — schemas drive behavior
 - **Schema-driven** — input/output models and links define responses
+- **Full HTTP methods** — GET, POST, PUT, PATCH, DELETE with input/output models
 - **Deterministic seeding** — reproducible responses for tests
 - **FastAPI-native** — full OpenAPI, validation, async
+- **Simulation options** — error rate, latency, rate limiting, filtering, optional response validation
 - **Extensible** — custom link types via plugins
+- **Property-based testing** — Hypothesis strategies and test helpers in `semblance.property_testing`
 
 ## Next Steps
 
 - [Getting Started](guides/getting-started.md) — full walkthrough
 - [Input and Output Binding](guides/input-output-binding.md) — FromInput, DateRangeFrom, and more
+- [Simulation Options](guides/simulation-options.md) — error rate, latency, rate limiting, response validation
+- [Testing](guides/testing.md) — test_client, property-based testing with Hypothesis
 - [Examples](examples/README.md) — runnable examples
 - [API Reference](api/index.md) — module reference
+- [Roadmap](roadmap.md) — phases and status

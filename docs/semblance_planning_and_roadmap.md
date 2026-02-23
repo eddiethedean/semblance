@@ -224,12 +224,12 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 
 **Goal:** Adoption and extensibility
 
--   [ ] Plugin system for custom links
--   [ ] OpenAPI schema annotations
--   [ ] CLI runner
--   [ ] Frontend mock export
--   [ ] Documentation site
--   [ ] Example galleries
+-   [x] Plugin system for custom links
+-   [x] OpenAPI schema annotations
+-   [x] CLI runner
+-   [x] Frontend mock export
+-   [x] Documentation site
+-   [x] Example galleries
 
 ------------------------------------------------------------------------
 
@@ -237,10 +237,10 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 
 **Goal:** Schemathesis-style property-based testing and broader HTTP method support
 
--   [ ] Property-based testing (Hypothesis integration)
--   [ ] PUT, PATCH, DELETE endpoint support
--   [ ] Optional response schema validation
--   [ ] Rate limiting simulation
+-   [x] Property-based testing (Hypothesis integration)
+-   [x] PUT, PATCH, DELETE endpoint support
+-   [x] Optional response schema validation
+-   [x] Rate limiting simulation
 
 ------------------------------------------------------------------------
 

@@ -16,7 +16,7 @@ Define API behavior declaratively using schemas and dependency metadata—no end
 - **FastAPI-native** — Full OpenAPI, validation, async
 - **Deterministic** — Seeded generation for reproducible tests
 - **Extensible** — Custom link types via plugins
-- **Production-ready** — Error simulation, latency, pagination, stateful mode
+- **Production-ready** — Error simulation, latency, rate limiting, pagination, stateful mode, optional response validation
 
 ## Requirements
 
@@ -71,6 +71,8 @@ def users():
 
 app = api.as_fastapi()
 ```
+
+You can register PUT, PATCH, and DELETE endpoints the same way (`@api.put(...)`, `@api.patch(...)`, `@api.delete(..., output=None)` for 204).
 
 Run:
 
@@ -180,15 +182,18 @@ class User(BaseModel):
 
 | Feature | Description |
 |---------|-------------|
-| **SemblanceAPI** | GET and POST endpoints with input/output models |
+| **SemblanceAPI** | GET, POST, PUT, PATCH, DELETE endpoints with input/output models |
 | **Links** | FromInput, DateRangeFrom, WhenInput, ComputedFrom |
 | **Pagination** | PageParams, PaginatedResponse[T] |
 | **Seeding** | `SemblanceAPI(seed=42)` or `seed_from="seed"` |
 | **Error simulation** | `error_rate`, `error_codes` |
 | **Latency** | `latency_ms`, `jitter_ms` |
+| **Rate limiting** | `rate_limit=N` — 429 when exceeded (per endpoint, sliding window) |
 | **Filtering** | `filter_by` for list endpoints |
 | **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores, GET returns stored |
+| **Response validation** | `SemblanceAPI(validate_responses=True)` — verify output conforms to model |
 | **OpenAPI** | summary, description, tags on endpoints |
+| **Property-based testing** | `semblance.property_testing`: `strategy_for_input_model()`, `test_endpoint()` (Hypothesis) |
 
 ## Competitors & Alternatives
 
@@ -206,7 +211,7 @@ class User(BaseModel):
 | **Extensible (plugins)** | ✅ | <span title="Middleware-based; custom behavior via decorators or wrappers">🟡</span> | ❌ | ❌ | ✅ | <span title="Templates and response rules provide extensibility">🟡</span> |
 | **OpenAPI schema** | ✅ | ✅ | ✅ | ❌ | ✅ | <span title="Can import/export OpenAPI; design is GUI-first, not schema-first">🟡</span> |
 | **CI / pytest integration** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Property-based testing** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| **Property-based testing** | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
 
 🟡 = partial or configurable
 

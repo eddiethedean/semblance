@@ -76,6 +76,30 @@ def get_user():
 
 Path params (e.g. `id` from `/users/123`) are merged into the validated input. Your input model must include path param names with defaults.
 
+### PUT, PATCH, DELETE
+
+PUT and PATCH use the request body (like POST); path params are merged into the input. DELETE supports an optional body; path params are always available.
+
+```python
+@api.put("/users/{id}", input=UpdateUserRequest, output=User)
+def update_user():
+    pass
+
+@api.patch("/users/{id}", input=PatchUserRequest, output=User)
+def patch_user():
+    pass
+
+@api.delete("/users/{id}", input=DeleteUserInput)  # 204 No Content
+def delete_user():
+    pass
+
+@api.delete("/users/{id}", input=DeleteUserInput, output=User)  # 200 with body
+def delete_user_with_response():
+    pass
+```
+
+For DELETE, omit `output` for 204 No Content, or provide an output model for 200 with a generated body.
+
 ## Output Types
 
 - **Single model:** `output=User` – one instance

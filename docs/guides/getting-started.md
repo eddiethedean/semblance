@@ -81,4 +81,5 @@ The handler body is empty; Semblance generates responses from your schemas.
 ## Next Steps
 
 - [Input and Output Binding](input-output-binding.md) – bind fields from input, date ranges, and more
-- [Testing](testing.md) – use the test client with pytest
+- [Simulation Options](simulation-options.md) – error rate, latency, rate limiting, response validation
+- [Testing](testing.md) – test client, deterministic seeding, property-based testing with Hypothesis

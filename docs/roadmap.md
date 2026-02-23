@@ -39,9 +39,9 @@
 - Documentation site (MkDocs)
 - Example galleries
 
-## Phase 5 — Testing & Validation
+## Phase 5 — Testing & Validation ✓
 
-- **Property-based testing** — Hypothesis integration, Schemathesis-style: generate diverse inputs from input models, validate mock responses match output schema and invariants; pytest plugin; reproducible failure reporting (minimal reproduction, curl commands)
+- **Property-based testing** — Hypothesis integration: `strategy_for_input_model()`, `test_endpoint()` in `semblance.property_testing`; generate inputs from input models, validate responses match output schema and optional invariants
 - PUT, PATCH, DELETE endpoint support
-- Optional response schema validation — verify generated responses conform to OpenAPI/response model
-- Rate limiting simulation — `rate_limit=N` requests per second per endpoint
+- Optional response schema validation — `SemblanceAPI(validate_responses=True)` verifies generated responses conform to output model
+- Rate limiting simulation — `rate_limit=N` requests per second per endpoint (sliding window, 429 when exceeded)

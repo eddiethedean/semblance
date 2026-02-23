@@ -187,3 +187,18 @@ def build_response(
             "Use a Pydantic BaseModel or list[SomeModel] for output."
         )
     return build_one(model, input_model, input_instance, seed=seed)
+
+
+def validate_response(
+    output_annotation: type,
+    instance: BaseModel | list[BaseModel],
+) -> None:
+    """
+    Validate that instance conforms to output_annotation.
+    Raises ValidationError on mismatch. For list/PaginatedResponse,
+    validates the structure and each item.
+    """
+    from pydantic import TypeAdapter
+
+    adapter: TypeAdapter[Any] = TypeAdapter(output_annotation)
+    adapter.validate_python(instance)

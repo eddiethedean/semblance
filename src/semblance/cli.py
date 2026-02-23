@@ -9,9 +9,10 @@ import argparse
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Any
 
 
-def _load_app(path: str):
+def _load_app(path: str) -> Any:
     """Load app from module:attr. If attr has as_fastapi(), it is called to get FastAPI app."""
     if ":" not in path:
         raise SystemExit(
