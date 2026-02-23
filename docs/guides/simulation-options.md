@@ -21,6 +21,7 @@ def users():
 - `error_rate=0.1` – 10% of requests raise an error.
 - `error_codes=[404, 500]` – which status codes to return (default `[404, 500]`).
 - Use `error_rate=0` for normal behavior; use `error_rate=1.0` to always fail (useful for tests).
+- When `error_rate` and `error_codes` are set, the exported OpenAPI schema documents those simulated error responses.
 
 ## Latency and Jitter
 
@@ -84,6 +85,7 @@ def users():
 
 - `rate_limit=N` — allow at most N requests per second for this (path, method). Additional requests in the same second get 429.
 - Per-process, in-memory; suitable for simulation and testing, not distributed production.
+- When `rate_limit` is set, the exported OpenAPI schema includes a 429 (rate limit exceeded) response description.
 
 ## Response Validation
 

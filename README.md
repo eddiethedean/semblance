@@ -108,7 +108,7 @@ semblance run app:api [--host HOST] [--port PORT] [--reload]
 # Export OpenAPI schema (optionally with response examples)
 semblance export openapi app:api [-o FILE] [--examples]
 
-# Export JSON fixtures per endpoint
+# Export OpenAPI + JSON fixtures per endpoint (GET, POST, PUT, PATCH, DELETE)
 semblance export fixtures app:api [-o DIR]
 ```
 
@@ -190,7 +190,7 @@ class User(BaseModel):
 | **Latency** | `latency_ms`, `jitter_ms` |
 | **Rate limiting** | `rate_limit=N` — 429 when exceeded (per endpoint, sliding window) |
 | **Filtering** | `filter_by` for list endpoints |
-| **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores, GET returns stored |
+| **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores; GET (list + by-id), PUT/PATCH/DELETE by id use store |
 | **Response validation** | `SemblanceAPI(validate_responses=True)` — verify output conforms to model |
 | **OpenAPI** | summary, description, tags on endpoints |
 | **Property-based testing** | `semblance.property_testing`: `strategy_for_input_model()`, `test_endpoint()` (Hypothesis) |

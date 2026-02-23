@@ -1,6 +1,6 @@
 # Stateful Example
 
-POST creates and stores items; GET list returns stored instances.
+POST creates and stores items; GET list and GET-by-id return stored data; PUT, PATCH, and DELETE operate on stored items by id when the path includes a path parameter (e.g. `/users/{id}`).
 
 ## Code
 
@@ -79,7 +79,9 @@ Example responses (IDs vary per run):
 
 ## Concepts
 
-- **stateful=True** – SemblanceAPI stores POST responses
+- **stateful=True** – SemblanceAPI stores POST responses; GET list and GET-by-id return stored data
 - **GET list** – returns stored instances, not newly generated
+- **GET /users/{id}** – returns the stored item whose id matches the path param, or 404
+- **PUT/PATCH/DELETE** – when the path has `{id}`, upsert, update, or remove the stored item by id (404 if not found for PATCH/DELETE)
 - **id** – auto-generated for models with id field
 - State is process-local (in-memory)

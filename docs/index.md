@@ -69,7 +69,7 @@ curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024
 - **Full HTTP methods** — GET, POST, PUT, PATCH, DELETE with input/output models
 - **Deterministic seeding** — reproducible responses for tests
 - **FastAPI-native** — full OpenAPI, validation, async
-- **Simulation options** — error rate, latency, rate limiting, filtering, optional response validation
+- **Simulation options** — error rate, latency, rate limiting, filtering, optional response validation; OpenAPI documents 429 and simulated errors when configured
 - **Extensible** — custom link types via plugins
 - **Property-based testing** — Hypothesis strategies and test helpers in `semblance.property_testing`
 
