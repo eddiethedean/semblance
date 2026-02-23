@@ -1,4 +1,10 @@
-"""Verify documentation examples run and produce valid output."""
+"""Verify documentation examples run and produce valid output.
+
+Assumes pytest is run from the project root so that ``examples.*`` (e.g.
+examples.basic.app) can be imported. Adding a new entry to
+run_examples.EXAMPLES requires the callable to return successfully;
+test_run_examples_produces_valid_output enforces that.
+"""
 
 import sys
 from pathlib import Path
@@ -9,6 +15,7 @@ import pytest
 def test_run_examples_produces_valid_output():
     """docs/guides/examples/run_examples.py runs all examples without error."""
     root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(root))
     sys.path.insert(0, str(root / "src"))
 
     # Import and run - avoids subprocess for speed

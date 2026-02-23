@@ -60,6 +60,43 @@ def test_duplicate_post_path_raises():
         api.as_fastapi()
 
 
+@pytest.mark.parametrize(
+    "method,match",
+    [
+        ("put", "Duplicate PUT endpoint"),
+        ("patch", "Duplicate PATCH endpoint"),
+        ("delete", "Duplicate DELETE endpoint"),
+    ],
+)
+def test_duplicate_put_patch_delete_path_raises(method, match):
+    """Registering the same PUT/PATCH/DELETE path twice raises ValueError."""
+    from pydantic import BaseModel
+
+    class UpdateBody(BaseModel):
+        name: str = "x"
+
+    class Item(BaseModel):
+        id: str = ""
+        name: str = ""
+
+    class PathId(BaseModel):
+        id: str = ""
+
+    api = SemblanceAPI()
+    if method == "delete":
+        api.delete("/users/{id}", input=PathId)(lambda: None)
+        api.delete("/users/{id}", input=PathId)(lambda: None)
+    elif method == "put":
+        api.put("/users/{id}", input=UpdateBody, output=Item)(lambda: None)
+        api.put("/users/{id}", input=UpdateBody, output=Item)(lambda: None)
+    else:
+        assert method == "patch"
+        api.patch("/users/{id}", input=UpdateBody, output=Item)(lambda: None)
+        api.patch("/users/{id}", input=UpdateBody, output=Item)(lambda: None)
+    with pytest.raises(ValueError, match=match):
+        api.as_fastapi()
+
+
 @pytest.fixture
 def api():
     api = SemblanceAPI()

@@ -31,6 +31,7 @@ Before submitting a pull request, ensure the following pass:
   ```bash
   pytest tests/ -v --cov=src/semblance --cov-fail-under=85
   ```
+  Run from the project root so that `examples.*` imports work (e.g. in `test_doc_examples`). If you add a new entry to `docs/guides/examples/run_examples.py` (the `EXAMPLES` list), the callable must return successfully; `test_run_examples_produces_valid_output` enforces that.
 
 - **Lint (ruff)**
   ```bash

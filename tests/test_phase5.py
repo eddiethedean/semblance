@@ -88,6 +88,7 @@ class TestRateLimit:
         assert r2.status_code == 200
         assert r3.status_code == 429
 
+    @pytest.mark.slow
     def test_rate_limit_allows_after_window(self):
         api = SemblanceAPI()
         api.get(
@@ -119,46 +120,4 @@ class TestValidateResponses:
 
 
 # --- Property-based testing ---
-
-
-@pytest.mark.skipif(
-    __import__("importlib.util").util.find_spec("hypothesis") is None,
-    reason="hypothesis not installed",
-)
-class TestPropertyBased:
-    def test_strategy_for_input_model_generates_valid_instances(self):
-        from hypothesis import given
-
-        from semblance.property_testing import strategy_for_input_model
-
-        strategy = strategy_for_input_model(UserQuery)
-
-        @given(strategy)
-        def run(inp):
-            assert isinstance(inp, UserQuery)
-            parsed = UserQuery.model_validate(inp.model_dump())
-            assert parsed.name == inp.name
-
-        run()
-
-    def test_test_endpoint_get_validates_responses(self):
-        from hypothesis import given
-        from pydantic import TypeAdapter
-
-        from semblance.property_testing import strategy_for_input_model
-
-        api = SemblanceAPI(seed=42)
-        api.get("/users", input=UserQuery, output=list[User], list_count=2)(
-            lambda: None
-        )
-        app = api.as_fastapi()
-        client = make_client(app)
-        strategy = strategy_for_input_model(UserQuery)
-
-        @given(strategy)
-        def run(inp):
-            r = client.get("/users", params=inp.model_dump())
-            assert r.status_code == 200
-            TypeAdapter(list[User]).validate_python(r.json())
-
-        run()
+# Hypothesis-based tests live in test_property_testing.py (skipped when hypothesis not installed).

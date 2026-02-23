@@ -165,3 +165,24 @@ def test_clear_store_stateful_api():
     api.clear_store("/items")
     r = client.get("/items?name=x")
     assert len(r.json()) == 0
+
+
+def test_parse_path_params():
+    """_parse_path_params extracts param names from path template."""
+    from semblance.api import _parse_path_params
+
+    assert _parse_path_params("/users/{id}") == ["id"]
+    assert _parse_path_params("/a/{b}/c") == ["b"]
+    assert _parse_path_params("/users/{id}/posts/{post_id}") == ["id", "post_id"]
+    assert _parse_path_params("/users") == []
+
+
+def test_collection_path():
+    """_collection_path strips last /{param} segment for store key."""
+    from semblance.api import _collection_path
+
+    assert _collection_path("/users/{id}") == "/users"
+    assert _collection_path("/items/{item_id}") == "/items"
+    assert _collection_path("/users") == "/users"
+    # "/" has no /{param} suffix so it is unchanged
+    assert _collection_path("/") == "/"

@@ -59,6 +59,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+    "slow: marks tests as slow (e.g. time.sleep); use -m 'not slow' for fast runs",
+]
 
 [tool.ruff]
 target-version = "py310"
