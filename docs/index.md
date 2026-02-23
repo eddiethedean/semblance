@@ -85,6 +85,7 @@ Example output (with `SemblanceAPI(seed=42)` and `list_count=2`):
 ## Next Steps
 
 - [Getting Started](guides/getting-started.md) — full walkthrough
+- [Concepts](guides/concepts.md) — input/output models, links, seeding, stateful store
 - [Input and Output Binding](guides/input-output-binding.md) — FromInput, DateRangeFrom, and more
 - [Simulation Options](guides/simulation-options.md) — error rate, latency, rate limiting, response validation
 - [Testing](guides/testing.md) — test_client, property-based testing with Hypothesis

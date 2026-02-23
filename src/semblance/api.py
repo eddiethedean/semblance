@@ -21,6 +21,7 @@ from semblance.config import load_config
 from semblance.factory import build_response, validate_response
 from semblance.rate_limit import get_limiter
 from semblance.state import StatefulStore
+from semblance.validation import validate_specs
 
 
 def _parse_path_params(path: str) -> list[str]:
@@ -103,6 +104,12 @@ class SemblanceAPI:
             return stored instances instead of generating new ones.
         validate_responses: If True, generated responses are validated against
             the output model (for development/CI; adds overhead).
+        validate_links: If True, at as_fastapi() validate that link bindings
+            (FromInput, DateRangeFrom, etc.) reference existing input/output
+            fields; raise ValueError with details if not. Default False for
+            backward compatibility.
+        verbose_errors: If True, stateful 404 responses include collection path
+            and id field/value in the detail for easier debugging.
     """
 
     def __init__(
@@ -110,6 +117,8 @@ class SemblanceAPI:
         seed: int | None = None,
         stateful: bool = False,
         validate_responses: bool = False,
+        validate_links: bool = False,
+        verbose_errors: bool = False,
         config_path: str | None = None,
     ) -> None:
         self._specs: list[EndpointSpec] = []
@@ -119,6 +128,12 @@ class SemblanceAPI:
         self._store = StatefulStore() if _stateful else None
         self._validate_responses = validate_responses or (
             cfg.validate_responses if cfg else False
+        )
+        self._validate_links = validate_links or (
+            getattr(cfg, "validate_links", False) if cfg else False
+        )
+        self._verbose_errors = verbose_errors or (
+            getattr(cfg, "verbose_errors", False) if cfg else False
         )
         self._middleware: list[tuple[type[Any], dict[str, Any]]] = []
 
@@ -134,6 +149,8 @@ class SemblanceAPI:
             seed=kwargs.pop("seed", cfg.seed),
             stateful=kwargs.pop("stateful", cfg.stateful),
             validate_responses=kwargs.pop("validate_responses", cfg.validate_responses),
+            validate_links=kwargs.pop("validate_links", getattr(cfg, "validate_links", False)),
+            verbose_errors=kwargs.pop("verbose_errors", getattr(cfg, "verbose_errors", False)),
             **kwargs,
         )
 
@@ -427,6 +444,10 @@ class SemblanceAPI:
 
     def as_fastapi(self) -> FastAPI:
         """Build and return a FastAPI application with all registered endpoints."""
+        if self._validate_links:
+            link_errors = validate_specs(self._specs)
+            if link_errors:
+                raise ValueError("Link validation failed:\n" + "\n".join(link_errors))
         app = FastAPI()
         for mw_class, mw_kwargs in self._middleware:
             app.add_middleware(mw_class, **mw_kwargs)  # type: ignore[arg-type]
@@ -437,7 +458,8 @@ class SemblanceAPI:
                 key = (spec.path, method)
                 if key in seen:
                     raise ValueError(
-                        f"Duplicate {method} endpoint registered for path {spec.path!r}"
+                        f"Duplicate {method} endpoint registered for path {spec.path!r}. "
+                        "Register only one handler per (path, method)."
                     )
                 seen.add(key)
                 if method == "GET":
@@ -576,7 +598,15 @@ class SemblanceAPI:
                             if self._validate_responses:
                                 validate_response(output_annotation, item)
                             return item
-                        raise HTTPException(status_code=404, detail="Not found")
+                        detail: str | dict[str, Any] = "Not found"
+                        if self._verbose_errors:
+                            detail = {
+                                "detail": "Not found",
+                                "collection": collection_path,
+                                "id_field": id_field,
+                                "id_value": id_value,
+                            }
+                        raise HTTPException(status_code=404, detail=detail)
             count = self._resolve_list_count(list_count, merged)
             response = build_response(
                 output_annotation,
@@ -774,7 +804,15 @@ class SemblanceAPI:
                     if id_value is not None:
                         existing = store.get_by_id(collection_path, id_value, id_field)
                         if existing is None:
-                            raise HTTPException(status_code=404, detail="Not found")
+                            detail_patch: str | dict[str, Any] = "Not found"
+                            if self._verbose_errors:
+                                detail_patch = {
+                                    "detail": "Not found",
+                                    "collection": collection_path,
+                                    "id_field": id_field,
+                                    "id_value": id_value,
+                                }
+                            raise HTTPException(status_code=404, detail=detail_patch)
             count = self._resolve_list_count(list_count, merged)
             response: BaseModel | list[BaseModel] = build_response(
                 output_annotation,
@@ -856,7 +894,15 @@ class SemblanceAPI:
                     if id_value is not None:
                         collection_path = _collection_path(path)
                         if not store.remove(collection_path, id_value, id_field):
-                            raise HTTPException(status_code=404, detail="Not found")
+                            detail_del: str | dict[str, Any] = "Not found"
+                            if self._verbose_errors:
+                                detail_del = {
+                                    "detail": "Not found",
+                                    "collection": collection_path,
+                                    "id_field": id_field,
+                                    "id_value": id_value,
+                                }
+                            raise HTTPException(status_code=404, detail=detail_del)
                         return Response(status_code=204)
             if output_annotation is None:
                 return Response(status_code=204)

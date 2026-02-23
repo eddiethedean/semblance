@@ -19,6 +19,8 @@ class SemblanceConfig:
     seed: int | None = None
     stateful: bool = False
     validate_responses: bool = False
+    validate_links: bool = False
+    verbose_errors: bool = False
     list_count: int = 5
 
 
@@ -75,6 +77,8 @@ def _merge_config(config_dict: dict | None) -> SemblanceConfig:
         validate_responses=config_dict.get(
             "validate_responses", _DEFAULT.validate_responses
         ),
+        validate_links=config_dict.get("validate_links", _DEFAULT.validate_links),
+        verbose_errors=config_dict.get("verbose_errors", _DEFAULT.verbose_errors),
         list_count=config_dict.get("list_count", _DEFAULT.list_count),
     )
 

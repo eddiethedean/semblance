@@ -11,6 +11,7 @@ nav:
   - Home: index.md
   - Guides:
     - Getting Started: guides/getting-started.md
+    - Concepts: guides/concepts.md
     - Input and Output Binding: guides/input-output-binding.md
     - Pagination: guides/pagination.md
     - Advanced Links: guides/advanced-links.md
@@ -20,6 +21,8 @@ nav:
     - Plugins: guides/plugins.md
     - Testing: guides/testing.md
     - Request Links: guides/request-links.md
+    - Troubleshooting: guides/troubleshooting.md
+    - Cookbook: guides/cookbook.md
   - Examples:
     - Overview: examples/README.md
     - Basic: examples/basic.md

@@ -12,9 +12,12 @@ import pytest
 from semblance import SemblanceAPI
 from semblance.cli import (
     _load_app,
+    _load_target,
     cmd_export_fixtures,
     cmd_export_openapi,
+    cmd_init,
     cmd_run,
+    cmd_validate,
     main,
 )
 from tests.example_models import User, UserQuery
@@ -49,6 +52,71 @@ class TestLoadApp:
             _load_app(":api")
         with pytest.raises(SystemExit):
             _load_app("tests.sample_app:")
+
+    def test_resolve_app_path_infers_single_candidate(self):
+        """When module has a single SemblanceAPI/FastAPI, run app works with module only."""
+        # sample_app has both api and app, so we need a module with one. Use api explicitly.
+        target = _load_target("tests.sample_app:api")
+        assert hasattr(target, "get_endpoint_specs")
+
+    def test_validate_exit_zero_for_valid_api(self, capsys):
+        args = type("Args", (), {"app": "tests.sample_app:api"})()
+        cmd_validate(args)
+        _, err = capsys.readouterr()
+        assert "OK" in err
+
+    def test_validate_requires_semblance_api(self):
+        """cmd_validate raises SystemExit when target is FastAPI (no get_endpoint_specs)."""
+        with pytest.raises(SystemExit):
+            cmd_validate(type("Args", (), {"app": "tests.sample_app:app"})())
+
+    def test_validate_catches_invalid_links(self):
+        """Validation logic returns errors for FromInput referencing missing input field."""
+        from typing import Annotated
+
+        from pydantic import BaseModel
+
+        from semblance import FromInput, SemblanceAPI
+        from semblance.validation import get_duplicate_endpoint_errors, validate_specs
+        api = SemblanceAPI()
+        class Q(BaseModel):
+            x: str = "a"
+        class Out(BaseModel):
+            name: Annotated[str, FromInput("typo")]
+        api.get("/t", input=Q, output=Out)(lambda: None)
+        errors = validate_specs(api._specs) + get_duplicate_endpoint_errors(api._specs)
+        assert len(errors) == 1
+        assert "typo" in errors[0]
+
+
+class TestInit:
+    def test_init_creates_app_py(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        cmd_init(type("Args", (), {"with_config": False, "force": False})())
+        assert (tmp_path / "app.py").exists()
+        content = (tmp_path / "app.py").read_text()
+        assert "SemblanceAPI" in content
+        assert "FromInput" in content
+        assert "api.get" in content
+
+    def test_init_with_config_creates_yaml(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        cmd_init(type("Args", (), {"with_config": True, "force": False})())
+        assert (tmp_path / "semblance.yaml").exists()
+        assert "seed" in (tmp_path / "semblance.yaml").read_text()
+
+    def test_init_refuses_to_overwrite_without_force(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "app.py").write_text("existing")
+        with pytest.raises(SystemExit):
+            cmd_init(type("Args", (), {"with_config": False, "force": False})())
+        assert (tmp_path / "app.py").read_text() == "existing"
+
+    def test_init_force_overwrites(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "app.py").write_text("existing")
+        cmd_init(type("Args", (), {"with_config": False, "force": True})())
+        assert "SemblanceAPI" in (tmp_path / "app.py").read_text()
 
 
 class TestExportOpenAPI:

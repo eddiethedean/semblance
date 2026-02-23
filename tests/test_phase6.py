@@ -54,6 +54,18 @@ class TestStatefulGetById:
         r = client.get("/items/nonexistent")
         assert r.status_code == 404
 
+    def test_stateful_get_by_id_404_verbose_detail(self):
+        api = SemblanceAPI(stateful=True, verbose_errors=True)
+        api.get("/items/{id}", input=PathIdInput, output=ItemWithId)(lambda: None)
+        app = api.as_fastapi()
+        client = make_client(app)
+        r = client.get("/items/nonexistent")
+        assert r.status_code == 404
+        data = r.json()
+        assert data["detail"]["collection"] == "/items"
+        assert data["detail"]["id_field"] == "id"
+        assert data["detail"]["id_value"] == "nonexistent"
+
 
 # --- Stateful PUT (upsert) ---
 
