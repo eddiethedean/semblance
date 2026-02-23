@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semblance"
-version = "0.4.0"
+version = "0.5.0"
 description = "Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ license = "MIT"
 authors = [{name = "Semblance Contributors"}]
 keywords = ["fastapi", "pydantic", "polyfactory", "api", "mock", "simulation", "testing"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2025-02-23
+
+### Added
+
+#### Phase 6 — Stateful CRUD & Export
+- **Stateful GET by id** — For routes like `/users/{id}`, returns the stored item when `stateful=True`, or 404 if not found.
+- **Stateful PUT** — Upsert by path + id: replaces existing or adds new; returns the upserted instance.
+- **Stateful PATCH** — Update by id; returns 404 if the item is not in the store.
+- **Stateful DELETE** — Removes item by id; returns 204 when found, 404 when not.
+- **Export and CLI** — `export fixtures` and OpenAPI example generation include PUT, PATCH, DELETE (path params and minimal body).
+- **OpenAPI** — 429 response documented when `rate_limit` is set; optional response descriptions for simulated error codes.
+
+#### Phase 7 — Developer Experience & Extensibility
+- **Request links** — `FromHeader(name)` and `FromCookie(name)` to bind output fields to request headers and cookies.
+- **Config file** — Optional defaults from `semblance.yaml` or `[tool.semblance]` in pyproject.toml via `SemblanceAPI(config_path=...)` or `SemblanceAPI.from_config()` (seed, validate_responses, stateful).
+- **Pytest plugin** — Markers `@pytest.mark.semblance(app="module:attr")` and `@pytest.mark.semblance_property_tests(app="...")`; fixtures `semblance_api`, `semblance_client`; parametrized property tests per endpoint.
+- **Reproducible failures** — On Hypothesis failure in `test_endpoint`, error message includes "Reproduce with curl:" and "Or Python:" snippets.
+- **Mount and middleware** — `api.mount_into(parent_app, path_prefix)`; `api.add_middleware(MiddlewareClass, **kwargs)` in `as_fastapi()`.
+
+#### Documentation and examples
+- **Guides** — Request Links guide (`guides/request-links.md`) for FromHeader and FromCookie.
+- **Examples** — Phase 5: `put_patch_delete` (PUT/PATCH/DELETE); Phase 6: `stateful_crud` (full CRUD); Phase 7: `request_links` (headers and cookies). All wired in `run_examples.py` and docs nav.
+
+### Fixed
+
+- **TestClient** — `test_from_cookie_binding` now sets cookies on the client instance instead of per-request, resolving Starlette/httpx deprecation warning.
+
 ## [0.4.0] - 2025-02-23
 
 ### Changed
@@ -109,7 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.3.0
 [0.2.2]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.2
