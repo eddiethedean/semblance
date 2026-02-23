@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-02-23
+
+### Added
+
+#### Phase 5 — Testing & Validation
+- **PUT, PATCH, DELETE** — `@api.put()`, `@api.patch()`, `@api.delete()`; DELETE with `output=None` returns 204 No Content, or 200 with generated body
+- **Rate limiting** — `rate_limit=N` per endpoint (sliding 1s window); returns 429 when exceeded (`src/semblance/rate_limit.py`)
+- **Response validation** — `SemblanceAPI(validate_responses=True)` validates generated responses against the output model (dev/CI)
+- **Property-based testing** — `semblance.property_testing`: `strategy_for_input_model()`, `test_endpoint()` with Hypothesis (optional dep in `[dev]`)
+- Phase 5 tests in `tests/test_phase5.py`
+
+### Changed
+- **Typing** — `disallow_untyped_defs = true` for `semblance.*`; annotations added in `cli.py`, `export.py`, `conftest.py`; mypy fixes for api/factory/property_testing
+- **Docs** — README, roadmap, guides (simulation-options, testing, input-output-binding, api), and planning doc updated for Phase 5 and new options
+
 ## [0.2.2] - 2025-02-13
 
 ### Fixed
@@ -86,7 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.3.0
 [0.2.2]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.2
 [0.2.1]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.1
 [0.2.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.0
