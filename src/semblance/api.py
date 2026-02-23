@@ -149,8 +149,12 @@ class SemblanceAPI:
             seed=kwargs.pop("seed", cfg.seed),
             stateful=kwargs.pop("stateful", cfg.stateful),
             validate_responses=kwargs.pop("validate_responses", cfg.validate_responses),
-            validate_links=kwargs.pop("validate_links", getattr(cfg, "validate_links", False)),
-            verbose_errors=kwargs.pop("verbose_errors", getattr(cfg, "verbose_errors", False)),
+            validate_links=kwargs.pop(
+                "validate_links", getattr(cfg, "validate_links", False)
+            ),
+            verbose_errors=kwargs.pop(
+                "verbose_errors", getattr(cfg, "verbose_errors", False)
+            ),
             **kwargs,
         )
 

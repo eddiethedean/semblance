@@ -1,19 +1,50 @@
 # CLI
 
-Semblance provides a CLI for running apps and exporting mocks for frontend integration.
+Semblance provides a CLI for running apps, validating config, and exporting mocks for frontend integration.
+
+## Init (scaffold app)
+
+```bash
+semblance init [-c] [--force]
+```
+
+Creates a minimal `app.py` in the current directory. Use `-c` / `--with-config` to also write `semblance.yaml` with commented defaults. Use `--force` to overwrite existing `app.py`.
+
+**Example output:**
+
+```
+Wrote app.py
+Run: semblance run app:api --port 8000
+```
+
+## Validate (no server)
+
+```bash
+semblance validate <module>:<attr>
+```
+
+Validates routes and link bindings (e.g. `FromInput("typo")` on a missing field) without starting a server. Exit 0 if valid, 1 otherwise. Useful in CI or pre-commit. The target must be a SemblanceAPI (module:attr with `get_endpoint_specs`).
+
+**Example:**
+
+```bash
+semblance validate examples.basic.app:api
+# OK
+```
 
 ## Run an App
 
 ```bash
-semblance run <module>:<attr> [--host HOST] [--port PORT] [--reload]
+semblance run <module>[:<attr>] [--host HOST] [--port PORT] [--reload]
 ```
 
-The `module:attr` path loads your app. If `attr` has an `as_fastapi()` method (e.g. a `SemblanceAPI` instance), it is called to get the FastAPI app.
+You can pass `module:attr` (e.g. `app:api`) or just `module` when there is a single candidate (e.g. one `SemblanceAPI` or FastAPI app in the module). If `attr` has an `as_fastapi()` method (e.g. a `SemblanceAPI` instance), it is called to get the FastAPI app.
 
 **Examples:**
 
 ```bash
 semblance run app:api --port 8000
+semblance run app --port 8000
 semblance run examples.basic.app:api --host 0.0.0.0 --port 8000
 semblance run examples.basic.app:app --reload
 ```
@@ -64,17 +95,16 @@ semblance export fixtures examples.basic.app:api -o fixtures
 # Creates e.g. fixtures/users_GET.json, fixtures/users_POST.json, fixtures/openapi.json (and PUT/PATCH/DELETE when defined)
 ```
 
-**Example `fixtures/users_GET.json` (output varies per run):**
+**Example `fixtures/users_GET.json`** (with `examples.basic.app:api`, which uses `seed=42` and `list_count=2`):
 
 ```json
 [
-  {"name": "alice", "created_at": "2021-06-23T16:31:27.650961"},
-  {"name": "alice", "created_at": "2024-06-04T03:14:38.140312"},
-  {"name": "alice", "created_at": "2020-06-30T11:50:19.723504"},
-  {"name": "alice", "created_at": "2023-07-20T08:14:38.140312"},
-  {"name": "alice", "created_at": "2021-10-10T03:05:16.140258"}
+  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
+  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
 ]
 ```
+
+Without a fixed seed, output varies per run.
 
 ## Invalid Paths
 

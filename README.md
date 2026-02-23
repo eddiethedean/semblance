@@ -111,7 +111,13 @@ Responses are generated from your output model: `name` comes from the query, `cr
 ## CLI
 
 ```bash
-# Run a Semblance app
+# Scaffold a minimal app (app.py and optional semblance.yaml)
+semblance init [-c] [--force]
+
+# Validate routes and link bindings without starting a server (CI-friendly)
+semblance validate module:attr
+
+# Run a Semblance app (module:attr or just module when unambiguous)
 semblance run app:api [--host HOST] [--port PORT] [--reload]
 
 # Export OpenAPI schema (optionally with response examples)
@@ -133,6 +139,9 @@ semblance run examples.stateful.app:api --port 8000
 semblance run examples.advanced.app:api --port 8000
 semblance run examples.error_simulation.app:api --port 8000
 semblance run examples.plugins.app:api --port 8000
+semblance run examples.put_patch_delete.app:api --port 8000
+semblance run examples.stateful_crud.app:api --port 8000
+semblance run examples.request_links.app:api --port 8000
 ```
 
 | Example | Description |
@@ -144,6 +153,9 @@ semblance run examples.plugins.app:api --port 8000
 | [advanced](https://semblance.readthedocs.io/en/latest/examples/advanced/) | WhenInput, ComputedFrom, filter_by |
 | [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | error_rate, error_codes |
 | [plugins](https://semblance.readthedocs.io/en/latest/examples/plugins/) | Custom link (FromEnv) |
+| [put_patch_delete](https://semblance.readthedocs.io/en/latest/examples/put_patch_delete/) | PUT, PATCH, DELETE (non-stateful) |
+| [stateful_crud](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/) | Full stateful CRUD: GET by id, PUT, PATCH, DELETE |
+| [request_links](https://semblance.readthedocs.io/en/latest/examples/request_links/) | FromHeader, FromCookie |
 
 ## Testing
 
@@ -232,6 +244,7 @@ class User(BaseModel):
 Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.io/)**
 
 - [Getting Started](https://semblance.readthedocs.io/en/latest/guides/getting-started/)
+- [Concepts](https://semblance.readthedocs.io/en/latest/guides/concepts/)
 - [Input and Output Binding](https://semblance.readthedocs.io/en/latest/guides/input-output-binding/)
 - [Advanced Links](https://semblance.readthedocs.io/en/latest/guides/advanced-links/)
 - [Pagination](https://semblance.readthedocs.io/en/latest/guides/pagination/)
@@ -239,7 +252,10 @@ Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.i
 - [Stateful Mode](https://semblance.readthedocs.io/en/latest/guides/stateful-mode/)
 - [CLI](https://semblance.readthedocs.io/en/latest/guides/cli/)
 - [Plugins](https://semblance.readthedocs.io/en/latest/guides/plugins/)
+- [Request Links](https://semblance.readthedocs.io/en/latest/guides/request-links/)
 - [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/)
+- [Troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/)
+- [Cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/)
 - [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/)
 - [API Reference](https://semblance.readthedocs.io/en/latest/api/)
 

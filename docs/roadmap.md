@@ -60,7 +60,7 @@
 - **Reproducible failures** ✓ — On Hypothesis failure in `test_endpoint`, error message includes "Reproduce with curl:" and "Or Python:" snippets
 - **Mount and middleware** ✓ — `api.mount_into(parent_app, path_prefix)`; `api.add_middleware(MiddlewareClass, **kwargs)` applied in `as_fastapi()`
 
-## Phase 8 — UX & Ergonomics (planned)
+## Phase 8 — UX & Ergonomics ✓
 
 - **CLI onboarding**
   - `semblance init` — scaffold a minimal runnable app (+ optional `semblance.yaml`)

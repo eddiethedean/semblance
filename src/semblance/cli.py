@@ -32,7 +32,7 @@ def _resolve_app_path(path: str) -> str:
     try:
         from fastapi import FastAPI as _FastAPI  # noqa: N806
     except ImportError:
-        _FastAPI = None  # type: ignore[assignment,misc]
+        _FastAPI = None  # type: ignore[assignment,misc]  # noqa: N806
     candidates = []
     for name in dir(module):
         if name.startswith("_"):
@@ -168,11 +168,11 @@ def users():
 app = api.as_fastapi()
 '''
 
-INIT_SEMBLANCE_YAML = '''# Optional Semblance defaults (used by semblance run when no args override)
+INIT_SEMBLANCE_YAML = """# Optional Semblance defaults (used by semblance run when no args override)
 # seed: 42
 # stateful: false
 # validate_responses: false
-'''
+"""
 
 
 def cmd_init(args: argparse.Namespace) -> None:

@@ -53,6 +53,18 @@ curl -X PATCH http://127.0.0.1:8000/users/xyz -H "Content-Type: application/json
 curl -X DELETE http://127.0.0.1:8000/users/123
 ```
 
+Example responses (with `seed=42`):
+
+```json
+// PUT /users/abc with body {"name":"put-user"}
+{"id": "HbolMJUevblAbkHClEQa", "name": "put-user"}
+
+// PATCH /users/xyz with body {"name":"patch-user"}
+{"id": "HbolMJUevblAbkHClEQa", "name": "patch-user"}
+
+// DELETE /users/123 → 204 No Content (no response body)
+```
+
 ## Concepts
 
 - **Phase 5** — PUT, PATCH, DELETE with input/output models; path params (e.g. `{id}`) are merged with body for response generation.

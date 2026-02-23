@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-02-23
+
+### Added
+
+#### Phase 8 — UX & Ergonomics
+- **CLI onboarding** — `semblance init` scaffolds a minimal runnable app (optional `semblance.yaml`); `semblance validate module:attr` validates routes, links, and config without starting a server (CI/pre-commit friendly); `semblance run module` infers `:api`/`:app` when unambiguous, with improved `--help` and copy/paste examples.
+- **Faster-to-fix errors** — Link bindings validated at `as_fastapi()` (e.g. invalid `FromInput("typo")`) with route/model/field in the error; duplicate endpoint errors include HTTP method and path; stateful 404s can include collection and id (behind `verbose_errors` flag).
+- **Docs** — Troubleshooting/FAQ (common 404/422/429, stateful, link issues); Concepts overview (input/output models, links, seeding, stateful store, simulation options); Cookbook/recipes (pagination, stateful CRUD, request links, rate limiting, property tests).
+
 ## [0.5.0] - 2025-02-23
 
 ### Added
@@ -136,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.3.0

@@ -18,7 +18,19 @@ class UserResponse(BaseModel):
     session: Annotated[str, FromCookie("session_id")]
 
 api = SemblanceAPI(seed=42)
-api.get("/user", input=UserQuery, output=UserResponse)(lambda: None)
+
+
+@api.get(
+    "/user",
+    input=UserQuery,
+    output=UserResponse,
+    summary="Get user (echoes header and cookie)",
+)
+def get_user():
+    """request_id comes from X-Request-Id header; session from session_id cookie."""
+    pass
+
+
 app = api.as_fastapi()
 ```
 
@@ -38,6 +50,12 @@ curl -i "http://127.0.0.1:8000/user?name=alice" \
 
 # Response includes "request_id": "req-abc-123", "session": "sess-xyz"
 # If header/cookie missing, those fields get generated values.
+```
+
+Example response with `-H "X-Request-Id: id-1" -H "Cookie: session_id=sess-1"` and `?name=alice` (seed=42):
+
+```json
+{"name": "alice", "request_id": "id-1", "session": "sess-1"}
 ```
 
 ## Concepts

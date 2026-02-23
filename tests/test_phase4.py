@@ -78,11 +78,15 @@ class TestLoadApp:
 
         from semblance import FromInput, SemblanceAPI
         from semblance.validation import get_duplicate_endpoint_errors, validate_specs
+
         api = SemblanceAPI()
+
         class Q(BaseModel):
             x: str = "a"
+
         class Out(BaseModel):
             name: Annotated[str, FromInput("typo")]
+
         api.get("/t", input=Q, output=Out)(lambda: None)
         errors = validate_specs(api._specs) + get_duplicate_endpoint_errors(api._specs)
         assert len(errors) == 1

@@ -80,6 +80,25 @@ curl -X PATCH http://127.0.0.1:8000/users/new-1 -H "Content-Type: application/js
 curl -X DELETE http://127.0.0.1:8000/users/new-1
 ```
 
+Example flow (with `seed=42`; generated IDs are deterministic):
+
+```json
+// POST alice
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+
+// POST bob
+{"id": "HbolMJUevblAbkHClEQa", "name": "bob"}
+
+// GET /users/<id> with alice's id
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+
+// PATCH with {"name": "alice-updated"}
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice-updated"}
+
+// GET /users (list)
+[{"id": "HbolMJUevblAbkHClEQa", "name": "alice-updated"}, {"id": "HbolMJUevblAbkHClEQa", "name": "bob"}]
+```
+
 ## Concepts
 
 - **Phase 6** — Stateful GET by id, PUT (upsert), PATCH (update), DELETE (remove) keyed by path param (e.g. `id`).

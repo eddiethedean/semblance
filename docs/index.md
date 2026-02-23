@@ -37,10 +37,10 @@ class User(BaseModel):
     ]
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
-@api.get("/users", input=UserQuery, output=list[User])
+@api.get("/users", input=UserQuery, output=list[User], list_count=2)
 def users():
     pass
 
