@@ -244,6 +244,28 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 
 ------------------------------------------------------------------------
 
+### Phase 6 --- Stateful CRUD & Export
+
+**Goal:** Full stateful resource lifecycle and export/OpenAPI coverage
+
+-   [ ] Stateful PUT/PATCH/DELETE (upsert by path+id, update by id, remove by id; extend StatefulStore)
+-   [ ] Export fixtures and OpenAPI examples for PUT, PATCH, DELETE
+-   [ ] OpenAPI 429 when rate_limit set; response descriptions for error_codes
+
+------------------------------------------------------------------------
+
+### Phase 7 --- Developer Experience & Extensibility
+
+**Goal:** Richer built-in links, config, pytest integration, and mounting
+
+-   [ ] Built-in links: FromHeader(name), FromCookie(name)
+-   [ ] Config file (pyproject [tool.semblance] or semblance.yaml) for defaults
+-   [ ] Pytest plugin for auto-generated property tests per endpoint
+-   [ ] Reproducible failure reporting (minimal curl/Python on Hypothesis failure)
+-   [ ] Mount SemblanceAPI at path prefix; register custom FastAPI middleware
+
+------------------------------------------------------------------------
+
 ## 9. Risks & Design Guardrails
 
 -   Avoid model-to-model imports to prevent coupling
