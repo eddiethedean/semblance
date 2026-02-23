@@ -61,9 +61,7 @@ class StatefulStore:
                 return instance
         return None
 
-    def remove(
-        self, collection_path: str, id_value: str, id_field: str = "id"
-    ) -> bool:
+    def remove(self, collection_path: str, id_value: str, id_field: str = "id") -> bool:
         """Remove item with matching id. Return True if found and removed."""
         if collection_path not in self._store:
             return False

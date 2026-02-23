@@ -4,7 +4,6 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
 from pydantic import BaseModel
 
 from semblance import SemblanceAPI
@@ -34,12 +33,8 @@ class TestStatefulGetById:
     def test_stateful_get_by_id_returns_stored_item(self):
         api = SemblanceAPI(seed=42, stateful=True)
         api.post("/items", input=ItemWithId, output=ItemWithId)(lambda: None)
-        api.get("/items", input=UserQuery, output=list[ItemWithId])(
-            lambda: None
-        )
-        api.get("/items/{id}", input=PathIdInput, output=ItemWithId)(
-            lambda: None
-        )
+        api.get("/items", input=UserQuery, output=list[ItemWithId])(lambda: None)
+        api.get("/items/{id}", input=PathIdInput, output=ItemWithId)(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r_post = client.post("/items", json={"name": "first"})
@@ -53,9 +48,7 @@ class TestStatefulGetById:
 
     def test_stateful_get_by_id_404_when_missing(self):
         api = SemblanceAPI(stateful=True)
-        api.get("/items/{id}", input=PathIdInput, output=ItemWithId)(
-            lambda: None
-        )
+        api.get("/items/{id}", input=PathIdInput, output=ItemWithId)(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r = client.get("/items/nonexistent")
@@ -68,12 +61,8 @@ class TestStatefulGetById:
 class TestStatefulPut:
     def test_stateful_put_creates_new(self):
         api = SemblanceAPI(seed=42, stateful=True)
-        api.put("/items/{id}", input=UpdateBody, output=ItemWithId)(
-            lambda: None
-        )
-        api.get("/items", input=UserQuery, output=list[ItemWithId])(
-            lambda: None
-        )
+        api.put("/items/{id}", input=UpdateBody, output=ItemWithId)(lambda: None)
+        api.get("/items", input=UserQuery, output=list[ItemWithId])(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r = client.put("/items/new-1", json={"name": "created"})
@@ -86,12 +75,8 @@ class TestStatefulPut:
     def test_stateful_put_updates_existing(self):
         api = SemblanceAPI(seed=42, stateful=True)
         api.post("/items", input=ItemWithId, output=ItemWithId)(lambda: None)
-        api.put("/items/{id}", input=UpdateBody, output=ItemWithId)(
-            lambda: None
-        )
-        api.get("/items", input=UserQuery, output=list[ItemWithId])(
-            lambda: None
-        )
+        api.put("/items/{id}", input=UpdateBody, output=ItemWithId)(lambda: None)
+        api.get("/items", input=UserQuery, output=list[ItemWithId])(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r_post = client.post("/items", json={"name": "original"})
@@ -111,9 +96,7 @@ class TestStatefulPatch:
     def test_stateful_patch_updates_existing(self):
         api = SemblanceAPI(seed=42, stateful=True)
         api.post("/items", input=ItemWithId, output=ItemWithId)(lambda: None)
-        api.patch("/items/{id}", input=UpdateBody, output=ItemWithId)(
-            lambda: None
-        )
+        api.patch("/items/{id}", input=UpdateBody, output=ItemWithId)(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r_post = client.post("/items", json={"name": "before"})
@@ -125,9 +108,7 @@ class TestStatefulPatch:
 
     def test_stateful_patch_404_when_missing(self):
         api = SemblanceAPI(stateful=True)
-        api.patch("/items/{id}", input=UpdateBody, output=ItemWithId)(
-            lambda: None
-        )
+        api.patch("/items/{id}", input=UpdateBody, output=ItemWithId)(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r = client.patch("/items/missing", json={"name": "x"})
@@ -142,9 +123,7 @@ class TestStatefulDelete:
         api = SemblanceAPI(seed=42, stateful=True)
         api.post("/items", input=ItemWithId, output=ItemWithId)(lambda: None)
         api.delete("/items/{id}", input=PathIdInput)(lambda: None)
-        api.get("/items", input=UserQuery, output=list[ItemWithId])(
-            lambda: None
-        )
+        api.get("/items", input=UserQuery, output=list[ItemWithId])(lambda: None)
         app = api.as_fastapi()
         client = make_client(app)
         r_post = client.post("/items", json={"name": "to delete"})

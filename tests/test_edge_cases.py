@@ -98,7 +98,7 @@ def test_duplicate_put_patch_delete_path_raises(method, match):
 
 
 @pytest.fixture
-def api():
+def api() -> SemblanceAPI:
     api = SemblanceAPI()
     api.get("/users", input=UserQuery, output=list[User], list_count=2)(lambda: None)
     api.get("/user", input=UserQuery, output=User)(lambda: None)

@@ -189,6 +189,8 @@ def test_post_with_seed_from_input():
     class CreateWithSeed(BaseModel):
         name: str
         seed: int | None = None
+        start_date: str = "2020-01-01"
+        end_date: str = "2020-12-31"
 
     api = SemblanceAPI()
     api.post(
@@ -199,8 +201,9 @@ def test_post_with_seed_from_input():
     )(lambda: None)
     app = api.as_fastapi()
     client = client_for(app)
-    r1 = client.post("/users", json={"name": "seedpost", "seed": 77})
-    r2 = client.post("/users", json={"name": "seedpost", "seed": 77})
+    body = {"name": "seedpost", "seed": 77}
+    r1 = client.post("/users", json=body)
+    r2 = client.post("/users", json=body)
     assert r1.status_code == 200 and r2.status_code == 200
     d1 = r1.json()
     d2 = r2.json()

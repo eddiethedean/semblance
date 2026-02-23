@@ -13,6 +13,9 @@ from typing import Any, cast
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+# JSON-serializable value from API response (dict, list, or scalar).
+JSONResponse = dict[str, object] | list[object] | object
+
 
 def _get_routes(app: FastAPI) -> list[tuple[str, str, str]]:
     """Return (path, method, route_id) for each API route."""
@@ -36,9 +39,7 @@ def _fill_path_params(path: str) -> str:
     return re.sub(r"\{\w+\}", "1", path)
 
 
-def _sample_request(
-    client: TestClient, path: str, method: str
-) -> dict[str, object] | list[object] | object | None:
+def _sample_request(client: TestClient, path: str, method: str) -> JSONResponse | None:
     """Make a minimal request to the endpoint and return the JSON response."""
     url = _fill_path_params(path)
     if method == "GET":
@@ -55,10 +56,7 @@ def _sample_request(
         return None
     if r.status_code in (200, 201):
         try:
-            return cast(
-                dict[str, object] | list[object] | object,
-                r.json(),
-            )
+            return cast(JSONResponse, r.json())
         except Exception:
             return None
     if r.status_code == 204:
@@ -120,17 +118,12 @@ def export_fixtures(app: FastAPI, output_path: str | Path) -> None:
                     continue
                 sample = _sample_request(client, path, method.upper())
                 route_id = (
-                    path.strip("/")
-                    .replace("/", "_")
-                    .replace("{", "")
-                    .replace("}", "")
+                    path.strip("/").replace("/", "_").replace("{", "").replace("}", "")
                     or "root"
                 )
                 filename = f"{route_id}_{method.upper()}.json"
                 if sample is not None:
-                    (output_dir / filename).write_text(
-                        json.dumps(sample, indent=2)
-                    )
+                    (output_dir / filename).write_text(json.dumps(sample, indent=2))
                 elif method.upper() == "DELETE":
                     (output_dir / filename).write_text(
                         json.dumps({"status": 204}, indent=2)

@@ -1,7 +1,6 @@
 """Unit tests for semblance.export helpers and edge cases."""
 
 import json
-from pathlib import Path
 
 from fastapi import FastAPI
 

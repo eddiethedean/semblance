@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, get_args, get_origin
+from typing import Annotated, Any, Protocol, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -87,15 +87,35 @@ def strategy_for_input_model(
     return st.builds(model, **strategies)
 
 
+class _ResponseProtocol(Protocol):
+    """Minimal response interface (e.g. Starlette Response)."""
+
+    @property
+    def status_code(self) -> int: ...
+    @property
+    def text(self) -> str: ...
+    def json(self) -> object: ...
+
+
+class _HTTPClientProtocol(Protocol):
+    """Protocol for an HTTP client used by test_endpoint (e.g. Starlette TestClient)."""
+
+    def get(self, url: str) -> _ResponseProtocol: ...
+    def request(
+        self, method: str, url: str, json: object = None
+    ) -> _ResponseProtocol: ...
+    def delete(self, url: str) -> _ResponseProtocol: ...
+
+
 def test_endpoint(
-    client: Any,
+    client: _HTTPClientProtocol,
     method: str,
     path: str,
     input_strategy: st.SearchStrategy[BaseModel],
     output_model: type,
-    path_params: dict[str, Any] | None = None,
+    path_params: dict[str, str] | None = None,
     validate_response: bool = True,
-    invariants: tuple[Callable[[Any, Any], bool], ...] = (),
+    invariants: tuple[Callable[[BaseModel, object], bool], ...] = (),
 ) -> None:
     """
     Run a property-based test: draw input from input_strategy, call the

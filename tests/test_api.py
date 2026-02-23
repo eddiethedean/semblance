@@ -8,7 +8,7 @@ from tests.example_models import User, UserQuery
 
 
 @pytest.fixture
-def api():
+def api() -> SemblanceAPI:
     api = SemblanceAPI()
     api.get("/users", input=UserQuery, output=list[User], list_count=2)(lambda: None)
     api.get("/user", input=UserQuery, output=User)(lambda: None)

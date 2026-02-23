@@ -30,7 +30,7 @@ def _load_app(path: str) -> Any:
             f"Module {module_path!r} cannot be loaded (e.g. namespace package)"
         )
 
-    loader = importlib.util.LazyLoader(spec.loader)  # type: ignore
+    loader = importlib.util.LazyLoader(spec.loader)
     spec.loader = loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_path] = module

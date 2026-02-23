@@ -526,16 +526,12 @@ class SemblanceAPI:
                     id_field = path_param_names[0]
                     id_value = path_params.get(id_field)
                     if id_value is not None:
-                        item = store.get_by_id(
-                            collection_path, id_value, id_field
-                        )
+                        item = store.get_by_id(collection_path, id_value, id_field)
                         if item is not None:
                             if self._validate_responses:
                                 validate_response(output_annotation, item)
                             return item
-                        raise HTTPException(
-                            status_code=404, detail="Not found"
-                        )
+                        raise HTTPException(status_code=404, detail="Not found")
             count = self._resolve_list_count(list_count, merged)
             response = build_response(
                 output_annotation,
@@ -587,7 +583,7 @@ class SemblanceAPI:
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
             count = self._resolve_list_count(list_count, merged)
-            response = build_response(
+            response: BaseModel | list[BaseModel] = build_response(
                 output_annotation,
                 input_model,
                 merged,
@@ -639,7 +635,7 @@ class SemblanceAPI:
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
             count = self._resolve_list_count(list_count, merged)
-            response = build_response(
+            response: BaseModel | list[BaseModel] = build_response(
                 output_annotation,
                 input_model,
                 merged,
@@ -655,22 +651,30 @@ class SemblanceAPI:
                     id_field = path_param_names[0]
                     id_value = path_params.get(id_field)
                     if id_value is not None:
-                        if "id" in type(response).model_fields or id_field in type(response).model_fields:
-                            data = response.model_dump()
+                        if not isinstance(response, BaseModel):
+                            raise TypeError("PUT response must be a single model")
+                        resp: BaseModel = response
+                        if (
+                            "id" in type(resp).model_fields
+                            or id_field in type(resp).model_fields
+                        ):
+                            data = resp.model_dump()
                             data[id_field] = id_value
-                            response = type(response).model_validate(data)
-                        existing = store.get_by_id(
-                            collection_path, id_value, id_field
-                        )
+                            resp = type(resp).model_validate(data)
+                        existing = store.get_by_id(collection_path, id_value, id_field)
                         if existing is not None:
-                            response = store.update(
-                                collection_path,
-                                id_value,
-                                response,
-                                id_field,
-                            ) or response
+                            resp = (
+                                store.update(
+                                    collection_path,
+                                    id_value,
+                                    resp,
+                                    id_field,
+                                )
+                                or resp
+                            )
                         else:
-                            response = store.add(collection_path, response)
+                            resp = store.add(collection_path, resp)
+                        response = resp
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
@@ -720,15 +724,11 @@ class SemblanceAPI:
                     id_field = path_param_names[0]
                     id_value = path_params.get(id_field)
                     if id_value is not None:
-                        existing = store.get_by_id(
-                            collection_path, id_value, id_field
-                        )
+                        existing = store.get_by_id(collection_path, id_value, id_field)
                         if existing is None:
-                            raise HTTPException(
-                                status_code=404, detail="Not found"
-                            )
+                            raise HTTPException(status_code=404, detail="Not found")
             count = self._resolve_list_count(list_count, merged)
-            response = build_response(
+            response: BaseModel | list[BaseModel] = build_response(
                 output_annotation,
                 input_model,
                 merged,
@@ -744,18 +744,23 @@ class SemblanceAPI:
                     id_field = path_param_names[0]
                     id_value = path_params.get(id_field)
                     if id_value is not None:
-                        if id_field in type(response).model_fields:
-                            data = response.model_dump()
+                        if not isinstance(response, BaseModel):
+                            raise TypeError("PATCH response must be a single model")
+                        resp: BaseModel = response
+                        if id_field in type(resp).model_fields:
+                            data = resp.model_dump()
                             data[id_field] = id_value
-                            response = type(response).model_validate(data)
+                            resp = type(resp).model_validate(data)
                         updated = store.update(
                             collection_path,
                             id_value,
-                            response,
+                            resp,
                             id_field,
                         )
                         if updated is not None:
                             response = updated
+                        else:
+                            response = resp
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
@@ -801,16 +806,12 @@ class SemblanceAPI:
                     id_value = path_params.get(id_field)
                     if id_value is not None:
                         collection_path = _collection_path(path)
-                        if not store.remove(
-                            collection_path, id_value, id_field
-                        ):
-                            raise HTTPException(
-                                status_code=404, detail="Not found"
-                            )
+                        if not store.remove(collection_path, id_value, id_field):
+                            raise HTTPException(status_code=404, detail="Not found")
                         return Response(status_code=204)
             if output_annotation is None:
                 return Response(status_code=204)
-            response = build_response(
+            response: BaseModel | list[BaseModel] = build_response(
                 output_annotation,
                 input_model,
                 merged,

@@ -16,9 +16,7 @@ class TestPropertyBased:
     def test_strategy_for_input_model_generates_valid_instances(self):
         from hypothesis import given
 
-        from semblance import SemblanceAPI
         from semblance.property_testing import strategy_for_input_model
-        from semblance.testing import test_client as make_client
 
         strategy = strategy_for_input_model(UserQuery)
 
