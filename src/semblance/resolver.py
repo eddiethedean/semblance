@@ -13,10 +13,13 @@ from datetime import date, datetime, timedelta
 from typing import Any, Protocol, get_origin
 
 from pydantic import BaseModel
+from starlette.requests import Request
 
 from semblance.links import (
     ComputedFrom,
     DateRangeFrom,
+    FromCookie,
+    FromHeader,
     FromInput,
     WhenInput,
     get_field_metadata,
@@ -64,15 +67,16 @@ def resolve_overrides(
     input_model: type[BaseModel],
     input_instance: BaseModel,
     seed: int | None = None,
+    request: Request | None = None,
 ) -> dict[str, Any]:
     """
     Build a dict of field overrides for the output model.
 
     Walks output_model fields, inspects Annotated metadata for links, and
-    resolves each against input_instance. Returns mapping field_name -> value
-    or callable() -> value. For nested BaseModel fields, value is
-    {_nested: model, _overrides: dict}. When seed is set, uses a seeded RNG
-    for determinism.
+    resolves each against input_instance (and optionally request for
+    FromHeader/FromCookie). Returns mapping field_name -> value or callable() -> value.
+    For nested BaseModel fields, value is {_nested: model, _overrides: dict}.
+    When seed is set, uses a seeded RNG for determinism.
     """
     overrides: dict[str, Any] = {}
     input_data = input_instance.model_dump()
@@ -86,7 +90,11 @@ def resolve_overrides(
             )
             if nested_model is not None:
                 nested_overrides = resolve_overrides(
-                    nested_model, input_model, input_instance, seed=seed
+                    nested_model,
+                    input_model,
+                    input_instance,
+                    seed=seed,
+                    request=request,
                 )
                 overrides[name] = {
                     "_nested": nested_model,
@@ -98,7 +106,17 @@ def resolve_overrides(
         if meta is None:
             continue
 
-        if isinstance(meta, FromInput):
+        if isinstance(meta, FromHeader):
+            if request is not None:
+                val = request.headers.get(meta.name)
+                if val is not None:
+                    overrides[name] = val
+        elif isinstance(meta, FromCookie):
+            if request is not None:
+                val = request.cookies.get(meta.name)
+                if val is not None:
+                    overrides[name] = val
+        elif isinstance(meta, FromInput):
             val = input_data.get(meta.field)
             # When val is None (missing or optional input), no override is applied;
             # Polyfactory will generate a value for the field.

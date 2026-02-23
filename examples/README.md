@@ -27,3 +27,6 @@ uvicorn examples.<name>.app:app --reload
 | [advanced](advanced) | WhenInput, ComputedFrom, filter_by |
 | [error_simulation](error_simulation) | error_rate, error_codes |
 | [plugins](plugins) | Custom link (FromEnv) |
+| [put_patch_delete](put_patch_delete) | PUT, PATCH, DELETE (Phase 5) |
+| [stateful_crud](stateful_crud) | Full stateful CRUD: GET by id, PUT, PATCH, DELETE (Phase 6) |
+| [request_links](request_links) | FromHeader, FromCookie (Phase 7) |

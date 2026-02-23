@@ -51,3 +51,29 @@ class TestPropertyBased:
             TypeAdapter(list[User]).validate_python(r.json())
 
         run()
+
+    def test_test_endpoint_failure_includes_repro_snippet(self):
+        """When an invariant fails, the error message includes curl and Python repro snippets."""
+        from semblance import SemblanceAPI
+        from semblance.property_testing import strategy_for_input_model, test_endpoint
+        from semblance.testing import test_client as make_client
+
+        api = SemblanceAPI(seed=42)
+        api.get("/users", input=UserQuery, output=list[User], list_count=1)(
+            lambda: None
+        )
+        client = make_client(api.as_fastapi())
+        strategy = strategy_for_input_model(UserQuery)
+        # Invariant that always fails so we get a minimal example and repro output
+        with pytest.raises(AssertionError) as exc_info:
+            test_endpoint(
+                client,
+                "GET",
+                "/users",
+                strategy,
+                list[User],
+                invariants=(lambda _i, _o: False,),
+            )
+        msg = str(exc_info.value)
+        assert "Reproduce with curl" in msg
+        assert "Or Python" in msg

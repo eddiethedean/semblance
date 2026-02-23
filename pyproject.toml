@@ -30,6 +30,9 @@ dependencies = [
 [project.scripts]
 semblance = "semblance.cli:main"
 
+[project.entry-points."pytest11"]
+semblance = "semblance.pytest_plugin"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
@@ -109,6 +112,10 @@ strict_optional = true
 [[tool.mypy.overrides]]
 module = ["semblance.property_testing"]
 strict_optional = true
+
+[[tool.mypy.overrides]]
+module = ["semblance.config"]
+disable_error_code = ["unused-ignore"]
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]

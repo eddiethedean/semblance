@@ -1,15 +1,68 @@
 """Tests for semblance.resolver - resolve_overrides, _to_datetime, get_output_model_for_type."""
 
 from datetime import date, datetime
+from typing import Annotated
 
 from pydantic import BaseModel
 
+from semblance.links import FromCookie, FromHeader
 from semblance.resolver import (
     _to_datetime,
     get_output_model_for_type,
     resolve_overrides,
 )
 from tests.example_models import User, UserQuery
+
+
+def test_resolve_overrides_from_header_and_from_cookie():
+    """FromHeader and FromCookie resolve from request when request is provided."""
+
+    class OutputWithHeaderAndCookie(BaseModel):
+        request_id: Annotated[str, FromHeader("X-Request-Id")]
+        session: Annotated[str, FromCookie("session_id")]
+
+    class AnyInput(BaseModel):
+        name: str = "x"
+
+    class MockHeaders:
+        def __init__(self, d: dict):
+            self._d = d
+
+        def get(self, name: str, default: str | None = None) -> str | None:
+            return self._d.get(name, default)
+
+    class MockRequest:
+        def __init__(self, headers: dict | None = None, cookies: dict | None = None):
+            self.headers = MockHeaders(headers or {})
+            self.cookies = cookies or {}
+
+    req = MockRequest(
+        headers={"X-Request-Id": "req-123"},
+        cookies={"session_id": "sess-456"},
+    )
+    overrides = resolve_overrides(
+        OutputWithHeaderAndCookie,
+        AnyInput,
+        AnyInput(name="a"),
+        request=req,
+    )
+    assert overrides["request_id"] == "req-123"
+    assert overrides["session"] == "sess-456"
+
+
+def test_resolve_overrides_from_header_without_request_no_override():
+    """FromHeader with request=None does not set override (Polyfactory will generate)."""
+
+    class OutputWithHeader(BaseModel):
+        request_id: Annotated[str, FromHeader("X-Request-Id")]
+
+    class AnyInput(BaseModel):
+        name: str = "x"
+
+    overrides = resolve_overrides(
+        OutputWithHeader, AnyInput, AnyInput(name="a"), request=None
+    )
+    assert overrides == {}
 
 
 def test_resolve_overrides_skips_fields_without_metadata():

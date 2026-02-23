@@ -10,6 +10,7 @@ from typing import Any, cast, get_origin
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel
+from starlette.requests import Request
 
 from semblance.pagination import PaginatedResponse
 from semblance.resolver import get_output_model_for_type, resolve_overrides
@@ -53,9 +54,12 @@ def build_one(
     input_model: type[BaseModel],
     input_instance: BaseModel,
     seed: int | None = None,
+    request: Request | None = None,
 ) -> BaseModel:
     """Build a single instance of output_model with dependencies from input_instance."""
-    overrides = resolve_overrides(output_model, input_model, input_instance, seed=seed)
+    overrides = resolve_overrides(
+        output_model, input_model, input_instance, seed=seed, request=request
+    )
     resolved = _evaluate_overrides(overrides, seed=seed)
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
@@ -70,9 +74,12 @@ def build_list(
     count: int = 5,
     seed: int | None = None,
     filter_by: str | None = None,
+    request: Request | None = None,
 ) -> list[BaseModel]:
     """Build a list of instances of output_model with dependencies from input_instance."""
-    overrides = resolve_overrides(output_model, input_model, input_instance, seed=seed)
+    overrides = resolve_overrides(
+        output_model, input_model, input_instance, seed=seed, request=request
+    )
     factory_class = ModelFactory.create_factory(output_model)
     if seed is not None:
         factory_class.seed_random(seed)
@@ -127,6 +134,7 @@ def build_response(
     list_count: int = 5,
     seed: int | None = None,
     filter_by: str | None = None,
+    request: Request | None = None,
 ) -> BaseModel | list[BaseModel]:
     """
     Build the response according to output_annotation.
@@ -156,6 +164,7 @@ def build_response(
             count=offset + limit,
             seed=seed,
             filter_by=filter_by,
+            request=request,
         )
         items = all_items[offset : offset + limit]
         total = offset + len(items)
@@ -177,6 +186,7 @@ def build_response(
             count=list_count,
             seed=seed,
             filter_by=filter_by,
+            request=request,
         )
 
     # Single Model
@@ -186,7 +196,7 @@ def build_response(
             f"Invalid output type {output_annotation!r}. "
             "Use a Pydantic BaseModel or list[SomeModel] for output."
         )
-    return build_one(model, input_model, input_instance, seed=seed)
+    return build_one(model, input_model, input_instance, seed=seed, request=request)
 
 
 def validate_response(

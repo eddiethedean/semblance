@@ -17,6 +17,7 @@ from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from semblance.config import load_config
 from semblance.factory import build_response, validate_response
 from semblance.rate_limit import get_limiter
 from semblance.state import StatefulStore
@@ -109,11 +110,43 @@ class SemblanceAPI:
         seed: int | None = None,
         stateful: bool = False,
         validate_responses: bool = False,
+        config_path: str | None = None,
     ) -> None:
         self._specs: list[EndpointSpec] = []
-        self._seed = seed
-        self._store: StatefulStore | None = StatefulStore() if stateful else None
-        self._validate_responses = validate_responses
+        cfg = load_config(config_path) if config_path is not None else None
+        self._seed = seed if seed is not None else (cfg.seed if cfg else None)
+        _stateful = stateful or (cfg.stateful if cfg else False)
+        self._store = StatefulStore() if _stateful else None
+        self._validate_responses = validate_responses or (
+            cfg.validate_responses if cfg else False
+        )
+        self._middleware: list[tuple[type[Any], dict[str, Any]]] = []
+
+    @classmethod
+    def from_config(
+        cls,
+        config_path: str | None = None,
+        **kwargs: Any,
+    ) -> "SemblanceAPI":
+        """Build a SemblanceAPI with defaults from config. Keyword args override config."""
+        cfg = load_config(config_path)
+        return cls(
+            seed=kwargs.pop("seed", cfg.seed),
+            stateful=kwargs.pop("stateful", cfg.stateful),
+            validate_responses=kwargs.pop("validate_responses", cfg.validate_responses),
+            **kwargs,
+        )
+
+    def get_endpoint_specs(self) -> list[EndpointSpec]:
+        """Return a copy of the registered endpoint specs (for plugins/tooling)."""
+        return list(self._specs)
+
+    def get_spec(self, path: str, method: str) -> EndpointSpec | None:
+        """Return the endpoint spec for (path, method), or None if not found."""
+        for spec in self._specs:
+            if spec.path == path and method.upper() in spec.methods:
+                return spec
+        return None
 
     def clear_store(self, path: str | None = None) -> None:
         """Clear the stateful store. Only available when stateful=True."""
@@ -382,9 +415,21 @@ class SemblanceAPI:
 
         return decorator
 
+    def add_middleware(self, middleware_class: type[Any], **kwargs: Any) -> None:
+        """Register a FastAPI/Starlette middleware. First added is outermost."""
+        self._middleware.append((middleware_class, kwargs))
+
+    def mount_into(self, app: FastAPI, path_prefix: str = "/") -> None:
+        """Mount this Semblance API at path_prefix on an existing FastAPI app."""
+        sub_app = self.as_fastapi()
+        prefix = path_prefix.rstrip("/") or "/"
+        app.mount(prefix, sub_app)
+
     def as_fastapi(self) -> FastAPI:
         """Build and return a FastAPI application with all registered endpoints."""
         app = FastAPI()
+        for mw_class, mw_kwargs in self._middleware:
+            app.add_middleware(mw_class, **mw_kwargs)  # type: ignore[arg-type]
         seen: set[tuple[str, str]] = set()
 
         for spec in self._specs:
@@ -540,6 +585,7 @@ class SemblanceAPI:
                 list_count=count,
                 seed=seed,
                 filter_by=filter_by,
+                request=request,
             )
             if self._validate_responses:
                 validate_response(output_annotation, response)
@@ -590,6 +636,7 @@ class SemblanceAPI:
                 list_count=count,
                 seed=seed,
                 filter_by=filter_by,
+                request=request,
             )
             if store is not None and not isinstance(response, list):
                 response = store.add(path, response)
@@ -642,6 +689,7 @@ class SemblanceAPI:
                 list_count=count,
                 seed=seed,
                 filter_by=filter_by,
+                request=request,
             )
             if store is not None:
                 path_param_names = _parse_path_params(path)
@@ -735,6 +783,7 @@ class SemblanceAPI:
                 list_count=count,
                 seed=seed,
                 filter_by=filter_by,
+                request=request,
             )
             if store is not None:
                 path_param_names = _parse_path_params(path)
@@ -818,6 +867,7 @@ class SemblanceAPI:
                 list_count=1,
                 seed=seed,
                 filter_by=None,
+                request=request,
             )
             if self._validate_responses:
                 validate_response(output_annotation, response)

@@ -65,12 +65,36 @@ class ComputedFrom:
     fn: Callable[..., Any]
 
 
+@dataclass(frozen=True)
+class FromHeader:
+    """Bind this output field to a request header by name.
+
+    Use with typing.Annotated, e.g. Annotated[str, FromHeader("X-Request-Id")].
+    Requires request context when resolving (used in request handlers).
+    When the header is missing, no override is applied and Polyfactory generates a value.
+    """
+
+    name: str
+
+
+@dataclass(frozen=True)
+class FromCookie:
+    """Bind this output field to a request cookie by name.
+
+    Use with typing.Annotated, e.g. Annotated[str, FromCookie("session_id")].
+    Requires request context when resolving (used in request handlers).
+    When the cookie is missing, no override is applied and Polyfactory generates a value.
+    """
+
+    name: str
+
+
 def get_field_metadata(model_class: type, field_name: str) -> Any | None:
     """
     Extract dependency metadata from a Pydantic model field's Annotated type.
 
     Returns the first metadata that looks like a Semblance link (FromInput,
-    DateRangeFrom, WhenInput, ComputedFrom) or a registered custom link.
+    DateRangeFrom, WhenInput, ComputedFrom, FromHeader, FromCookie) or a registered custom link.
     Returns None if no link metadata is found.
     """
     import typing
@@ -96,7 +120,17 @@ def get_field_metadata(model_class: type, field_name: str) -> Any | None:
         from semblance.plugins import is_registered
 
         for meta in hint.__metadata__:
-            if isinstance(meta, (FromInput, DateRangeFrom, WhenInput, ComputedFrom)):
+            if isinstance(
+                meta,
+                (
+                    FromInput,
+                    DateRangeFrom,
+                    WhenInput,
+                    ComputedFrom,
+                    FromHeader,
+                    FromCookie,
+                ),
+            ):
                 return meta
             if is_registered(meta):
                 return meta

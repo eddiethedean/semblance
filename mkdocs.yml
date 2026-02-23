@@ -19,6 +19,7 @@ nav:
     - CLI: guides/cli.md
     - Plugins: guides/plugins.md
     - Testing: guides/testing.md
+    - Request Links: guides/request-links.md
   - Examples:
     - Overview: examples/README.md
     - Basic: examples/basic.md
@@ -28,6 +29,9 @@ nav:
     - Advanced: examples/advanced.md
     - Error Simulation: examples/error_simulation.md
     - Plugins: examples/plugins.md
+    - PUT / PATCH / DELETE: examples/put_patch_delete.md
+    - Stateful CRUD: examples/stateful_crud.md
+    - Request Links: examples/request_links.md
   - Roadmap: roadmap.md
   - API Reference: api/index.md
 

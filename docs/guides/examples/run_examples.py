@@ -348,6 +348,54 @@ def example_doc_plugins():
         os.environ.pop("USER_NAME", None)
 
 
+def example_doc_put_patch_delete():
+    """docs/examples/put_patch_delete.md - load from examples.put_patch_delete.app."""
+    from examples.put_patch_delete.app import app
+
+    client = test_client(app)
+    r1 = client.put("/users/abc", json={"name": "put-user"})
+    r2 = client.patch("/users/xyz", json={"name": "patch-user"})
+    r3 = client.delete("/users/123")
+    return {
+        "put": r1.json(),
+        "patch": r2.json(),
+        "delete_status": r3.status_code,
+    }
+
+
+def example_doc_stateful_crud():
+    """docs/examples/stateful_crud.md - load from examples.stateful_crud.app."""
+    from examples.stateful_crud.app import app, api
+
+    client = test_client(app)
+    api.clear_store("/users")
+    r1 = client.post("/users", json={"name": "alice"})
+    r2 = client.post("/users", json={"name": "bob"})
+    uid = r1.json()["id"]
+    r3 = client.get(f"/users/{uid}")
+    r4 = client.patch(f"/users/{uid}", json={"name": "alice-updated"})
+    r5 = client.get("/users")
+    return {
+        "post_alice": r1.json(),
+        "post_bob": r2.json(),
+        "get_by_id": r3.json(),
+        "patch": r4.json(),
+        "list": r5.json(),
+    }
+
+
+def example_doc_request_links():
+    """docs/examples/request_links.md - load from examples.request_links.app."""
+    from examples.request_links.app import app
+
+    client = test_client(app)
+    r = client.get(
+        "/user?name=alice",
+        headers={"X-Request-Id": "id-1", "Cookie": "session_id=sess-1"},
+    )
+    return r.json()
+
+
 EXAMPLES = [
     ("quick_start", example_quick_start),
     ("when_input", example_when_input),
@@ -367,6 +415,9 @@ EXAMPLES = [
     ("doc_advanced", example_doc_advanced),
     ("doc_error_simulation", example_doc_error_simulation),
     ("doc_plugins", example_doc_plugins),
+    ("doc_put_patch_delete", example_doc_put_patch_delete),
+    ("doc_stateful_crud", example_doc_stateful_crud),
+    ("doc_request_links", example_doc_request_links),
 ]
 
 

@@ -7,6 +7,7 @@ that validate responses against output schemas and optional invariants.
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
 from typing import Annotated, Any, Protocol, get_args, get_origin
@@ -107,6 +108,45 @@ class _HTTPClientProtocol(Protocol):
     def delete(self, url: str) -> _ResponseProtocol: ...
 
 
+def _repro_curl(
+    method: str,
+    url: str,
+    body: object | None,
+) -> str:
+    """Build a curl command that reproduces the request."""
+    method = method.upper()
+    # Escape single quotes in URL for shell
+    url_safe = url.replace("'", "'\"'\"'")
+    if method == "GET":
+        return f"curl -X GET '{url_safe}'"
+    if body is not None:
+        body_str = json.dumps(body) if not isinstance(body, str) else body
+        body_escaped = body_str.replace("'", "'\"'\"'")
+        return f"curl -X {method} '{url_safe}' -H 'Content-Type: application/json' -d '{body_escaped}'"
+    return f"curl -X {method} '{url_safe}'"
+
+
+def _repro_python(
+    method: str,
+    path: str,
+    path_params: dict[str, str],
+    body: object | None,
+) -> str:
+    """Build a short Python snippet that reproduces the request."""
+    method = method.upper()
+    url = path
+    for k, v in path_params.items():
+        url = url.replace("{" + k + "}", str(v))
+    if method == "GET":
+        params = json.dumps(body) if body else "{}"
+        return f'client.get("{url}", params={params})'
+    if method == "DELETE":
+        return f'client.delete("{url}")'
+    if body is not None:
+        return f'client.request("{method}", "{url}", json={json.dumps(body)})'
+    return f'client.request("{method}", "{url}")'
+
+
 def test_endpoint(
     client: _HTTPClientProtocol,
     method: str,
@@ -145,16 +185,38 @@ def test_endpoint(
             r = client.delete(url)
         else:
             raise ValueError(f"Unsupported method {method}")
-        assert r.status_code in (200, 201, 204), (r.status_code, r.text)
-        if r.status_code == 204:
-            return
-        body = r.json()
-        if validate_response:
-            from pydantic import TypeAdapter
+        try:
+            assert r.status_code in (200, 201, 204), (r.status_code, r.text)
+            if r.status_code == 204:
+                return
+            body = r.json()
+            if validate_response:
+                from pydantic import TypeAdapter
 
-            adapter: TypeAdapter[Any] = TypeAdapter(output_model)
-            adapter.validate_python(body)
-        for inv in invariants:
-            assert inv(input_instance, body), f"Invariant failed: {inv}"
+                adapter: TypeAdapter[Any] = TypeAdapter(output_model)
+                adapter.validate_python(body)
+            for inv in invariants:
+                assert inv(input_instance, body), f"Invariant failed: {inv}"
+        except AssertionError as err:
+            # Use mode='json' so dates/datetimes are JSON-serializable in repro snippets
+            data_serializable = (
+                input_instance.model_dump(mode="json")
+                if hasattr(input_instance, "model_dump")
+                else data
+            )
+            curl_s = _repro_curl(
+                method.upper(),
+                url,
+                data_serializable if method.upper() != "GET" else None,
+            )
+            py_s = _repro_python(
+                method.upper(),
+                path,
+                path_params_from_template,
+                data_serializable,
+            )
+            raise AssertionError(
+                f"{err}\n\nReproduce with curl:\n  {curl_s}\n\nOr Python:\n  {py_s}"
+            ) from err
 
     _run()

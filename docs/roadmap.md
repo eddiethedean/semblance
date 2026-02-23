@@ -52,10 +52,10 @@
 - **Export and CLI** ✓ — Include PUT, PATCH, DELETE in `export fixtures` and OpenAPI example generation (minimal body/path params); `_sample_request` and schema iteration extended for put/patch/delete
 - **OpenAPI polish** ✓ — Document 429 response when `rate_limit` is set; optional response descriptions for simulated error codes (4xx/5xx)
 
-## Phase 7 — Developer Experience & Extensibility
+## Phase 7 — Developer Experience & Extensibility ✓
 
-- **Built-in request links** — `FromHeader(name)`, `FromCookie(name)` for binding output fields to request headers/cookies (with `register_link`-style resolution)
-- **Config file** — Optional defaults from `[tool.semblance]` in pyproject.toml or `semblance.yaml` (e.g. default seed, list_count, validate_responses) when using CLI or programmatic build
-- **Pytest plugin** — Auto-discover Semblance apps (or accept marker) and generate Hypothesis-based property tests per endpoint; optional `@semblance.parametrize` or fixture for app + client
-- **Reproducible failures** — On Hypothesis failure in property tests, print minimal reproduction (curl command or short Python snippet) for debugging
-- **Mount and middleware** — Mount a SemblanceAPI at a path prefix on an existing FastAPI app; allow registering custom FastAPI middleware before/after Semblance routes
+- **Built-in request links** ✓ — `FromHeader(name)`, `FromCookie(name)` for binding output fields to request headers/cookies (with `register_link`-style resolution)
+- **Config file** ✓ — Optional defaults from `[tool.semblance]` in pyproject.toml or `semblance.yaml` (e.g. seed, validate_responses, stateful) via `SemblanceAPI(config_path=...)` or `SemblanceAPI.from_config()`
+- **Pytest plugin** ✓ — Markers `@pytest.mark.semblance(app="module:attr")` and `@pytest.mark.semblance_property_tests(app="...")`; fixtures `semblance_api`, `semblance_client`; parametrized property tests per endpoint
+- **Reproducible failures** ✓ — On Hypothesis failure in `test_endpoint`, error message includes "Reproduce with curl:" and "Or Python:" snippets
+- **Mount and middleware** ✓ — `api.mount_into(parent_app, path_prefix)`; `api.add_middleware(MiddlewareClass, **kwargs)` applied in `as_fastapi()`

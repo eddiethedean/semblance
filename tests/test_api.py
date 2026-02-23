@@ -1,8 +1,11 @@
 """Tests for SemblanceAPI, GET endpoints, and FastAPI app export."""
 
-import pytest
+from typing import Annotated
 
-from semblance import SemblanceAPI
+import pytest
+from pydantic import BaseModel
+
+from semblance import FromCookie, FromHeader, FromInput, SemblanceAPI
 from semblance import test_client as client_for
 from tests.example_models import User, UserQuery
 
@@ -186,3 +189,44 @@ def test_collection_path():
     assert _collection_path("/users") == "/users"
     # "/" has no /{param} suffix so it is unchanged
     assert _collection_path("/") == "/"
+
+
+def test_from_header_binding():
+    """Output field with FromHeader gets value from request header."""
+
+    class Query(BaseModel):
+        name: str = "x"
+
+    class Out(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        request_id: Annotated[str, FromHeader("X-Request-Id")]
+
+    api = SemblanceAPI()
+    api.get("/echo", input=Query, output=Out)(lambda: None)
+    client = client_for(api.as_fastapi())
+    r = client.get("/echo?name=alice", headers={"X-Request-Id": "req-789"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["name"] == "alice"
+    assert data["request_id"] == "req-789"
+
+
+def test_from_cookie_binding():
+    """Output field with FromCookie gets value from request cookie."""
+
+    class Query(BaseModel):
+        name: str = "x"
+
+    class Out(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        session: Annotated[str, FromCookie("session_id")]
+
+    api = SemblanceAPI()
+    api.get("/echo", input=Query, output=Out)(lambda: None)
+    client = client_for(api.as_fastapi())
+    client.cookies.set("session_id", "sess-abc")
+    r = client.get("/echo?name=bob")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["name"] == "bob"
+    assert data["session"] == "sess-abc"
