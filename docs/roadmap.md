@@ -59,3 +59,18 @@
 - **Pytest plugin** ✓ — Markers `@pytest.mark.semblance(app="module:attr")` and `@pytest.mark.semblance_property_tests(app="...")`; fixtures `semblance_api`, `semblance_client`; parametrized property tests per endpoint
 - **Reproducible failures** ✓ — On Hypothesis failure in `test_endpoint`, error message includes "Reproduce with curl:" and "Or Python:" snippets
 - **Mount and middleware** ✓ — `api.mount_into(parent_app, path_prefix)`; `api.add_middleware(MiddlewareClass, **kwargs)` applied in `as_fastapi()`
+
+## Phase 8 — UX & Ergonomics (planned)
+
+- **CLI onboarding**
+  - `semblance init` — scaffold a minimal runnable app (+ optional `semblance.yaml`)
+  - `semblance validate module:attr` — validate routes/links/config without starting a server (CI/pre-commit friendly)
+  - `semblance run module` — infer `:api`/`:app` when unambiguous; improve `--help` with copy/paste examples
+- **Faster-to-fix errors**
+  - Validate link bindings at `as_fastapi()` (e.g. `FromInput("typo")`) with route/model/field in the error
+  - Improve duplicate endpoint errors (include HTTP method + path + where possible)
+  - Enrich stateful by-id errors (404 includes collection + id field/value, optionally behind a flag)
+- **Docs that answer “why did this happen?”**
+  - Troubleshooting / FAQ page (common 404/422/429/stateful/link issues)
+  - Short “Concepts” overview (input/output models, links, seeding, stateful store, simulation options)
+  - Cookbook/recipes page (pagination, stateful CRUD, request links, rate limiting, property tests)
