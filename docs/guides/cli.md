@@ -25,7 +25,9 @@ semblance export openapi <module>:<attr> [-o FILE] [--examples]
 ```
 
 - `-o FILE` – write to file (default: stdout)
-- `--examples` – call each endpoint and populate response examples from live responses
+- `--examples` – call each endpoint (GET, POST, PUT, PATCH, DELETE) and populate response examples from live responses
+
+When your endpoints use `rate_limit`, the generated OpenAPI schema includes a 429 (rate limit exceeded) response description. When `error_rate` and `error_codes` are set, the schema documents those simulated error responses (e.g. 404, 500).
 
 **Example output (truncated):**
 
@@ -53,13 +55,13 @@ semblance export openapi examples.basic.app:api -o openapi.json
 semblance export fixtures <module>:<attr> [-o DIR]
 ```
 
-Calls each GET/POST endpoint and saves the JSON response to `{output_dir}/{route_id}_{METHOD}.json`. Also writes `openapi.json`.
+Calls each GET, POST, PUT, PATCH, and DELETE endpoint and saves the JSON response to `{output_dir}/{route_id}_{METHOD}.json`. For DELETE responses with status 204, a minimal `{"status": 204}` fixture is written. Also writes `openapi.json`.
 
 **Example:**
 
 ```bash
 semblance export fixtures examples.basic.app:api -o fixtures
-# Creates: fixtures/users_GET.json, fixtures/openapi.json
+# Creates e.g. fixtures/users_GET.json, fixtures/users_POST.json, fixtures/openapi.json (and PUT/PATCH/DELETE when defined)
 ```
 
 **Example `fixtures/users_GET.json` (output varies per run):**

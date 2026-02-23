@@ -12,8 +12,12 @@ api = SemblanceAPI(stateful=True)
 
 - **POST** – Builds the response as usual, stores it in memory, and returns it.
 - **GET list** – Returns stored instances for that path instead of generating new ones.
+- **GET single (by id)** – For routes with a path parameter (e.g. `/users/{id}`), returns the stored item whose id matches the path param, or 404 if not found. The store key is the *collection path* (e.g. `/users`), derived by stripping the last `/{param}` segment.
+- **PUT** – When stateful and the path has a path param (e.g. `/users/{id}`): if an item with that id exists, it is replaced with the built response (id set from path); otherwise the response is added. Returns the upserted instance.
+- **PATCH** – When stateful and the path has a path param: looks up the item by id; if not found, returns 404. Otherwise replaces it with the built response (id set from path) and returns the updated instance.
+- **DELETE** – When stateful and the path has a path param: removes the item with that id from the store. Returns 204 if found, 404 if not found.
 
-State is keyed by path (e.g. `/users`). It is process-local and not shared across workers.
+State is keyed by *collection path* (e.g. `/users`). Paths like `/users/{id}` map to the collection `/users`; the path param name (e.g. `id`) is used as the field for lookups. It is process-local and not shared across workers.
 
 ## Example
 
@@ -76,4 +80,4 @@ api.clear_store("/users")  # Clear only /users
 
 - State lives in process memory; it is lost on restart.
 - Not suitable for multi-worker deployments; each worker has its own store.
-- GET single-item endpoints (e.g. `/users/{id}`) still generate responses; only GET list endpoints read from the store.
+- For stateful by-id behavior, use a single path parameter (e.g. `{id}`); the first path param is used as the id field for store lookups.

@@ -27,6 +27,11 @@ def _parse_path_params(path: str) -> list[str]:
     return re.findall(r"\{(\w+)\}", path)
 
 
+def _collection_path(path_template: str) -> str:
+    """Strip the last /{param} segment for store key. '/users/{id}' -> '/users'."""
+    return re.sub(r"/\{\w+\}$", "", path_template)
+
+
 class EndpointSpec:
     """Stored spec for a single endpoint."""
 
@@ -472,6 +477,16 @@ class SemblanceAPI:
                 status_code=429, detail="Rate limit exceeded (simulated)"
             )
 
+    def _openapi_responses(self, spec: EndpointSpec) -> dict[int, dict[str, str]]:
+        """Build OpenAPI response descriptions for rate limit and simulated errors."""
+        responses: dict[int, dict[str, str]] = {}
+        if spec.rate_limit is not None and spec.rate_limit > 0:
+            responses[429] = {"description": "Rate limit exceeded (simulated)"}
+        if spec.error_rate and spec.error_rate > 0 and spec.error_codes:
+            for code in spec.error_codes:
+                responses[code] = {"description": "Simulated error"}
+        return responses
+
     def _register_get(self, app: FastAPI, spec: EndpointSpec) -> None:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
@@ -500,21 +515,44 @@ class SemblanceAPI:
             response: BaseModel | list[BaseModel]
             if store is not None and get_origin(output_annotation) is list:
                 response = store.get_all(path)
-            else:
-                count = self._resolve_list_count(list_count, merged)
-                response = build_response(
-                    output_annotation,
-                    input_model,
-                    merged,
-                    list_count=count,
-                    seed=seed,
-                    filter_by=filter_by,
-                )
+                if self._validate_responses:
+                    validate_response(output_annotation, response)
+                return response
+            if store is not None and get_origin(output_annotation) is not list:
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    path_params = dict(request.path_params)
+                    collection_path = _collection_path(path)
+                    id_field = path_param_names[0]
+                    id_value = path_params.get(id_field)
+                    if id_value is not None:
+                        item = store.get_by_id(
+                            collection_path, id_value, id_field
+                        )
+                        if item is not None:
+                            if self._validate_responses:
+                                validate_response(output_annotation, item)
+                            return item
+                        raise HTTPException(
+                            status_code=404, detail="Not found"
+                        )
+            count = self._resolve_list_count(list_count, merged)
+            response = build_response(
+                output_annotation,
+                input_model,
+                merged,
+                list_count=count,
+                seed=seed,
+                filter_by=filter_by,
+            )
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
         if spec.summary is not None:
             kwargs["summary"] = spec.summary
         if spec.description is not None:
@@ -564,6 +602,9 @@ class SemblanceAPI:
             return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
         if spec.summary is not None:
             kwargs["summary"] = spec.summary
         if spec.description is not None:
@@ -583,6 +624,8 @@ class SemblanceAPI:
         latency_ms = spec.latency_ms
         jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
+        store = self._store
+        path = spec.path
 
         async def handler(
             request: Request,
@@ -604,11 +647,38 @@ class SemblanceAPI:
                 seed=seed,
                 filter_by=filter_by,
             )
+            if store is not None:
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    path_params = dict(request.path_params)
+                    collection_path = _collection_path(path)
+                    id_field = path_param_names[0]
+                    id_value = path_params.get(id_field)
+                    if id_value is not None:
+                        if "id" in type(response).model_fields or id_field in type(response).model_fields:
+                            data = response.model_dump()
+                            data[id_field] = id_value
+                            response = type(response).model_validate(data)
+                        existing = store.get_by_id(
+                            collection_path, id_value, id_field
+                        )
+                        if existing is not None:
+                            response = store.update(
+                                collection_path,
+                                id_value,
+                                response,
+                                id_field,
+                            ) or response
+                        else:
+                            response = store.add(collection_path, response)
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
         if spec.summary is not None:
             kwargs["summary"] = spec.summary
         if spec.description is not None:
@@ -628,6 +698,8 @@ class SemblanceAPI:
         latency_ms = spec.latency_ms
         jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
+        store = self._store
+        path = spec.path
 
         async def handler(
             request: Request,
@@ -640,6 +712,21 @@ class SemblanceAPI:
             seed = self._resolve_seed(seed_from, merged)
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
+            if store is not None:
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    path_params = dict(request.path_params)
+                    collection_path = _collection_path(path)
+                    id_field = path_param_names[0]
+                    id_value = path_params.get(id_field)
+                    if id_value is not None:
+                        existing = store.get_by_id(
+                            collection_path, id_value, id_field
+                        )
+                        if existing is None:
+                            raise HTTPException(
+                                status_code=404, detail="Not found"
+                            )
             count = self._resolve_list_count(list_count, merged)
             response = build_response(
                 output_annotation,
@@ -649,11 +736,34 @@ class SemblanceAPI:
                 seed=seed,
                 filter_by=filter_by,
             )
+            if store is not None:
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    path_params = dict(request.path_params)
+                    collection_path = _collection_path(path)
+                    id_field = path_param_names[0]
+                    id_value = path_params.get(id_field)
+                    if id_value is not None:
+                        if id_field in type(response).model_fields:
+                            data = response.model_dump()
+                            data[id_field] = id_value
+                            response = type(response).model_validate(data)
+                        updated = store.update(
+                            collection_path,
+                            id_value,
+                            response,
+                            id_field,
+                        )
+                        if updated is not None:
+                            response = updated
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
 
         kwargs: dict[str, Any] = {"response_model": output_annotation}
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
         if spec.summary is not None:
             kwargs["summary"] = spec.summary
         if spec.description is not None:
@@ -670,6 +780,8 @@ class SemblanceAPI:
         error_codes = spec.error_codes
         latency_ms = spec.latency_ms
         jitter_ms = spec.jitter_ms
+        store = self._store
+        path = spec.path
 
         async def handler(
             request: Request,
@@ -682,6 +794,20 @@ class SemblanceAPI:
             seed = self._resolve_seed(seed_from, merged)
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
+            if store is not None:
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    id_field = path_param_names[0]
+                    id_value = path_params.get(id_field)
+                    if id_value is not None:
+                        collection_path = _collection_path(path)
+                        if not store.remove(
+                            collection_path, id_value, id_field
+                        ):
+                            raise HTTPException(
+                                status_code=404, detail="Not found"
+                            )
+                        return Response(status_code=204)
             if output_annotation is None:
                 return Response(status_code=204)
             response = build_response(
@@ -699,6 +825,9 @@ class SemblanceAPI:
         kwargs: dict[str, Any] = {}
         if output_annotation is not None:
             kwargs["response_model"] = output_annotation
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
         if spec.summary is not None:
             kwargs["summary"] = spec.summary
         if spec.description is not None:

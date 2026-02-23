@@ -45,9 +45,15 @@ def _sample_request(
         r = client.get(url)
     elif method == "POST":
         r = client.post(url, json={})
+    elif method == "PUT":
+        r = client.put(url, json={})
+    elif method == "PATCH":
+        r = client.patch(url, json={})
+    elif method == "DELETE":
+        r = client.delete(url)
     else:
         return None
-    if r.status_code == 200:
+    if r.status_code in (200, 201):
         try:
             return cast(
                 dict[str, object] | list[object] | object,
@@ -55,6 +61,8 @@ def _sample_request(
             )
         except Exception:
             return None
+    if r.status_code == 204:
+        return None
     return None
 
 
@@ -71,19 +79,25 @@ def export_openapi(app: FastAPI, include_examples: bool = False) -> dict[str, An
 
     with TestClient(app) as client:
         for path, methods in schema.get("paths", {}).items():
-            for method in ("get", "post"):
+            for method in ("get", "post", "put", "patch", "delete"):
                 op = methods.get(method)
                 if op is None:
                     continue
                 sample = _sample_request(client, path, method.upper())
+                if "responses" not in op:
+                    op["responses"] = {}
                 if sample is not None:
-                    if "responses" not in op:
-                        op["responses"] = {}
-                    if "200" not in op["responses"]:
+                    if "200" not in op["responses"] and "201" not in op["responses"]:
                         op["responses"]["200"] = {"description": "Successful response"}
-                    content = op["responses"]["200"].setdefault("content", {})
-                    json_content = content.setdefault("application/json", {})
-                    json_content["example"] = sample
+                    for code in ("200", "201"):
+                        if code in op["responses"]:
+                            content = op["responses"][code].setdefault("content", {})
+                            json_content = content.setdefault("application/json", {})
+                            json_content["example"] = sample
+                            break
+                elif method.upper() == "DELETE":
+                    if "204" not in op["responses"]:
+                        op["responses"]["204"] = {"description": "No Content"}
     return schema
 
 
@@ -100,20 +114,26 @@ def export_fixtures(app: FastAPI, output_path: str | Path) -> None:
     schema = cast(dict[str, Any], app.openapi())
     with TestClient(app) as client:
         for path, methods in schema.get("paths", {}).items():
-            for method in ("get", "post"):
+            for method in ("get", "post", "put", "patch", "delete"):
                 op = methods.get(method)
                 if op is None:
                     continue
                 sample = _sample_request(client, path, method.upper())
+                route_id = (
+                    path.strip("/")
+                    .replace("/", "_")
+                    .replace("{", "")
+                    .replace("}", "")
+                    or "root"
+                )
+                filename = f"{route_id}_{method.upper()}.json"
                 if sample is not None:
-                    route_id = (
-                        path.strip("/")
-                        .replace("/", "_")
-                        .replace("{", "")
-                        .replace("}", "")
-                        or "root"
+                    (output_dir / filename).write_text(
+                        json.dumps(sample, indent=2)
                     )
-                    filename = f"{route_id}_{method.upper()}.json"
-                    (output_dir / filename).write_text(json.dumps(sample, indent=2))
+                elif method.upper() == "DELETE":
+                    (output_dir / filename).write_text(
+                        json.dumps({"status": 204}, indent=2)
+                    )
 
     (output_dir / "openapi.json").write_text(json.dumps(schema, indent=2))

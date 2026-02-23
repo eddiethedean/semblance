@@ -34,6 +34,46 @@ class StatefulStore:
         """Return all stored instances for path."""
         return list(self._store.get(path, []))
 
+    def get_by_id(
+        self, collection_path: str, id_value: str, id_field: str = "id"
+    ) -> BaseModel | None:
+        """Find item in collection whose id_field equals id_value. Return None if not found."""
+        items = self._store.get(collection_path, [])
+        for item in items:
+            if getattr(item, id_field, None) == id_value:
+                return item
+        return None
+
+    def update(
+        self,
+        collection_path: str,
+        id_value: str,
+        instance: BaseModel,
+        id_field: str = "id",
+    ) -> BaseModel | None:
+        """Replace item with matching id with instance. Return updated instance or None."""
+        if collection_path not in self._store:
+            return None
+        items = self._store[collection_path]
+        for i, item in enumerate(items):
+            if getattr(item, id_field, None) == id_value:
+                items[i] = instance
+                return instance
+        return None
+
+    def remove(
+        self, collection_path: str, id_value: str, id_field: str = "id"
+    ) -> bool:
+        """Remove item with matching id. Return True if found and removed."""
+        if collection_path not in self._store:
+            return False
+        items = self._store[collection_path]
+        for i, item in enumerate(items):
+            if getattr(item, id_field, None) == id_value:
+                items.pop(i)
+                return True
+        return False
+
     def clear(self, path: str | None = None) -> None:
         """Clear store for path, or all paths if path is None."""
         if path is None:
