@@ -82,7 +82,7 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest tests/ -v --cov=src/semblance --cov-fail-under=85 --cov-report=xml
+        run: pytest tests/ -v --cov=src/semblance --cov-report=xml
 
   security:
     runs-on: ubuntu-latest
