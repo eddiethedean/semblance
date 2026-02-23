@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-02-23
+
+### Changed
+
+- **Typing** — Stricter type annotations: `api.py` stateful PUT/PATCH narrow `response` to `BaseModel`; `property_testing` uses `_HTTPClientProtocol`/`_ResponseProtocol`; `plugins` `LinkProtocol.resolve` and `register_link` typed; `export` uses `JSONResponse` alias. Mypy: `warn_unused_ignores`, `no_implicit_optional`, and `strict_optional` overrides per module; removed unused `type: ignore` in `cli.py`. Test fixtures: explicit `SemblanceAPI` return types where applicable.
+- **Tests** — `test_post_with_seed_from_input` made deterministic by supplying date range in POST body so `DateRangeFrom` override is used.
+- **Lint** — Unused imports removed and import order fixed in tests (ruff).
+
 ## [0.3.0] - 2025-02-23
 
 ### Added
@@ -101,7 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.3.0
 [0.2.2]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.2
 [0.2.1]: https://github.com/eddiethedean/semblance/releases/tag/v0.2.1
