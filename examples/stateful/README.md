@@ -61,19 +61,19 @@ curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -
 curl "http://127.0.0.1:8000/users?name=x"
 ```
 
-Example responses (IDs vary per run):
+Example responses (IDs vary per run; sample from a live run):
 
 ```json
 // POST alice
-{"id": "hCnVvpUeXBVQBtxIbCrv", "name": "alice"}
+{"id": "zPqoqmcltaxGXYLWBYlx", "name": "alice"}
 
 // POST bob
-{"id": "HCmJJfYwGIBzngQDycHu", "name": "bob"}
+{"id": "pNcTHUpJcNfPvDzMlRpP", "name": "bob"}
 
 // GET /users
 [
-  {"id": "hCnVvpUeXBVQBtxIbCrv", "name": "alice"},
-  {"id": "HCmJJfYwGIBzngQDycHu", "name": "bob"}
+  {"id": "zPqoqmcltaxGXYLWBYlx", "name": "alice"},
+  {"id": "pNcTHUpJcNfPvDzMlRpP", "name": "bob"}
 ]
 ```
 

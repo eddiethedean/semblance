@@ -1,6 +1,6 @@
 # Semblance Examples
 
-Curated, runnable examples for common use cases.
+Curated, runnable examples for common use cases. Each example's README shows **example output** from a real run so you can verify behavior.
 
 ## Running Examples
 

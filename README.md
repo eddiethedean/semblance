@@ -61,10 +61,10 @@ class User(BaseModel):
     ]
 
 
-api = SemblanceAPI()
+api = SemblanceAPI(seed=42)
 
 
-@api.get("/users", input=UserQuery, output=list[User])
+@api.get("/users", input=UserQuery, output=list[User], list_count=2)
 def users():
     pass
 
@@ -88,7 +88,16 @@ Try:
 curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31"
 ```
 
-Responses are generated from your output model: `name` comes from the query, `created_at` is random in the date range.
+Example output (with `SemblanceAPI(seed=42)` and `list_count=2` for reproducibility):
+
+```json
+[
+  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
+  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
+]
+```
+
+Responses are generated from your output model: `name` comes from the query, `created_at` is in the date range.
 
 ## Use Cases
 
@@ -138,16 +147,19 @@ semblance run examples.plugins.app:api --port 8000
 
 ## Testing
 
+Use the same `api` from Quick Start (with `app = api.as_fastapi()`). With the test client you get deterministic responses without starting a server:
+
 ```python
 from semblance import SemblanceAPI, test_client
 
-app = api.as_fastapi()
+# api and app from Quick Start above
 client = test_client(app)
 
 r = client.get("/users?name=testuser")
 assert r.status_code == 200
 data = r.json()
 assert all(u["name"] == "testuser" for u in data)
+# data is a list of User dicts, e.g. [{"name": "testuser", "created_at": "..."}, ...]
 ```
 
 Deterministic seeding for reproducible tests:
