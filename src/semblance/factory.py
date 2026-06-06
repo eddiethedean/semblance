@@ -167,7 +167,7 @@ def build_response(
             request=request,
         )
         items = all_items[offset : offset + limit]
-        total = offset + len(items)
+        total = len(all_items)
         return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
     # list[Model]

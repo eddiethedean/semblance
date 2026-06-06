@@ -1,4 +1,4 @@
-"""Tests for Phase 4: CLI, export, plugins."""
+"""Tests for Semblance CLI: load, init, export, run, validate."""
 
 import json
 import subprocess
@@ -13,6 +13,7 @@ from semblance import SemblanceAPI
 from semblance.cli import (
     _load_app,
     _load_target,
+    _resolve_app_path,
     cmd_export_fixtures,
     cmd_export_openapi,
     cmd_init,
@@ -35,9 +36,13 @@ class TestLoadApp:
 
         assert isinstance(app, FastAPI)
 
-    def test_invalid_path_no_colon(self):
-        with pytest.raises(SystemExit):
+    def test_invalid_path_no_colon_multiple_candidates(self):
+        with pytest.raises(SystemExit, match="Multiple app candidates"):
             _load_app("tests.sample_app")
+
+    def test_resolve_app_path_multiple_candidates(self):
+        with pytest.raises(SystemExit, match="Multiple app candidates"):
+            _resolve_app_path("tests.sample_app")
 
     def test_invalid_module(self):
         with pytest.raises(SystemExit):
@@ -88,9 +93,16 @@ class TestLoadApp:
             name: Annotated[str, FromInput("typo")]
 
         api.get("/t", input=Q, output=Out)(lambda: None)
-        errors = validate_specs(api._specs) + get_duplicate_endpoint_errors(api._specs)
+        errors = validate_specs(
+            api.get_endpoint_specs()
+        ) + get_duplicate_endpoint_errors(api.get_endpoint_specs())
         assert len(errors) == 1
         assert "typo" in errors[0]
+
+    def test_validate_exit_one_for_invalid_links(self):
+        with pytest.raises(SystemExit) as exc_info:
+            cmd_validate(type("Args", (), {"app": "tests.cli_invalid_app:api"})())
+        assert exc_info.value.code == 1
 
 
 class TestInit:

@@ -71,6 +71,21 @@ Example response (`limit=3&offset=0`):
 }
 ```
 
+With offset (`limit=3&offset=10`), the simulated pool has 13 items; the page returns 3:
+
+```json
+{
+  "items": [
+    {"name": "alice"},
+    {"name": "alice"},
+    {"name": "alice"}
+  ],
+  "total": 13,
+  "limit": 3,
+  "offset": 10
+}
+```
+
 ## Concepts
 
 - **PageParams** – `limit` and `offset` query params

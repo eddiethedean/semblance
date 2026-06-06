@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-06-06
+
+### Fixed
+
+- **Pagination `total`** — `PaginatedResponse.total` now reflects the simulated dataset size (items generated before slicing) instead of `offset + len(items)`, which was incorrect when the pool was short.
+
+### Changed
+
+- Test suite reorganized into feature-based modules with stronger assertions for pagination, `filter_by`, stateful CRUD, validation, and CLI.
+
 ## [0.6.0] - 2025-02-23
 
 ### Added
@@ -145,7 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/eddiethedean/semblance/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.4.0

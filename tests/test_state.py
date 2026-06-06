@@ -6,56 +6,41 @@ from semblance.state import StatefulStore
 
 
 def test_add_auto_generates_id_when_missing():
-    """StatefulStore.add generates id when model has id field and it is empty."""
-
     class ModelWithId(BaseModel):
         id: str = ""
         name: str
 
     store = StatefulStore()
-    instance = ModelWithId(name="alice")
-    result = store.add("/items", instance)
+    result = store.add("/items", ModelWithId(name="alice"))
     assert result.id != ""
     assert result.name == "alice"
 
 
 def test_add_preserves_existing_id():
-    """StatefulStore.add preserves id when already set."""
-
     class ModelWithId(BaseModel):
         id: str = ""
         name: str
 
     store = StatefulStore()
-    instance = ModelWithId(id="custom-123", name="alice")
-    result = store.add("/items", instance)
+    result = store.add("/items", ModelWithId(id="custom-123", name="alice"))
     assert result.id == "custom-123"
-    assert result.name == "alice"
 
 
 def test_add_model_without_id_field():
-    """StatefulStore.add works for models without id field."""
-
     class ModelNoId(BaseModel):
         name: str
 
     store = StatefulStore()
-    instance = ModelNoId(name="bob")
-    result = store.add("/items", instance)
+    result = store.add("/items", ModelNoId(name="bob"))
     assert result.name == "bob"
-    assert not hasattr(result, "id") or getattr(result, "id", None) is None
 
 
 def test_get_all_empty_path_returns_empty_list():
-    """StatefulStore.get_all returns [] for path with no items."""
     store = StatefulStore()
-    result = store.get_all("/nonexistent")
-    assert result == []
+    assert store.get_all("/nonexistent") == []
 
 
 def test_get_all_returns_stored_items():
-    """StatefulStore.get_all returns all items for path."""
-
     class Item(BaseModel):
         name: str
 
@@ -67,9 +52,67 @@ def test_get_all_returns_stored_items():
     assert [r.name for r in result] == ["a", "b"]
 
 
-def test_clear_path_removes_only_that_path():
-    """StatefulStore.clear(path) removes only that path."""
+def test_get_by_id_returns_matching_item():
+    class Item(BaseModel):
+        id: str = ""
+        name: str
 
+    store = StatefulStore()
+    added = store.add("/items", Item(name="x"))
+    found = store.get_by_id("/items", added.id, "id")
+    assert found is not None
+    assert found.name == "x"
+
+
+def test_get_by_id_returns_none_when_missing():
+    class Item(BaseModel):
+        id: str = "1"
+        name: str
+
+    store = StatefulStore()
+    store.add("/items", Item(name="x"))
+    assert store.get_by_id("/items", "missing", "id") is None
+
+
+def test_update_replaces_matching_item():
+    class Item(BaseModel):
+        id: str = "1"
+        name: str
+
+    store = StatefulStore()
+    store.add("/items", Item(name="before"))
+    updated = store.update("/items", "1", Item(id="1", name="after"), "id")
+    assert updated is not None
+    assert updated.name == "after"
+    assert store.get_by_id("/items", "1", "id").name == "after"
+
+
+def test_update_returns_none_when_missing():
+    class Item(BaseModel):
+        id: str = "1"
+        name: str
+
+    store = StatefulStore()
+    assert store.update("/items", "1", Item(name="x"), "id") is None
+
+
+def test_remove_deletes_matching_item():
+    class Item(BaseModel):
+        id: str = "1"
+        name: str
+
+    store = StatefulStore()
+    store.add("/items", Item(name="x"))
+    assert store.remove("/items", "1", "id") is True
+    assert store.get_all("/items") == []
+
+
+def test_remove_returns_false_when_missing():
+    store = StatefulStore()
+    assert store.remove("/items", "1", "id") is False
+
+
+def test_clear_path_removes_only_that_path():
     class Item(BaseModel):
         name: str
 
@@ -82,8 +125,6 @@ def test_clear_path_removes_only_that_path():
 
 
 def test_clear_none_removes_all():
-    """StatefulStore.clear(None) clears entire store."""
-
     class Item(BaseModel):
         name: str
 

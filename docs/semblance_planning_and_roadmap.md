@@ -157,14 +157,29 @@ assert r.status_code == 200
 
 ### Test Coverage
 
--   `test_api` --- SemblanceAPI, GET endpoints, FastAPI app export
--   `test_factory` --- build_response, pagination, seed determinism, edge cases
--   `test_resolver` --- resolve_overrides, DateRangeFrom, _to_datetime, get_output_model_for_type
+-   `test_http_core` --- SemblanceAPI GET/POST, seeding, headers/cookies, list_count
+-   `test_http_methods` --- PUT/PATCH/DELETE, rate limiting, response validation, duplicate routes
+-   `test_pagination` --- PageParams, PaginatedResponse, total/limit/offset semantics
+-   `test_simulation` --- error_rate, latency, jitter
 -   `test_links` --- FromInput, DateRangeFrom, get_field_metadata
--   `test_phase2` --- POST, path params, pagination, seeding, error simulation
--   `test_edge_cases` --- validation, duplicate paths, FromInput with None
+-   `test_links_advanced` --- WhenInput, ComputedFrom, nested models, filter_by
+-   `test_factory` --- build_response, seed determinism, filter_by on generated fields
+-   `test_resolver` --- resolve_overrides, DateRangeFrom, _to_datetime, get_output_model_for_type
+-   `test_validation` --- link validation, duplicate endpoint errors
+-   `test_state` --- StatefulStore unit tests
+-   `test_stateful_crud` --- stateful GET/PUT/PATCH/DELETE integration
+-   `test_cli` --- CLI load, init, export, run, validate
+-   `test_export` --- OpenAPI and fixture export
+-   `test_config` --- config file loading and SemblanceAPI.from_config
+-   `test_mount_middleware` --- mount_into, add_middleware
+-   `test_pytest_plugin` --- semblance pytest markers and fixtures
+-   `test_plugins` --- custom link registration
+-   `test_rate_limit` --- RateLimiter unit tests
+-   `test_property_testing` --- Hypothesis helpers
+-   `test_edge_cases` --- invalid output types, 422 validation, FromInput(None)
+-   `test_doc_examples` --- documentation example runner
 
-Supports: - Contract testing - Snapshot testing - Frontend-backend integration tests - pytest-cov for coverage reporting (95%+)
+Supports: contract testing, snapshot testing, frontend-backend integration tests, pytest-cov for coverage reporting
 
 ------------------------------------------------------------------------
 
@@ -173,7 +188,7 @@ Supports: - Contract testing - Snapshot testing - Frontend-backend integration t
 ### Recent Updates
 
 -   Bug fixes: unused TypeVar removal, pagination limit/offset coercion robustness, null-safety in _get_paginated_inner
--   Test coverage expanded to 95%+ with 46 tests across api, factory, resolver, links, phase2, and edge cases
+-   Test coverage expanded across feature-based modules (http, pagination, simulation, stateful CRUD, CLI, validation, config, export)
 -   pytest-cov added to dev dependencies
 
 ------------------------------------------------------------------------

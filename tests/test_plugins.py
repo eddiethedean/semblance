@@ -2,11 +2,14 @@
 
 from typing import Annotated, Protocol, cast
 
+import pytest
 from pydantic import BaseModel
 
 from semblance import SemblanceAPI, register_link
 from semblance import test_client as client_for
 from semblance.plugins import get_registered_links, is_registered
+
+pytestmark = pytest.mark.usefixtures("clean_plugin_registry")
 
 
 class _ChoiceProtocol(Protocol):

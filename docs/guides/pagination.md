@@ -50,5 +50,5 @@ curl "http://127.0.0.1:8000/users?name=alice&limit=5&offset=10"
 
 ## Notes
 
-- `total` reflects the simulated total for the current page window.
+- `total` is the simulated collection size for the request (items generated before applying `offset`/`limit`).
 - In stateless mode, each request generates fresh data. Use `SemblanceAPI(stateful=True)` if you need persistent collections.
