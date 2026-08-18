@@ -23,25 +23,44 @@ Thanks for your interest in contributing to Semblance. This document covers how 
    ```
    This runs ruff and other checks before each commit.
 
+### Multi-package development notes
+
+The repository also hosts adapter packages:
+
+- `packages/semblance-foundry/`
+- `packages/semblance-databricks/`
+
+Install the editable packages when they are present:
+
+```bash
+pip install -e .[dev]
+pip install -e packages/semblance-foundry[dev]
+pip install -e packages/semblance-databricks[dev]
+```
+
+If a package is not yet available, install only the existing ones.
+
 ## Running Checks
 
 Before submitting a pull request, ensure the following pass:
 
 - **Tests**
   ```bash
-  pytest tests/ -v --cov=src/semblance --cov-fail-under=73
+  pytest tests/ packages/semblance-foundry/tests packages/semblance-databricks/tests -v --cov=src/semblance --cov-fail-under=73
   ```
   Run from the project root so that `examples.*` imports work (e.g. in `test_doc_examples`). If you add a new entry to `docs/guides/examples/run_examples.py` (the `EXAMPLES` list), the callable must return successfully; `test_run_examples_produces_valid_output` enforces that.
 
+  If one or more package test directories are not present yet, run only the available directories for that commit.
+
 - **Lint (ruff)**
   ```bash
-  ruff check src tests
-  ruff format --check src tests
+  ruff check src tests packages/semblance-foundry packages/semblance-databricks
+  ruff format --check src tests packages/semblance-foundry packages/semblance-databricks
   ```
 
 - **Type check (mypy)**
   ```bash
-  mypy src
+  mypy src packages/semblance-foundry/src packages/semblance-databricks/src
   ```
 
 - **Security (bandit, pip-audit)**
@@ -75,4 +94,4 @@ Please do not open public issues for security vulnerabilities. See [SECURITY.md]
 
 ## Code Style
 
-We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. Run `ruff check src tests` to verify style compliance.
+We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. Run `ruff check src tests packages/semblance-foundry packages/semblance-databricks` to verify style compliance.

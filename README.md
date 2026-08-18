@@ -267,8 +267,12 @@ See [CONTRIBUTING.md](https://github.com/eddiethedean/semblance/blob/main/CONTRI
 git clone https://github.com/eddiethedean/semblance.git
 cd semblance
 pip install -e ".[dev]"
+pip install -e packages/semblance-foundry[dev]
+pip install -e packages/semblance-databricks[dev]
 pytest tests/ -v
 ```
+
+When one of the package directories is not present yet, install only the available package(s).
 
 ## License
 

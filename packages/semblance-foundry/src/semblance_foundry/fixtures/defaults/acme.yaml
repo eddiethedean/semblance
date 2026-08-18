@@ -1,0 +1,80 @@
+version: 1
+ontologies:
+  - apiName: acme
+    displayName: Acme Ontology
+    description: Bundled example ontology for semblance-foundry
+    objectTypes:
+      - apiName: Employee
+        displayName: Employee
+        primaryKey: employeeId
+        properties:
+          employeeId:
+            dataType: {type: string}
+            displayName: Employee ID
+          name:
+            dataType: {type: string}
+            displayName: Name
+          officeId:
+            dataType: {type: string}
+            displayName: Office ID
+        objects:
+          - employeeId: "1"
+            name: Ada Lovelace
+            officeId: hq
+          - employeeId: "2"
+            name: Grace Hopper
+            officeId: hq
+          - employeeId: "3"
+            name: Katherine Johnson
+            officeId: lab
+          - employeeId: "4"
+            name: Alan Turing
+            officeId: lab
+      - apiName: Office
+        displayName: Office
+        primaryKey: officeId
+        properties:
+          officeId:
+            dataType: {type: string}
+            displayName: Office ID
+          name:
+            dataType: {type: string}
+            displayName: Name
+        objects:
+          - officeId: hq
+            name: Headquarters
+          - officeId: lab
+            name: Research Lab
+    linkTypes:
+      - apiName: worksAt
+        from: Employee
+        to: Office
+        objects:
+          - from: "1"
+            to: hq
+          - from: "2"
+            to: hq
+          - from: "3"
+            to: lab
+          - from: "4"
+            to: lab
+    actionTypes:
+      - apiName: renameEmployee
+        displayName: Rename Employee
+        description: Metadata only in Phase 9; apply is unimplemented
+        parameters:
+          employeeId:
+            dataType: {type: string}
+          newName:
+            dataType: {type: string}
+    queryTypes:
+      - apiName: employeesByOffice
+        displayName: Employees by Office
+        result:
+          type: static
+          value:
+            data:
+              - employeeId: "1"
+                name: Ada Lovelace
+              - employeeId: "2"
+                name: Grace Hopper

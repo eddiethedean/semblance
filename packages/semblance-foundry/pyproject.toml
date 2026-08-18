@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semblance-foundry"
+version = "0.1.0"
+description = "Unofficial local HTTP simulation of selected Palantir Foundry API v2 ontology operations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "Semblance Contributors"}]
+keywords = ["foundry", "palantir", "mock", "simulation", "testing", "fastapi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "semblance>=0.6.1",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.25.0",
+    "ruff>=0.8.0",
+    "mypy>=1.0.0",
+    "types-PyYAML>=6.0.0",
+]
+sdk = [
+    "foundry-platform-sdk==1.101.0",
+]
+
+[project.scripts]
+semblance-foundry = "semblance_foundry.cli:main"
+
+[project.urls]
+Documentation = "https://semblance.readthedocs.io/"
+Repository = "https://github.com/eddiethedean/semblance"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+semblance_foundry = [
+    "py.typed",
+    "compatibility.yaml",
+    "fixtures/defaults/*.yaml",
+]

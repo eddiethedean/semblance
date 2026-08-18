@@ -1,0 +1,102 @@
+packageVersion: "0.1.0"
+documentedAt: "2026-08-18"
+source: "https://www.palantir.com/docs/foundry/api/v2"
+operations:
+  - operationId: ListOntologies
+    method: GET
+    path: /api/v2/ontologies
+    supportLevel: exact
+    docsUrl: https://www.palantir.com/docs/foundry/api/v2/ontologies-v2-resources/ontologies/list-ontologies
+    tests:
+      - tests/contract/test_ontologies.py::test_list_ontologies
+  - operationId: GetOntology
+    method: GET
+    path: /api/v2/ontologies/{ontology}
+    supportLevel: exact
+    docsUrl: https://www.palantir.com/docs/foundry/api/v2/ontologies-v2-resources/ontologies/get-ontology
+    tests:
+      - tests/contract/test_ontologies.py::test_get_ontology
+  - operationId: ListObjectTypes
+    method: GET
+    path: /api/v2/ontologies/{ontology}/objectTypes
+    supportLevel: exact
+    docsUrl: https://www.palantir.com/docs/foundry/api/v2/ontologies-v2-resources/object-types/list-object-types
+    tests:
+      - tests/contract/test_object_types.py::test_list_object_types
+  - operationId: GetObjectType
+    method: GET
+    path: /api/v2/ontologies/{ontology}/objectTypes/{objectType}
+    supportLevel: exact
+    tests:
+      - tests/contract/test_object_types.py::test_get_object_type
+  - operationId: ListObjects
+    method: GET
+    path: /api/v2/ontologies/{ontology}/objects/{objectType}
+    supportLevel: exact
+    docsUrl: https://www.palantir.com/docs/foundry/api/v2/ontologies-v2-resources/ontology-objects/list-objects
+    tests:
+      - tests/contract/test_objects.py::test_list_objects
+  - operationId: GetObject
+    method: GET
+    path: /api/v2/ontologies/{ontology}/objects/{objectType}/{primaryKey}
+    supportLevel: exact
+    tests:
+      - tests/contract/test_objects.py::test_get_object
+  - operationId: SearchObjects
+    method: POST
+    path: /api/v2/ontologies/{ontology}/objects/{objectType}/search
+    supportLevel: representative
+    docsUrl: https://www.palantir.com/docs/foundry/api/v2/ontologies-v2-resources/ontology-objects/search-objects
+    notes: eq and and-of-eq filters only
+    tests:
+      - tests/contract/test_search.py::test_search_eq
+  - operationId: ListLinkedObjects
+    method: GET
+    path: /api/v2/ontologies/{ontology}/objects/{objectType}/{primaryKey}/links/{linkType}
+    supportLevel: exact
+    tests:
+      - tests/contract/test_links.py::test_list_linked_objects
+  - operationId: ListActionTypes
+    method: GET
+    path: /api/v2/ontologies/{ontology}/actionTypes
+    supportLevel: exact
+    notes: metadata only; apply is unimplemented
+    tests:
+      - tests/contract/test_actions_queries.py::test_list_action_types
+  - operationId: GetActionType
+    method: GET
+    path: /api/v2/ontologies/{ontology}/actionTypes/{actionType}
+    supportLevel: exact
+    tests:
+      - tests/contract/test_actions_queries.py::test_get_action_type
+  - operationId: ListQueryTypes
+    method: GET
+    path: /api/v2/ontologies/{ontology}/queryTypes
+    supportLevel: exact
+    tests:
+      - tests/contract/test_actions_queries.py::test_list_query_types
+  - operationId: GetQueryType
+    method: GET
+    path: /api/v2/ontologies/{ontology}/queryTypes/{queryApiName}
+    supportLevel: exact
+    tests:
+      - tests/contract/test_actions_queries.py::test_get_query_type
+  - operationId: ExecuteQuery
+    method: POST
+    path: /api/v2/ontologies/{ontology}/queries/{queryApiName}/execute
+    supportLevel: representative
+    notes: static fixture result or allow-listed Python callback
+    tests:
+      - tests/contract/test_actions_queries.py::test_execute_query
+  - operationId: ApplyAction
+    method: POST
+    path: /api/v2/ontologies/{ontology}/actions/{actionType}/apply
+    supportLevel: unsupported
+    tests:
+      - tests/contract/test_unsupported.py::test_apply_strict_501
+  - operationId: ApplyActionBatch
+    method: POST
+    path: /api/v2/ontologies/{ontology}/actions/{actionType}/applyBatch
+    supportLevel: unsupported
+    tests:
+      - tests/contract/test_unsupported.py::test_apply_batch_strict_501

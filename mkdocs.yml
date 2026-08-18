@@ -35,7 +35,9 @@ nav:
     - PUT / PATCH / DELETE: examples/put_patch_delete.md
     - Stateful CRUD: examples/stateful_crud.md
     - Request Links: examples/request_links.md
-  - Roadmap: roadmap.md
+  - Roadmap:
+    - Overview: roadmap.md
+    - Foundry package plan: semblance_foundry_plan.md
   - API Reference: api/index.md
 
 markdown_extensions:
