@@ -29,7 +29,9 @@ from semblance_foundry import FoundryMock, FoundryMockConfig
 from semblance_foundry.testing import foundry_test_client
 
 foundry = FoundryMock(FoundryMockConfig(seed=42, auth="optional"))
-foundry.load_fixture("packages/semblance-foundry/src/semblance_foundry/fixtures/defaults/acme.yaml")
+foundry.load_fixture(
+    "packages/semblance-foundry/src/semblance_foundry/fixtures/defaults/acme.yaml"
+)
 client = foundry_test_client(foundry)
 
 r = client.get("/api/v2/ontologies/acme/objects/Employee?pageSize=2")
