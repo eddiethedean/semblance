@@ -59,6 +59,10 @@ app = api.as_fastapi()
 
 Requires `hypothesis` (included in `[dev]`).
 
+## Adapter packages
+
+`semblance-foundry` is an independently versioned unofficial Foundry API v2 ontology mock. Install with `pip install semblance-foundry`. See the [Foundry adapter guide](../guides/foundry.md).
+
 ## CLI
 
 ```bash

@@ -83,3 +83,4 @@ The handler body is empty; Semblance generates responses from your schemas.
 - [Input and Output Binding](input-output-binding.md) – bind fields from input, date ranges, and more
 - [Simulation Options](simulation-options.md) – error rate, latency, rate limiting, response validation
 - [Testing](testing.md) – test client, deterministic seeding, property-based testing with Hypothesis
+- [Foundry adapter](foundry.md) – unofficial local Foundry API v2 ontology mock

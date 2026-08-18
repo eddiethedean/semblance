@@ -6,17 +6,25 @@ This package is **not affiliated with, endorsed by, or equivalent to Palantir**.
 
 Verified against public API v2 documentation dated **2026-08-18**. See `compatibility.yaml` (also served at `/.well-known/foundry-mock-compatibility.json`).
 
+Requires `semblance` 0.6.1 or 0.7.x.
+
 ## Install
 
 ```bash
-pip install -e packages/semblance-foundry
-# from the semblance repo root, after: pip install -e ".[dev]"
+pip install semblance-foundry
+```
+
+From a clone of this repository:
+
+```bash
+pip install -e ".[dev]"
+pip install -e "packages/semblance-foundry[dev]"
 ```
 
 Optional official SDK extra (not installed in default CI):
 
 ```bash
-pip install -e "packages/semblance-foundry[dev,sdk]"
+pip install "semblance-foundry[sdk]"
 pytest packages/semblance-foundry/tests -m sdk
 ```
 
@@ -29,9 +37,7 @@ from semblance_foundry import FoundryMock, FoundryMockConfig
 from semblance_foundry.testing import foundry_test_client
 
 foundry = FoundryMock(FoundryMockConfig(seed=42, auth="optional"))
-foundry.load_fixture(
-    "packages/semblance-foundry/src/semblance_foundry/fixtures/defaults/acme.yaml"
-)
+foundry.load_bundled_fixture()
 client = foundry_test_client(foundry)
 
 r = client.get("/api/v2/ontologies/acme/objects/Employee?pageSize=2")
@@ -45,6 +51,7 @@ semblance-foundry fixture init --output foundry.yaml
 semblance-foundry validate foundry.yaml
 semblance-foundry operations
 semblance-foundry serve --fixture foundry.yaml --port 8765
+# or: semblance-foundry serve   # bundled acme fixture
 ```
 
 Environment variables for local clients (not Palantir credentials): `SEMBLANCE_FOUNDRY_HOST`, `SEMBLANCE_FOUNDRY_TOKEN`.
@@ -65,13 +72,13 @@ YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only** — n
 foundry.register_query("employeesByOffice", lambda params, state: {"data": []})
 ```
 
-The bundled `acme` fixture has one ontology, Employee + Office, `worksAt` links, `renameEmployee` action metadata, and `employeesByOffice` static query result.
+`load_bundled_fixture()` loads the shipped `acme` example (one ontology, Employee + Office, `worksAt` links, `renameEmployee` action metadata, and `employeesByOffice` static query result). Use `load_fixture(path)` for your own files.
 
 ## Pagination
 
 List endpoints use `pageSize` / `pageToken` / `nextPageToken`. Tokens are opaque and checksummed. Tampering or cross-resource reuse returns `InvalidPageToken` (400). Default page size 100, max 1000.
 
-## Known unsupported (Phase 9)
+## Known unsupported (0.1.0)
 
 - Action apply / applyBatch — `501 UnsupportedOperation` only when `auth=strict`; otherwise 404
 - Aggregates, object sets, datasets, transactions, orchestration, streams

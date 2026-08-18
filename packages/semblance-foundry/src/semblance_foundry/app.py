@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import random
 from collections.abc import Callable
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 from pathlib import Path
 from typing import Any
 
@@ -13,10 +15,23 @@ from semblance_foundry.auth import FoundryMiddleware
 from semblance_foundry.compatibility import manifest_json
 from semblance_foundry.config import FoundryMockConfig
 from semblance_foundry.errors import register_exception_handlers
-from semblance_foundry.fixtures.loaders import apply_fixture, load_fixture_file
+from semblance_foundry.fixtures.loaders import (
+    apply_fixture,
+    bundled_acme_path,
+    load_fixture_file,
+)
 from semblance_foundry.ids import PageTokenCodec, rid_secret
 from semblance_foundry.services.ontologies import create_ontology_router
 from semblance_foundry.state import FoundryState, OntologyMutations
+
+_BUNDLED_FIXTURES = {"acme": bundled_acme_path}
+
+
+def _distribution_version() -> str:
+    try:
+        return pkg_version("semblance-foundry")
+    except PackageNotFoundError:
+        return "0.1.0"
 
 
 class FoundryMock:
@@ -34,6 +49,16 @@ class FoundryMock:
         apply_fixture(doc, self.state)
         return self
 
+    def load_bundled_fixture(self, name: str = "acme") -> FoundryMock:
+        """Load a fixture shipped with the package (currently ``acme``)."""
+        loader = _BUNDLED_FIXTURES.get(name)
+        if loader is None:
+            known = ", ".join(sorted(_BUNDLED_FIXTURES))
+            raise ValueError(
+                f"unknown bundled fixture {name!r}; expected one of: {known}"
+            )
+        return self.load_fixture(loader())
+
     def register_query(self, api_name: str, fn: Callable[..., Any]) -> None:
         """Register an allow-listed Python callback for query execute."""
         self.state.register_query(api_name, fn)
@@ -45,7 +70,7 @@ class FoundryMock:
                 "Unofficial local simulation of selected Palantir Foundry "
                 "API v2 ontology operations. Not affiliated with Palantir."
             ),
-            version="0.1.0",
+            version=_distribution_version(),
         )
         app.state.foundry_mock = self
         register_exception_handlers(app, self.config.seed)

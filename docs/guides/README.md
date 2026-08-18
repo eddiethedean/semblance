@@ -15,6 +15,8 @@ Guides for building and testing schema-driven API simulators with Semblance.
 | [CLI](cli.md) | semblance run, export openapi, export fixtures |
 | [Plugins](plugins.md) | Custom link types, register_link |
 | [Testing](testing.md) | test_client, deterministic seeding, property-based testing, pytest |
+| [Foundry adapter](foundry.md) | unofficial ontology-read mock (`semblance-foundry`) |
+| [Troubleshooting](troubleshooting.md) | common 404/422/429, stateful, and link issues |
 
 ## Quick Reference
 

@@ -42,3 +42,13 @@ ontologies:
 def test_rejects_wrong_version() -> None:
     with pytest.raises(Exception):
         parse_fixture({"version": 2, "ontologies": []})
+
+
+def test_load_bundled_fixture() -> None:
+    from semblance_foundry import FoundryMock
+
+    foundry = FoundryMock()
+    foundry.load_bundled_fixture()
+    assert "acme" in foundry.state.ontologies
+    with pytest.raises(ValueError, match="unknown bundled fixture"):
+        foundry.load_bundled_fixture("nope")

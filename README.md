@@ -29,6 +29,12 @@ Define API behavior declaratively using schemas and dependency metadata—no end
 pip install semblance
 ```
 
+Optional unofficial Foundry ontology mock (separate package):
+
+```bash
+pip install semblance-foundry
+```
+
 From source (development):
 
 ```bash
@@ -256,6 +262,7 @@ Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.i
 - [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/)
 - [Troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/)
 - [Cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/)
+- [Foundry adapter](https://semblance.readthedocs.io/en/latest/guides/foundry/)
 - [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/)
 - [API Reference](https://semblance.readthedocs.io/en/latest/api/)
 

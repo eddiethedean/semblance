@@ -15,7 +15,7 @@ from semblance_foundry.registry import registered_operations
 def cmd_serve(args: argparse.Namespace) -> None:
     config = FoundryMockConfig(seed=args.seed, auth=args.auth)
     mock = FoundryMock(config)
-    mock.load_fixture(args.fixture)
+    mock.load_fixture(args.fixture or bundled_acme_path())
     app = mock.as_fastapi()
     try:
         import uvicorn
@@ -64,7 +64,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     serve = sub.add_parser("serve", help="Run a local mock server")
-    serve.add_argument("--fixture", required=True, help="YAML or JSON fixture path")
+    serve.add_argument(
+        "--fixture",
+        default=None,
+        help="YAML or JSON fixture path (default: bundled acme example)",
+    )
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8765)
     serve.add_argument("--seed", type=int, default=42)

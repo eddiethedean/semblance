@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Testing",
 ]
 dependencies = [
-    "semblance>=0.6.1",
+    "semblance>=0.6.1,<0.8",
     "pydantic>=2.0.0",
     "pyyaml>=6.0",
 ]
@@ -30,7 +30,7 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.25.0",
-    "ruff>=0.8.0",
+    "ruff>=0.16.0",
     "mypy>=1.0.0",
     "types-PyYAML>=6.0.0",
 ]
@@ -42,8 +42,9 @@ sdk = [
 semblance-foundry = "semblance_foundry.cli:main"
 
 [project.urls]
-Documentation = "https://semblance.readthedocs.io/"
+Documentation = "https://semblance.readthedocs.io/en/latest/guides/foundry/"
 Repository = "https://github.com/eddiethedean/semblance"
+Changelog = "https://github.com/eddiethedean/semblance/blob/main/packages/semblance-foundry/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]

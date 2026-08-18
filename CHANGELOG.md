@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-18
+
+### Added
+
+#### Phase 9 — External API mock packages: Foundry
+- Independently versioned `semblance-foundry` adapter under `packages/semblance-foundry/` (ontology-read MVP). Install separately: `pip install semblance-foundry`. The `semblance` library API is unchanged from 0.6.1.
+- Workspace pytest, ruff, mypy, and CI include the Foundry package; contributor docs cover multi-package editable installs.
+- Docs: Foundry adapter guide, Foundry package plan, and Databricks package plan.
+
 ## [0.6.1] - 2026-06-06
 
 ### Fixed
@@ -155,7 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/eddiethedean/semblance/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/eddiethedean/semblance/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.5.0

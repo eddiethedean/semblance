@@ -21,6 +21,7 @@ nav:
     - Plugins: guides/plugins.md
     - Testing: guides/testing.md
     - Request Links: guides/request-links.md
+    - Foundry adapter: guides/foundry.md
     - Troubleshooting: guides/troubleshooting.md
     - Cookbook: guides/cookbook.md
   - Examples:

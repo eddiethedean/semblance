@@ -22,3 +22,11 @@ def test_fixture_init(tmp_path: Path) -> None:
     main(["fixture", "init", "--output", str(dest)])
     assert dest.exists()
     assert "apiName: acme" in dest.read_text(encoding="utf-8")
+
+
+def test_serve_defaults_to_bundled_fixture() -> None:
+    from semblance_foundry.cli import build_parser
+
+    args = build_parser().parse_args(["serve"])
+    assert args.fixture is None
+    assert args.port == 8765

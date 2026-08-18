@@ -6,13 +6,12 @@ import pytest
 from fastapi.testclient import TestClient
 
 from semblance_foundry import FoundryMock, FoundryMockConfig, TokenGrant
-from semblance_foundry.fixtures.loaders import bundled_acme_path
 
 
 @pytest.fixture
 def mock() -> FoundryMock:
     foundry = FoundryMock(FoundryMockConfig(seed=42, auth="optional"))
-    foundry.load_fixture(bundled_acme_path())
+    foundry.load_bundled_fixture()
     return foundry
 
 
@@ -30,5 +29,5 @@ def strict_client() -> TestClient:
             tokens=(TokenGrant(token="test-token"),),
         )
     )
-    foundry.load_fixture(bundled_acme_path())
+    foundry.load_bundled_fixture()
     return TestClient(foundry.as_fastapi())
