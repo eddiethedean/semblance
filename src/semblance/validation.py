@@ -5,6 +5,7 @@ Validates link bindings (FromInput, DateRangeFrom, WhenInput, ComputedFrom)
 so missing or invalid references surface at startup or via `semblance validate`.
 """
 
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ from semblance.links import (
     ComputedFrom,
     DateRangeFrom,
     FromInput,
+    FromJsonFixture,
+    FromNestedFixture,
     WhenInput,
     get_field_metadata,
 )
@@ -91,6 +94,29 @@ def _validate_output_links(
                         f"{method} {path}: output field {field_prefix!r} uses ComputedFrom "
                         f"with dependency {dep!r} but output model {output_model.__name__!r} has no field {dep!r}"
                     )
+        elif isinstance(meta, (FromJsonFixture, FromNestedFixture)):
+            if not Path(meta.path).expanduser().is_file():
+                errors.append(
+                    f"{method} {path}: output field {field_prefix!r} fixture file "
+                    f"{meta.path!r} does not exist"
+                )
+            if isinstance(meta, FromJsonFixture) and meta.variant_from is not None:
+                if meta.variant_from not in input_fields:
+                    errors.append(
+                        f"{method} {path}: output field {field_prefix!r} uses "
+                        f"FromJsonFixture(variant_from={meta.variant_from!r}) "
+                        f"but input model {input_model.__name__!r} has no field "
+                        f"{meta.variant_from!r}"
+                    )
+            if isinstance(meta, FromNestedFixture) and meta.where:
+                for source in meta.where.values():
+                    if source not in input_fields:
+                        errors.append(
+                            f"{method} {path}: output field {field_prefix!r} uses "
+                            f"FromNestedFixture(where) input field {source!r} "
+                            f"but input model {input_model.__name__!r} has no field "
+                            f"{source!r}"
+                        )
         # FromHeader, FromCookie, custom links: no input-field validation
 
 

@@ -81,3 +81,5 @@ api.clear_store("/users")  # Clear only /users
 - State lives in process memory; it is lost on restart.
 - Not suitable for multi-worker deployments; each worker has its own store.
 - For stateful by-id behavior, use a single path parameter (e.g. `{id}`); the first path param is used as the id field for store lookups.
+
+`scenario=` on a route is a status sequence (for example 503 then 200). It does not store resources. Use `stateful=True` for CRUD-shaped memory, and `scenario` for retry/lifecycle simulation.

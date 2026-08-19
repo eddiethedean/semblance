@@ -104,7 +104,10 @@ For DELETE, omit `output` for 204 No Content, or provide an output model for 200
 
 - **Single model:** `output=User` – one instance
 - **List:** `output=list[User]` – list of instances (default 5, configurable)
-- **Paginated:** `output=PaginatedResponse[User]` – see [Pagination](pagination.md)
+- **Paginated:** `output=PaginatedResponse[User]` — see [Pagination](pagination.md)
+- **Cursor pages:** `output=PageSlice[User]` with `page_table=` — see [Pagination](pagination.md)
+
+Required query/path fields, enums, and regex constraints belong on the **input model** (`Field`, `Literal`). That is 422 validation, not a separate Semblance helper.
 
 ## list_count
 

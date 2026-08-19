@@ -6,7 +6,7 @@ This package is **not affiliated with, endorsed by, or equivalent to Palantir**.
 
 Verified against public API v2 documentation dated **2026-08-18**. See `compatibility.yaml` (also served at `/.well-known/foundry-mock-compatibility.json`).
 
-Requires `semblance` 0.7.x or 0.8.x (`>=0.7.0,<0.9`).
+Requires `semblance` 0.8.x or 0.9.x (`>=0.8.0,<1.0`).
 
 ## Install
 
@@ -78,7 +78,7 @@ foundry.register_query("employeesByOffice", lambda params, state: {"data": []})
 
 List endpoints use `pageSize` / `pageToken` / `nextPageToken`. Tokens are opaque and checksummed. Tampering or cross-resource reuse returns `InvalidPageToken` (400). Default page size 100, max 1000.
 
-## Known unsupported (0.1.2)
+## Known unsupported (0.1.3)
 
 - Action apply / applyBatch — `501 UnsupportedOperation` only when `auth=strict`; otherwise 404
 - Aggregates, object sets, datasets, transactions, orchestration, streams

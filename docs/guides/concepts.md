@@ -23,6 +23,7 @@ See [Input and Output Binding](input-output-binding.md).
 - **WhenInput(cond_field, value, then_link)** — Apply the inner link only when the input field equals the given value.
 - **ComputedFrom(fields, fn)** — Compute from other output fields (e.g. `full = first + " " + last`).
 - **FromHeader(name)** / **FromCookie(name)** — Use the request header or cookie (Phase 7).
+- **FromJsonFixture** / **FromNestedFixture** — Values from a JSON file (optional variants, list where/index, opt-in `strict`).
 
 Custom link types can be registered with the plugin system.
 
@@ -53,6 +54,9 @@ See [Stateful Mode](stateful-mode.md).
 Per-endpoint or global options that make the API behave more like a real service:
 
 - **error_rate** / **error_codes** — Randomly return 4xx/5xx.
+- **errors** / **ErrorCase** — Status/body when an input predicate matches.
+- **bearer_tokens** — Optional Bearer allow-list (401 otherwise).
+- **scenario** / **ScenarioStep** — Per-route status sequence (holds last step).
 - **latency_ms** / **jitter_ms** — Simulate delay.
 - **rate_limit** — Return 429 when too many requests per second.
 - **validate_responses** — Validate generated responses against the output model (dev/CI).

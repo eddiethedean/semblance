@@ -21,7 +21,7 @@ See [Stateful Mode](stateful-mode.md).
 
 **Cause:** Query parameters, request body, or path parameters don’t match the endpoint’s **input model** (types, required fields, or field names).
 
-**Fix:** Check the input model for that route and send the expected shape. Use the OpenAPI schema (`/openapi.json` or `semblance export openapi app:api`) to see the exact contract.
+**Fix:** Check the input model for that route and send the expected shape. Use the OpenAPI schema (`/openapi.json` or `semblance export openapi app:api`) to see the exact contract. Constrain fields with Pydantic `Field` / `Literal` (see the cookbook). Mapped `ErrorCase` statuses are not 422.
 
 See [Input and Output Binding](input-output-binding.md).
 
@@ -32,6 +32,16 @@ See [Input and Output Binding](input-output-binding.md).
 **Cause:** The endpoint has `rate_limit=N` and the test sends more than N requests per second (sliding window).
 
 **Fix:** Disable rate limiting for that endpoint (`rate_limit=None`), use a higher value, or space out requests. Use a fixed `seed` for deterministic responses when you don’t care about rate-limit behavior in the test.
+
+See [Simulation Options](simulation-options.md).
+
+## 401 Unauthorized on a Semblance route
+
+**Symptom:** Core `SemblanceAPI` route returns 401.
+
+**Cause:** The route has `bearer_tokens=` set and the request omitted `Authorization: Bearer …` or used a token not in the list.
+
+**Fix:** Send a listed token, or omit `bearer_tokens` to leave the route open. Adapter Foundry/Databricks auth modes are separate.
 
 See [Simulation Options](simulation-options.md).
 

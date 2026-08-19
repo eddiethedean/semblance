@@ -74,3 +74,19 @@ def test_users(data):
 ```
 
 See [Testing](testing.md).
+
+## Query and path validation (Pydantic)
+
+Input models already validate query, path, and body. Use `Field` for required values, enums/`Literal`, and patterns. Failures are 422. Use `ErrorCase` when you want a different status after the model validates.
+
+```python
+from typing import Literal
+from pydantic import BaseModel, Field
+
+class UserQuery(BaseModel):
+    name: str
+    status: Literal["active", "disabled"] = "active"
+    page_token: str | None = Field(default=None, pattern=r"^[a-z0-9]*$")
+```
+
+See [Input and Output Binding](input-output-binding.md) and [Simulation Options](simulation-options.md).

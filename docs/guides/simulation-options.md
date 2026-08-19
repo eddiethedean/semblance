@@ -23,6 +23,62 @@ def users():
 - Use `error_rate=0` for normal behavior; use `error_rate=1.0` to always fail (useful for tests).
 - When `error_rate` and `error_codes` are set, the exported OpenAPI schema documents those simulated error responses.
 
+## Bearer tokens
+
+When `bearer_tokens` is set, the route requires `Authorization: Bearer <token>` matching the allow-list. Missing, malformed, or unknown tokens return 401 `Unauthorized` (the presented token is never echoed). Omit the kwarg to leave the route open.
+
+```python
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=list[User],
+    bearer_tokens=("test-token",),
+)
+def users():
+    pass
+```
+
+This is independent of Foundry/Databricks adapter auth modes.
+
+## Error maps
+
+`ErrorCase` returns a status and body when a predicate on the validated input matches. First match wins. Schema failures are still 422. Maps run before `error_rate`.
+
+```python
+from semblance import ErrorCase
+
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=list[User],
+    errors=(
+        ErrorCase(when=lambda q: q.name == "nobody", status=404, detail="not found"),
+    ),
+)
+def users():
+    pass
+```
+
+## Scenario steps
+
+`scenario` is a per-route sequence of statuses. After the last step, that step is held (useful for retries). Non-200 steps raise `HTTPException`. 200 continues to normal generation. This is not a replacement for `stateful=True`.
+
+```python
+from semblance import ScenarioStep
+
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=list[User],
+    scenario=(
+        ScenarioStep(status=503, detail="busy"),
+        ScenarioStep(status=200),
+    ),
+)
+def users():
+    pass
+```
+
 ## Latency and Jitter
 
 Add simulated network delay:

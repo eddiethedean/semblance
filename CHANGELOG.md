@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-19
+
+### Added
+
+#### Phase 12 — Declarative simulation APIs
+- Route `bearer_tokens` (401 when set; tokens never echoed).
+- `ErrorCase` maps for status/body after input validates; complements `error_rate`.
+- `FromJsonFixture` / `FromNestedFixture` JSON links (`strict` miss is opt-in).
+- `PageTable` / `PageSlice` for token-keyed pages (not adapter page-token codecs).
+- `ScenarioStep` per-route sequences (holds last step). Cookbook documents Pydantic `Field` validation.
+- Adapter packages on this train: `semblance-foundry` 0.1.3 and `semblance-databricks` 0.1.2 (core range `semblance>=0.8.0,<1.0`).
+
 ## [0.8.0] - 2026-08-19
 
 ### Added
@@ -192,7 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/eddiethedean/semblance/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/eddiethedean/semblance/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/eddiethedean/semblance/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/eddiethedean/semblance/compare/v0.6.0...v0.6.1

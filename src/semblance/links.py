@@ -9,8 +9,8 @@ via the plugin system (register_link).
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -89,12 +89,35 @@ class FromCookie:
     name: str
 
 
+@dataclass(frozen=True)
+class FromJsonFixture:
+    """Override this field from a JSON file (optional input-aware pointer)."""
+
+    path: str
+    pointer: str = ""
+    variant_from: str | None = None
+    variants: Mapping[str, str] = field(default_factory=dict)
+    strict: bool = False
+
+
+@dataclass(frozen=True)
+class FromNestedFixture:
+    """Override this field from a list in a JSON file (index or where-match)."""
+
+    path: str
+    pointer: str
+    index: int | None = None
+    where: Mapping[str, str] | None = None
+    strict: bool = False
+
+
 def get_field_metadata(model_class: type, field_name: str) -> Any | None:
     """
     Extract dependency metadata from a Pydantic model field's Annotated type.
 
     Returns the first metadata that looks like a Semblance link (FromInput,
-    DateRangeFrom, WhenInput, ComputedFrom, FromHeader, FromCookie) or a registered custom link.
+    DateRangeFrom, WhenInput, ComputedFrom, FromHeader, FromCookie,
+    FromJsonFixture, FromNestedFixture) or a registered custom link.
     Returns None if no link metadata is found.
     """
     import typing
@@ -129,6 +152,8 @@ def get_field_metadata(model_class: type, field_name: str) -> Any | None:
                     ComputedFrom,
                     FromHeader,
                     FromCookie,
+                    FromJsonFixture,
+                    FromNestedFixture,
                 ),
             ):
                 return meta

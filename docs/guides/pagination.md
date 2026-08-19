@@ -52,3 +52,26 @@ curl "http://127.0.0.1:8000/users?name=alice&limit=5&offset=10"
 
 - `total` is the simulated collection size for the request (items generated before applying `offset`/`limit`).
 - In stateless mode, each request generates fresh data. Use `SemblanceAPI(stateful=True)` if you need persistent collections.
+
+## PageTable and PageSlice
+
+For a declared token → page map (not adapter page-token codecs), pass `page_table=` and use `PageSlice[Model]` or `list[Model]`. `None` is the first page. Unknown tokens return 400 `Invalid page token`.
+
+```python
+from semblance import PageSlice, PageTable
+
+class TokenQuery(BaseModel):
+    page_token: str | None = None
+
+@api.get(
+    "/users",
+    input=TokenQuery,
+    output=PageSlice[User],
+    page_table=PageTable(
+        pages={None: [{"name": "a"}], "p2": [{"name": "b"}]},
+        next_tokens={None: "p2", "p2": None},
+    ),
+)
+def users():
+    pass
+```

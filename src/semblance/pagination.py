@@ -3,9 +3,12 @@ Pagination helpers for list endpoints.
 
 PageParams mixes into input models for limit/offset query params.
 PaginatedResponse[T] wraps a list of items with total, limit, and offset.
+PageTable / PageSlice serve a declared token → page map (not adapter codecs).
 """
 
-from typing import Generic, TypeVar
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
@@ -26,3 +29,19 @@ class PaginatedResponse(BaseModel, Generic[T]):
     total: int
     limit: int
     offset: int
+
+
+@dataclass(frozen=True)
+class PageTable:
+    """Declared pages keyed by incoming page token (None is the first page)."""
+
+    pages: Mapping[str | None, Sequence[Any]]
+    next_tokens: Mapping[str | None, str | None] = field(default_factory=dict)
+    token_field: str = "page_token"
+
+
+class PageSlice(BaseModel, Generic[T]):
+    """One cursor page: items plus the token for the next request."""
+
+    items: list[T]
+    next_page_token: str | None = None

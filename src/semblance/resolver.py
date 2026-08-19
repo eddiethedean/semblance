@@ -12,15 +12,19 @@ from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from typing import Any, Protocol, get_origin
 
+from fastapi import HTTPException
 from pydantic import BaseModel
 from starlette.requests import Request
 
+from semblance.fixture_json import load_json_file, pick_where, resolve_pointer
 from semblance.links import (
     ComputedFrom,
     DateRangeFrom,
     FromCookie,
     FromHeader,
     FromInput,
+    FromJsonFixture,
+    FromNestedFixture,
     WhenInput,
     get_field_metadata,
 )
@@ -85,6 +89,39 @@ def resolve_overrides(
     rng = random.Random(seed) if seed is not None else random
 
     for name in output_model.model_fields:
+        meta = get_field_metadata(output_model, name)
+        if isinstance(meta, (FromJsonFixture, FromNestedFixture)):
+            try:
+                doc = load_json_file(meta.path)
+                if isinstance(meta, FromJsonFixture):
+                    pointer = meta.pointer
+                    if meta.variant_from is not None:
+                        variant_key = input_data.get(meta.variant_from)
+                        if (
+                            variant_key is not None
+                            and str(variant_key) in meta.variants
+                        ):
+                            pointer = meta.variants[str(variant_key)]
+                    overrides[name] = resolve_pointer(doc, pointer)
+                else:
+                    items = resolve_pointer(doc, meta.pointer)
+                    if not isinstance(items, list):
+                        raise KeyError("not a list")
+                    if meta.where is not None:
+                        overrides[name] = pick_where(
+                            items, dict(meta.where), input_data
+                        )
+                    elif meta.index is not None:
+                        overrides[name] = items[meta.index]
+                    else:
+                        if not items:
+                            raise KeyError("empty")
+                        overrides[name] = items[0]
+            except (OSError, KeyError, IndexError, TypeError, ValueError) as exc:
+                if meta.strict:
+                    raise HTTPException(status_code=500, detail="Fixture miss") from exc
+            continue
+
         field_info = output_model.model_fields.get(name)
         if field_info is not None:
             nested_model = _get_nested_model(
@@ -104,7 +141,6 @@ def resolve_overrides(
                 }
                 continue
 
-        meta = get_field_metadata(output_model, name)
         if meta is None:
             continue
 

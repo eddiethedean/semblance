@@ -8,9 +8,10 @@ generates responses from schemas and link metadata.
 """
 
 import asyncio
+import hmac
 import random
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Annotated, Any, get_origin
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
@@ -18,8 +19,11 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError
 
 from semblance.config import load_config
+from semblance.errors import ErrorCase, ScenarioStep
 from semblance.factory import build_response, validate_response
+from semblance.pagination import PageSlice, PageTable
 from semblance.rate_limit import get_limiter
+from semblance.resolver import get_output_model_for_type
 from semblance.state import StatefulStore
 from semblance.validation import validate_specs
 
@@ -54,6 +58,10 @@ class EndpointSpec:
         "summary",
         "description",
         "tags",
+        "bearer_tokens",
+        "errors",
+        "scenario",
+        "page_table",
     )
 
     def __init__(
@@ -74,6 +82,10 @@ class EndpointSpec:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ):
         self.path = path
         self.methods = methods
@@ -91,6 +103,10 @@ class EndpointSpec:
         self.summary = summary
         self.description = description
         self.tags = tags
+        self.bearer_tokens = None if bearer_tokens is None else tuple(bearer_tokens)
+        self.errors = None if errors is None else tuple(errors)
+        self.scenario = None if scenario is None else tuple(scenario)
+        self.page_table = page_table
 
 
 class SemblanceAPI:
@@ -143,6 +159,7 @@ class SemblanceAPI:
         else:
             self._default_list_count = 5
         self._middleware: list[tuple[type[Any], dict[str, Any]]] = []
+        self._scenario_index: dict[tuple[str, str], int] = {}
 
     @classmethod
     def from_config(
@@ -199,6 +216,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a GET endpoint. Query parameters are validated against `input`.
@@ -225,6 +246,10 @@ class SemblanceAPI:
             summary,
             description,
             tags,
+            bearer_tokens=bearer_tokens,
+            errors=errors,
+            scenario=scenario,
+            page_table=page_table,
         )
 
     def post(
@@ -244,6 +269,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a POST endpoint. Request body is validated against `input`.
@@ -270,6 +299,10 @@ class SemblanceAPI:
             summary,
             description,
             tags,
+            bearer_tokens=bearer_tokens,
+            errors=errors,
+            scenario=scenario,
+            page_table=page_table,
         )
 
     def put(
@@ -289,6 +322,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a PUT endpoint. Request body is validated against `input`.
@@ -315,6 +352,10 @@ class SemblanceAPI:
             summary,
             description,
             tags,
+            bearer_tokens=bearer_tokens,
+            errors=errors,
+            scenario=scenario,
+            page_table=page_table,
         )
 
     def patch(
@@ -334,6 +375,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a PATCH endpoint. Request body is validated against `input`.
@@ -360,6 +405,10 @@ class SemblanceAPI:
             summary,
             description,
             tags,
+            bearer_tokens=bearer_tokens,
+            errors=errors,
+            scenario=scenario,
+            page_table=page_table,
         )
 
     def delete(
@@ -372,6 +421,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         """
         Register a DELETE endpoint. Path params (and optional body) are validated
@@ -399,6 +452,10 @@ class SemblanceAPI:
             summary=summary,
             description=description,
             tags=tags,
+            bearer_tokens=bearer_tokens,
+            errors=errors,
+            scenario=scenario,
+            page_table=page_table,
         )
 
     def _register(
@@ -418,6 +475,10 @@ class SemblanceAPI:
         summary: str | None = None,
         description: str | None = None,
         tags: list[str] | None = None,
+        bearer_tokens: Sequence[str] | None = None,
+        errors: Sequence[ErrorCase] | None = None,
+        scenario: Sequence[ScenarioStep] | None = None,
+        page_table: PageTable | None = None,
     ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
         def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             self._specs.append(
@@ -438,6 +499,10 @@ class SemblanceAPI:
                     summary=summary,
                     description=description,
                     tags=tags,
+                    bearer_tokens=bearer_tokens,
+                    errors=errors,
+                    scenario=scenario,
+                    page_table=page_table,
                 )
             )
             return func
@@ -566,6 +631,140 @@ class SemblanceAPI:
                 status_code=429, detail="Rate limit exceeded (simulated)"
             )
 
+    def _check_bearer(self, spec: EndpointSpec, request: Request) -> None:
+        """Require Authorization Bearer when bearer_tokens is set."""
+        allowed = spec.bearer_tokens
+        if allowed is None:
+            return
+        header = request.headers.get("Authorization")
+        if header is None:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        parts = header.split(None, 1)
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        presented = parts[1]
+        matched = False
+        for token in allowed:
+            if len(presented) == len(token) and hmac.compare_digest(presented, token):
+                matched = True
+        if not matched:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+    def _apply_error_map(self, spec: EndpointSpec, merged: BaseModel) -> None:
+        if not spec.errors:
+            return
+        for case in spec.errors:
+            if case.when(merged):
+                raise HTTPException(status_code=case.status, detail=case.detail)
+
+    def _apply_scenario(self, spec: EndpointSpec) -> None:
+        if not spec.scenario:
+            return
+        key = (spec.methods[0], spec.path)
+        idx = self._scenario_index.get(key, 0)
+        step = spec.scenario[min(idx, len(spec.scenario) - 1)]
+        self._scenario_index[key] = idx + 1
+        if step.status != 200:
+            detail = step.detail if step.detail is not None else "Simulated error"
+            raise HTTPException(status_code=step.status, detail=detail)
+
+    async def _after_validated_input(
+        self,
+        spec: EndpointSpec,
+        merged: BaseModel,
+        *,
+        simulate_random_errors: bool = True,
+    ) -> int | None:
+        seed = self._resolve_seed(spec.seed_from, merged)
+        self._apply_error_map(spec, merged)
+        self._apply_scenario(spec)
+        if simulate_random_errors:
+            self._maybe_raise_error(spec.error_rate, spec.error_codes, seed)
+        await self._await_latency(spec.latency_ms, spec.jitter_ms)
+        return seed
+
+    async def _run_preamble(
+        self,
+        spec: EndpointSpec,
+        request: Request,
+        data: BaseModel,
+        *,
+        simulate_random_errors: bool = True,
+    ) -> tuple[BaseModel, int | None]:
+        self._check_rate_limit(spec)
+        self._check_bearer(spec, request)
+        merged = self._merge_path_params(
+            spec.input_model, data, dict(request.path_params)
+        )
+        seed = await self._after_validated_input(
+            spec, merged, simulate_random_errors=simulate_random_errors
+        )
+        return merged, seed
+
+    def _page_table_response(
+        self,
+        spec: EndpointSpec,
+        merged: BaseModel,
+        output_annotation: type,
+    ) -> BaseModel | list[BaseModel]:
+        table = spec.page_table
+        assert table is not None
+        dumped = merged.model_dump()
+        raw = dumped.get(table.token_field)
+        key: str | None = None if raw in (None, "") else str(raw)
+        if key not in table.pages:
+            raise HTTPException(status_code=400, detail="Invalid page token")
+        raw_items = list(table.pages[key])
+        next_tok = table.next_tokens.get(key)
+        origin = get_origin(output_annotation)
+        if origin is list:
+            inner = get_output_model_for_type(output_annotation)
+            if inner is None:
+                raise TypeError("page_table with list output requires list[Model]")
+            return [
+                inner.model_validate(item) if isinstance(item, dict) else item
+                for item in raw_items
+            ]
+        items_field = getattr(output_annotation, "model_fields", {}).get("items")
+        if items_field is None:
+            raise TypeError("page_table requires list[Model] or PageSlice[Model]")
+        items_ann = getattr(items_field, "annotation", None)
+        inner_model = get_output_model_for_type(items_ann) if items_ann else None
+        if inner_model is None and get_origin(items_ann) is list:
+            args = getattr(items_ann, "__args__", ())
+            if args and isinstance(args[0], type) and issubclass(args[0], BaseModel):
+                inner_model = args[0]
+        if inner_model is None:
+            raise TypeError("page_table requires list[Model] or PageSlice[Model]")
+        items = [
+            inner_model.model_validate(item) if isinstance(item, dict) else item
+            for item in raw_items
+        ]
+        return PageSlice(items=items, next_page_token=next_tok)
+
+    def _generated_response(
+        self,
+        spec: EndpointSpec,
+        request: Request,
+        merged: BaseModel,
+        seed: int | None,
+        output_annotation: type,
+        list_count: int | str | None,
+        filter_by: str | None,
+    ) -> BaseModel | list[BaseModel]:
+        if spec.page_table is not None:
+            return self._page_table_response(spec, merged, output_annotation)
+        count = self._resolve_list_count(list_count, merged)
+        return build_response(
+            output_annotation,
+            spec.input_model,
+            merged,
+            list_count=count,
+            seed=seed,
+            filter_by=filter_by,
+            request=request,
+        )
+
     def _openapi_responses(self, spec: EndpointSpec) -> dict[int, dict[str, str]]:
         """Build OpenAPI response descriptions for rate limit and simulated errors."""
         responses: dict[int, dict[str, str]] = {}
@@ -574,6 +773,17 @@ class SemblanceAPI:
         if spec.error_rate and spec.error_rate > 0 and spec.error_codes:
             for code in spec.error_codes:
                 responses[code] = {"description": "Simulated error"}
+        if spec.bearer_tokens is not None:
+            responses[401] = {"description": "Unauthorized"}
+        if spec.errors:
+            for case in spec.errors:
+                responses[case.status] = {"description": "Mapped error"}
+        if spec.scenario:
+            for step in spec.scenario:
+                if step.status != 200:
+                    responses[step.status] = {"description": "Scenario step"}
+        if spec.page_table is not None:
+            responses[400] = {"description": "Invalid page token"}
         return responses
 
     def _route_kwargs(self, spec: EndpointSpec) -> dict[str, Any]:
@@ -607,11 +817,6 @@ class SemblanceAPI:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
         list_count = spec.list_count
-        seed_from = spec.seed_from
-        error_rate = spec.error_rate
-        error_codes = spec.error_codes
-        latency_ms = spec.latency_ms
-        jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
         store = self._store
         path = spec.path
@@ -621,13 +826,7 @@ class SemblanceAPI:
             query: Annotated[input_model, Query()],
         ) -> output_annotation:
             assert output_annotation is not None
-            self._check_rate_limit(spec)
-            merged = self._merge_path_params(
-                input_model, query, dict(request.path_params)
-            )
-            seed = self._resolve_seed(seed_from, merged)
-            self._maybe_raise_error(error_rate, error_codes, seed)
-            await self._await_latency(latency_ms, jitter_ms)
+            merged, seed = await self._run_preamble(spec, request, query)
             response: BaseModel | list[BaseModel]
             if store is not None and get_origin(output_annotation) is list:
                 response = store.get_all(path)
@@ -663,15 +862,14 @@ class SemblanceAPI:
                                 "id_value": id_value,
                             }
                         raise HTTPException(status_code=404, detail=detail)
-            count = self._resolve_list_count(list_count, merged)
-            response = build_response(
-                output_annotation,
-                input_model,
+            response = self._generated_response(
+                spec,
+                request,
                 merged,
-                list_count=count,
-                seed=seed,
-                filter_by=filter_by,
-                request=request,
+                seed,
+                output_annotation,
+                list_count,
+                filter_by,
             )
             if self._validate_responses:
                 validate_response(output_annotation, response)
@@ -688,11 +886,6 @@ class SemblanceAPI:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
         list_count = spec.list_count
-        seed_from = spec.seed_from
-        error_rate = spec.error_rate
-        error_codes = spec.error_codes
-        latency_ms = spec.latency_ms
-        jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
         store = self._store
         path = spec.path
@@ -701,22 +894,15 @@ class SemblanceAPI:
             request: Request,
             body: input_model,
         ) -> output_annotation:
-            self._check_rate_limit(spec)
-            merged = self._merge_path_params(
-                input_model, body, dict(request.path_params)
-            )
-            seed = self._resolve_seed(seed_from, merged)
-            self._maybe_raise_error(error_rate, error_codes, seed)
-            await self._await_latency(latency_ms, jitter_ms)
-            count = self._resolve_list_count(list_count, merged)
-            response: BaseModel | list[BaseModel] = build_response(
-                output_annotation,
-                input_model,
+            merged, seed = await self._run_preamble(spec, request, body)
+            response: BaseModel | list[BaseModel] = self._generated_response(
+                spec,
+                request,
                 merged,
-                list_count=count,
-                seed=seed,
-                filter_by=filter_by,
-                request=request,
+                seed,
+                output_annotation,
+                list_count,
+                filter_by,
             )
             if store is not None and not isinstance(response, list):
                 store_path = path
@@ -748,11 +934,6 @@ class SemblanceAPI:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
         list_count = spec.list_count
-        seed_from = spec.seed_from
-        error_rate = spec.error_rate
-        error_codes = spec.error_codes
-        latency_ms = spec.latency_ms
-        jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
         store = self._store
         path = spec.path
@@ -761,22 +942,15 @@ class SemblanceAPI:
             request: Request,
             body: input_model,
         ) -> output_annotation:
-            self._check_rate_limit(spec)
-            merged = self._merge_path_params(
-                input_model, body, dict(request.path_params)
-            )
-            seed = self._resolve_seed(seed_from, merged)
-            self._maybe_raise_error(error_rate, error_codes, seed)
-            await self._await_latency(latency_ms, jitter_ms)
-            count = self._resolve_list_count(list_count, merged)
-            response: BaseModel | list[BaseModel] = build_response(
-                output_annotation,
-                input_model,
+            merged, seed = await self._run_preamble(spec, request, body)
+            response: BaseModel | list[BaseModel] = self._generated_response(
+                spec,
+                request,
                 merged,
-                list_count=count,
-                seed=seed,
-                filter_by=filter_by,
-                request=request,
+                seed,
+                output_annotation,
+                list_count,
+                filter_by,
             )
             if store is not None:
                 path_param_names = _parse_path_params(path)
@@ -825,11 +999,6 @@ class SemblanceAPI:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
         list_count = spec.list_count
-        seed_from = spec.seed_from
-        error_rate = spec.error_rate
-        error_codes = spec.error_codes
-        latency_ms = spec.latency_ms
-        jitter_ms = spec.jitter_ms
         filter_by = spec.filter_by
         store = self._store
         path = spec.path
@@ -838,13 +1007,7 @@ class SemblanceAPI:
             request: Request,
             body: input_model,
         ) -> output_annotation:
-            self._check_rate_limit(spec)
-            merged = self._merge_path_params(
-                input_model, body, dict(request.path_params)
-            )
-            seed = self._resolve_seed(seed_from, merged)
-            self._maybe_raise_error(error_rate, error_codes, seed)
-            await self._await_latency(latency_ms, jitter_ms)
+            merged, seed = await self._run_preamble(spec, request, body)
             if store is not None:
                 path_param_names = _parse_path_params(path)
                 if path_param_names:
@@ -864,15 +1027,14 @@ class SemblanceAPI:
                                     "id_value": id_value,
                                 }
                             raise HTTPException(status_code=404, detail=detail_patch)
-            count = self._resolve_list_count(list_count, merged)
-            response: BaseModel | list[BaseModel] = build_response(
-                output_annotation,
-                input_model,
+            response: BaseModel | list[BaseModel] = self._generated_response(
+                spec,
+                request,
                 merged,
-                list_count=count,
-                seed=seed,
-                filter_by=filter_by,
-                request=request,
+                seed,
+                output_annotation,
+                list_count,
+                filter_by,
             )
             if store is not None:
                 path_param_names = _parse_path_params(path)
@@ -912,11 +1074,6 @@ class SemblanceAPI:
     def _register_delete(self, app: FastAPI, spec: EndpointSpec) -> None:
         input_model = spec.input_model
         output_annotation = spec.output_annotation
-        seed_from = spec.seed_from
-        error_rate = spec.error_rate
-        error_codes = spec.error_codes
-        latency_ms = spec.latency_ms
-        jitter_ms = spec.jitter_ms
         store = self._store
         path = spec.path
 
@@ -925,6 +1082,7 @@ class SemblanceAPI:
             body: input_model | None = Body(None),
         ) -> Any:
             self._check_rate_limit(spec)
+            self._check_bearer(spec, request)
             path_params = dict(request.path_params)
             data: dict[str, Any] = body.model_dump() if body is not None else {}
             allowed = {
@@ -936,9 +1094,7 @@ class SemblanceAPI:
                 merged = input_model.model_validate({**data, **allowed})
             except ValidationError as exc:
                 raise HTTPException(status_code=422, detail=exc.errors()) from exc
-            seed = self._resolve_seed(seed_from, merged)
-            self._maybe_raise_error(error_rate, error_codes, seed)
-            await self._await_latency(latency_ms, jitter_ms)
+            seed = await self._after_validated_input(spec, merged)
             if store is not None:
                 path_param_names = _parse_path_params(path)
                 if path_param_names:
@@ -959,14 +1115,14 @@ class SemblanceAPI:
                         return Response(status_code=204)
             if output_annotation is None:
                 return Response(status_code=204)
-            response: BaseModel | list[BaseModel] = build_response(
-                output_annotation,
-                input_model,
+            response: BaseModel | list[BaseModel] = self._generated_response(
+                spec,
+                request,
                 merged,
-                list_count=1,
-                seed=seed,
-                filter_by=None,
-                request=request,
+                seed,
+                output_annotation,
+                1,
+                None,
             )
             if self._validate_responses:
                 validate_response(output_annotation, response)

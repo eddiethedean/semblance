@@ -6,7 +6,7 @@ This package is **not affiliated with, endorsed by, or equivalent to Databricks*
 
 Verified against public workspace REST documentation dated **2026-08-19**. See `compatibility.yaml` (also served at `/.well-known/semblance-databricks-compat.json`).
 
-Requires `semblance` 0.7.x or 0.8.x (`>=0.7.0,<0.9`).
+Requires `semblance` 0.8.x or 0.9.x (`>=0.8.0,<1.0`).
 
 ## Install
 
@@ -74,7 +74,7 @@ YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only**. Secr
 
 List endpoints use `page_size` or `limit` plus `page_token` / `next_page_token`. Tokens are opaque and checksummed. Tampering returns 400 `INVALID_PARAMETER_VALUE`.
 
-## Known unsupported (0.1.1)
+## Known unsupported (0.1.2)
 
 - Unity Catalog, Model Serving, DLT / Spark Declarative Pipelines
 - Jobs API 2.0 as primary (optional 2.1 aliases are representative)

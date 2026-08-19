@@ -5,7 +5,14 @@ from typing import Annotated
 import pytest
 from pydantic import BaseModel
 
-from semblance import ComputedFrom, DateRangeFrom, FromInput, SemblanceAPI, WhenInput
+from semblance import (
+    ComputedFrom,
+    DateRangeFrom,
+    FromInput,
+    FromJsonFixture,
+    SemblanceAPI,
+    WhenInput,
+)
 from semblance.validation import get_duplicate_endpoint_errors, validate_specs
 
 
@@ -149,3 +156,29 @@ def test_get_duplicate_endpoint_errors():
     assert len(errors) == 1
     assert "Duplicate GET" in errors[0]
     assert "/dup" in errors[0]
+
+
+def test_validate_specs_missing_fixture_file():
+    class Query(BaseModel):
+        q: str = "x"
+
+    class Out(BaseModel):
+        name: Annotated[str, FromJsonFixture("/no/such/fixture.json")]
+
+    api = SemblanceAPI()
+    api.get("/f", input=Query, output=Out)(lambda: None)
+    errors = validate_specs(api.get_endpoint_specs())
+    assert any("does not exist" in e for e in errors)
+
+
+def test_validate_specs_variant_from_missing_field():
+    class Query(BaseModel):
+        q: str = "x"
+
+    class Out(BaseModel):
+        name: Annotated[str, FromJsonFixture("x.json", variant_from="pageToken")]
+
+    api = SemblanceAPI()
+    api.get("/f", input=Query, output=Out)(lambda: None)
+    errors = validate_specs(api.get_endpoint_specs())
+    assert any("pageToken" in e for e in errors)

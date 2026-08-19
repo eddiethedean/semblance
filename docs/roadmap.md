@@ -159,7 +159,7 @@ Adapters depend on **`semblance>=0.7.0,<0.9`**. Publish order: **core `v0.8.0` f
 - CI uses independent test slices.
 - Versions and changelogs dated for 0.8.0 / 0.1.2 / 0.1.1.
 
-## Phase 12 — Declarative Simulation APIs
+## Phase 12 — Declarative Simulation APIs ✓
 
 Core APIs so downstream simulators stop dropping to Starlette middleware and one-off handlers. The ten open [`enhancement` issues](https://github.com/eddiethedean/semblance/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) are the backlog; this phase ships the **core-library slice** plus adapter dependency-range bumps. Issues were written against consumer simulators (`tests/simulators/…`) that are **not** in this repo — implement against `SemblanceAPI` / link plugins, do not import those files.
 
@@ -175,9 +175,17 @@ Prefer backward-compatible defaults; new strictness is opt-in.
 - Route `error_rate` / `error_codes`; `stateful=True` + `StatefulStore` for CRUD-shaped mutation.
 - Adapter Bearer (`disabled` / `optional` / `strict`) and vendor error JSON — not core route auth.
 
-`FromJsonFixture` / `FromNestedFixture` named in the issues **do not exist** in semblance; Phase 12 adds fixture links rather than tightening types that are already shipped.
+`FromJsonFixture` / `FromNestedFixture` are built-in links (they did not exist before this phase).
 
-### Remaining work
+### Remaining work (done)
+
+- **Route Bearer ([#1](https://github.com/eddiethedean/semblance/issues/1))** ✓ — `bearer_tokens=` on the route; 401 without echoing tokens. Adapters unchanged.
+- **Error maps ([#7](https://github.com/eddiethedean/semblance/issues/7), [#8](https://github.com/eddiethedean/semblance/issues/8))** ✓ — `ErrorCase` predicates; complements `error_rate`.
+- **Fixture links ([#3](https://github.com/eddiethedean/semblance/issues/3), [#4](https://github.com/eddiethedean/semblance/issues/4), [#5](https://github.com/eddiethedean/semblance/issues/5))** ✓ — `FromJsonFixture` / `FromNestedFixture`; default miss non-strict.
+- **Pagination fixtures ([#9](https://github.com/eddiethedean/semblance/issues/9))** ✓ — `PageTable` / `PageSlice`; no `PageTokenCodec` in core.
+- **Scenario steps ([#10](https://github.com/eddiethedean/semblance/issues/10))** ✓ — `ScenarioStep` sequence; holds last. `StatefulStore` remains CRUD.
+- **Validation docs ([#6](https://github.com/eddiethedean/semblance/issues/6))** ✓ — Cookbook for Pydantic `Field` / `Literal`; no parallel validator.
+- **Adapter ranges** ✓ — `semblance>=0.8.0,<1.0`; no new Foundry/Databricks operations.
 
 - **Route Bearer ([#1](https://github.com/eddiethedean/semblance/issues/1))** — Declare Bearer on the route (tokens + 401 when missing/invalid). Default stays open. Do not echo tokens. Adapters do not switch to this helper in this phase.
 - **Error maps ([#7](https://github.com/eddiethedean/semblance/issues/7), [#8](https://github.com/eddiethedean/semblance/issues/8))** — Declarative status + body (or fixture) keyed by input predicate (invalid combo, unsupported, unauthorized). Complements `error_rate`; does not replace adapter envelopes.
@@ -198,16 +206,16 @@ Prefer backward-compatible defaults; new strictness is opt-in.
 
 | Issue | Owner | Phase 12 |
 |---|---|---|
-| [#1](https://github.com/eddiethedean/semblance/issues/1) Bearer routes | core | yes |
+| [#1](https://github.com/eddiethedean/semblance/issues/1) Bearer routes | core | done |
 | [#2](https://github.com/eddiethedean/semblance/issues/2) binary bodies | core | later |
-| [#3](https://github.com/eddiethedean/semblance/issues/3) conditional fixtures | core | yes (new links) |
-| [#4](https://github.com/eddiethedean/semblance/issues/4) fixture-miss strict | core | yes |
-| [#5](https://github.com/eddiethedean/semblance/issues/5) collection selectors | core | yes |
-| [#6](https://github.com/eddiethedean/semblance/issues/6) param validation | core | docs first |
-| [#7](https://github.com/eddiethedean/semblance/issues/7) status/body errors | core | yes |
-| [#8](https://github.com/eddiethedean/semblance/issues/8) invalid-input errors | core | yes (with #7) |
-| [#9](https://github.com/eddiethedean/semblance/issues/9) pagination fixtures | core | yes |
-| [#10](https://github.com/eddiethedean/semblance/issues/10) scenario steps | core | yes (lightweight) |
+| [#3](https://github.com/eddiethedean/semblance/issues/3) conditional fixtures | core | done |
+| [#4](https://github.com/eddiethedean/semblance/issues/4) fixture-miss strict | core | done |
+| [#5](https://github.com/eddiethedean/semblance/issues/5) collection selectors | core | done |
+| [#6](https://github.com/eddiethedean/semblance/issues/6) param validation | core | done (docs) |
+| [#7](https://github.com/eddiethedean/semblance/issues/7) status/body errors | core | done |
+| [#8](https://github.com/eddiethedean/semblance/issues/8) invalid-input errors | core | done |
+| [#9](https://github.com/eddiethedean/semblance/issues/9) pagination fixtures | core | done |
+| [#10](https://github.com/eddiethedean/semblance/issues/10) scenario steps | core | done |
 
 Mark a row done only when code, tests, and user-facing docs for that issue are in tree. Close the GitHub issue in the same change.
 

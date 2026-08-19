@@ -4,6 +4,12 @@ All notable changes to `semblance-foundry` are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-19
+
+### Changed
+
+- Depend on `semblance>=0.8.0,<1.0` so the adapter installs with Semblance 0.9.x. No new Foundry operations.
+
 ## [0.1.2] - 2026-08-19
 
 ### Changed
@@ -36,7 +42,8 @@ Ontology-read MVP. Independently versioned from `semblance` 0.7.0.
 - CLI: `serve` (bundled acme if `--fixture` omitted), `validate`, `fixture init`, `operations`
 - HTTP contract tests; optional `sdk` extra (`foundry-platform-sdk==1.101.0`) skipped unless installed
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.2...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.3...HEAD
+[0.1.3]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.2...foundry-v0.1.3
 [0.1.2]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.1...foundry-v0.1.2
 [0.1.1]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.0...foundry-v0.1.1
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/foundry-v0.1.0

@@ -10,7 +10,7 @@ Main API builder. Register endpoints with input/output models.
 
 ```python
 api = SemblanceAPI(seed=None, stateful=False, validate_responses=False)
-api.get(path, *, input, output, list_count=5, seed_from=..., error_rate=0, error_codes=..., latency_ms=0, jitter_ms=0, filter_by=..., rate_limit=..., summary=..., description=..., tags=...)
+api.get(path, *, input, output, list_count=5, seed_from=..., error_rate=0, error_codes=..., latency_ms=0, jitter_ms=0, filter_by=..., rate_limit=..., bearer_tokens=..., errors=..., scenario=..., page_table=..., summary=..., description=..., tags=...)
 api.post(path, *, input, output, ...)   # same options as get
 api.put(path, *, input, output, ...)    # same options as post
 api.patch(path, *, input, output, ...)  # same options as post
@@ -20,22 +20,34 @@ app = api.as_fastapi()
 
 - **validate_responses** — when `True`, validates every generated response against the output model (for dev/CI).
 - **rate_limit** — optional; max requests per second per endpoint (returns 429 when exceeded).
+- **bearer_tokens** — optional Bearer allow-list (401 when set and the header does not match).
+- **errors** — sequence of `ErrorCase` (predicate → status/detail).
+- **scenario** — sequence of `ScenarioStep` (holds last after the sequence).
+- **page_table** — `PageTable` for token-keyed pages (`PageSlice` or `list`).
 
 ### Links
 
-`from semblance import FromInput, DateRangeFrom, WhenInput, ComputedFrom`
+`from semblance import FromInput, DateRangeFrom, WhenInput, ComputedFrom, FromJsonFixture, FromNestedFixture`
 
 - **FromInput(field)** — bind output field to input field by name
 - **DateRangeFrom(start, end)** — datetime in range defined by input date fields
 - **WhenInput(cond_field, cond_value, then_link)** — apply link when condition matches
 - **ComputedFrom(fields, fn)** — compute field from other output fields
+- **FromJsonFixture(path, pointer=..., variant_from=..., variants=..., strict=False)** — JSON file pointer
+- **FromNestedFixture(path, pointer, index=..., where=..., strict=False)** — list pick from JSON
 
 ### Pagination
 
-`from semblance import PageParams, PaginatedResponse`
+`from semblance import PageParams, PaginatedResponse, PageTable, PageSlice`
 
 - **PageParams** — limit, offset query params
 - **PaginatedResponse[T]** — items, total, limit, offset
+- **PageTable** — incoming token → item dicts and next tokens
+- **PageSlice[T]** — items plus `next_page_token`
+
+### Errors and scenarios
+
+`from semblance import ErrorCase, ScenarioStep`
 
 ### Plugins
 

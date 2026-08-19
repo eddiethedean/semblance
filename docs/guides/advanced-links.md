@@ -75,3 +75,27 @@ class Order(BaseModel):
     placed_at: Annotated[datetime, DateRangeFrom("start", "end")]
     total_display: Annotated[str, ComputedFrom(("subtotal",), lambda s: f"${s:.2f}")]
 ```
+
+## JSON fixture links
+
+Load values from a JSON file. Pointers are slash paths (`items/0/name`). `variant_from` plus `variants` picks an alternate pointer from an input field. Default miss skips the override (Polyfactory fills the field). `strict=True` returns 500 `Fixture miss`.
+
+```python
+from typing import Annotated
+from semblance import FromJsonFixture, FromNestedFixture
+
+class FileRow(BaseModel):
+    title: Annotated[str, FromJsonFixture("data.json", pointer="pages/first/0/title")]
+
+class PersonOut(BaseModel):
+    person: Annotated[
+        FileRow,
+        FromNestedFixture(
+            "data.json",
+            pointer="people",
+            where={"office": "office"},
+        ),
+    ]
+```
+
+`FromNestedFixture` walks a list: `index` picks a position; `where` maps object field → input field and takes the first match.

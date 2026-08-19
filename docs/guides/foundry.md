@@ -10,7 +10,7 @@ Install it separately from core Semblance:
 pip install semblance-foundry
 ```
 
-Requires `semblance` 0.7.x or 0.8.x. Verified against public API v2 documentation dated **2026-08-18**.
+Requires `semblance` 0.8.x or 0.9.x. Verified against public API v2 documentation dated **2026-08-18**.
 
 ## Quick start
 
