@@ -74,7 +74,7 @@ YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only**. Secr
 
 List endpoints use `page_size` or `limit` plus `page_token` / `next_page_token`. Tokens are opaque and checksummed. Tampering returns 400 `INVALID_PARAMETER_VALUE`.
 
-## Known unsupported (0.1.0)
+## Known unsupported (0.1.1)
 
 - Unity Catalog, Model Serving, DLT / Spark Declarative Pipelines
 - Jobs API 2.0 as primary (optional 2.1 aliases are representative)

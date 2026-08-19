@@ -10,6 +10,12 @@ All notable changes to `semblance-foundry` are documented in this file.
 
 - Depend on `semblance>=0.7.0,<0.9` so the adapter installs with Semblance 0.8.x. No new Foundry operations.
 
+### Fixed
+
+- Search page tokens include where/select so paging cannot cross filter scopes.
+- `validate` applies the fixture (dangling links fail); `load_fixture` clears prior state and keeps query callbacks.
+- CLI `--token` is required when `--auth strict`; `--host` is not overridden by env.
+
 ## [0.1.1] - 2026-08-19
 
 ### Fixed

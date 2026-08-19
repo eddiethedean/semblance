@@ -10,6 +10,13 @@ All notable changes to `semblance-databricks` are documented in this file.
 
 - Depend on `semblance>=0.7.0,<0.9` so the adapter installs with Semblance 0.8.x. No new Databricks operations.
 
+### Fixed
+
+- Reject negative DBFS offsets; `put` overwrite respects the backend size cap.
+- SQL statement `chunk_index` does not wrap; warehouse path uses `{warehouse_id}`.
+- Job submit-run requires an existing job; deleting a job or warehouse drops its permissions.
+- CLI `--token` is required when `--auth strict`; `--host` is not overridden by env; `validate` applies the fixture.
+
 ## [0.1.0] - 2026-08-19
 
 Workspace compute / jobs / artifacts / permissions / SQL-statement MVP (Phase 10 A–D).

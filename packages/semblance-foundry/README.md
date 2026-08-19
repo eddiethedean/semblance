@@ -78,7 +78,7 @@ foundry.register_query("employeesByOffice", lambda params, state: {"data": []})
 
 List endpoints use `pageSize` / `pageToken` / `nextPageToken`. Tokens are opaque and checksummed. Tampering or cross-resource reuse returns `InvalidPageToken` (400). Default page size 100, max 1000.
 
-## Known unsupported (0.1.1)
+## Known unsupported (0.1.2)
 
 - Action apply / applyBatch — `501 UnsupportedOperation` only when `auth=strict`; otherwise 404
 - Aggregates, object sets, datasets, transactions, orchestration, streams

@@ -7,16 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- Stateful lookups compare path ids as strings so integer `id` fields match GET/PUT/PATCH/DELETE.
-- Nested `list[Model]` fields no longer crash response generation.
-- `ComputedFrom` can depend on Polyfactory-generated sibling fields.
-- OpenAPI documents path parameters and DELETE-without-body as 204.
-- `DateRangeFrom` on date inputs includes the full end day.
-- Adapter CLI: `--token` for strict auth; `validate` applies fixtures; Foundry search page tokens are filter-scoped.
-- Databricks: reject negative DBFS offsets; SQL chunk indexes cannot wrap; job submit requires a real job id.
-
 ## [0.8.0] - 2026-08-19
 
 ### Added
@@ -33,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Import-boundary tests forbid cross-adapter imports and private `semblance._*` modules.
 - Contributor docs: one clean-clone install for all three packages and the three pytest slice commands.
 - Root `dev` extra pins `ruff==0.16.3` to match CI.
+
+### Fixed
+
+- Stateful lookups compare path ids as strings so integer `id` fields match GET/PUT/PATCH/DELETE.
+- Nested `list[Model]` fields no longer crash response generation.
+- `ComputedFrom` can depend on Polyfactory-generated sibling fields.
+- OpenAPI documents path parameters and DELETE-without-body as 204.
+- `DateRangeFrom` on date inputs includes the full end day.
+- `semblance run --reload` uses a FastAPI import string; POST `/{id}` stores on the collection; list `filter_by` works in stateful mode.
+- Adapter CLI: `--token` for strict auth; `validate` applies fixtures; Foundry search page tokens are filter-scoped.
+- Databricks: reject negative DBFS offsets; SQL chunk indexes cannot wrap; job submit requires a real job id.
 
 ## [0.7.0] - 2026-08-18
 

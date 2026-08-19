@@ -9,6 +9,7 @@ description = "Schema-driven REST API simulation with FastAPI, Pydantic, and Pol
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE.md"]
 authors = [{name = "Semblance Contributors"}]
 keywords = ["fastapi", "pydantic", "polyfactory", "api", "mock", "simulation", "testing"]
 classifiers = [
