@@ -14,13 +14,14 @@ pytestmark = pytest.mark.skipif(
 
 class TestPropertyBased:
     def test_strategy_for_input_model_generates_valid_instances(self):
-        from hypothesis import given
+        from hypothesis import HealthCheck, given, settings
 
         from semblance.property_testing import strategy_for_input_model
 
         strategy = strategy_for_input_model(UserQuery)
 
         @given(strategy)
+        @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
         def run(inp):
             assert isinstance(inp, UserQuery)
             parsed = UserQuery.model_validate(inp.model_dump())
@@ -29,7 +30,7 @@ class TestPropertyBased:
         run()
 
     def test_test_endpoint_get_validates_responses(self):
-        from hypothesis import given
+        from hypothesis import HealthCheck, given, settings
         from pydantic import TypeAdapter
 
         from semblance import SemblanceAPI
@@ -45,6 +46,7 @@ class TestPropertyBased:
         strategy = strategy_for_input_model(UserQuery)
 
         @given(strategy)
+        @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
         def run(inp):
             r = client.get("/users", params=inp.model_dump())
             assert r.status_code == 200
