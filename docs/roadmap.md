@@ -121,45 +121,51 @@ Unofficial `semblance-databricks` adapter covering workspace compute, jobs, arti
 - **Testing surface** ✓ — `DatabricksMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. HTTP contract tests are required; one pinned `databricks-sdk` version is the compatibility acceptance test (optional/non-blocking if the SDK cannot target localhost in CI). No live Databricks; no network in unit/contract tests.
 - **Exit criterion** ✓ — HTTP client (and SDK if CI-feasible) lists fixture clusters across two pages, gets a cluster and job, gets a run, drives one virtual-clock write (create/restart cluster or submit/cancel run), lists secret keys without values, and hits get-status plus one SQL statement or permissions get — all locally.
 
-Unofficial `semblance-databricks` adapter covering workspace compute, jobs, artifacts, permissions, and SQL statements (phases A–D). Detailed spec: [Semblance Databricks Package Plan](semblance_databricks_plan.md). Workspace `pythonpath` / ruff / mypy plumbing lives in [Phase 11](#phase-11--core-infrastructure-for-multi-package-development); Databricks tests plug into those paths rather than duplicating CI matrix work here. `DatabricksMock` is a custom FastAPI factory (same reason as Foundry: core ignores handler bodies). Independently versioned; depends on `semblance>=0.7.0,<0.8`. Public REST pinned **2026-08-19** (Jobs **2.2**, Clusters **2.1**, SQL/DBFS/secrets/permissions **2.0**).
-
-- **Package bootstrap** — `packages/semblance-databricks/` with `pyproject.toml`, `semblance_databricks` import, `DatabricksMock` / `DatabricksMockConfig`, CLI (`serve` default port 8766, `validate`, `fixture init`, `operations`), tests layout, unofficial/non-affiliation notice.
-- **Compatibility model** — per-operation `compatibility.yaml` with support levels `exact` | `representative` | `stub` | `unsupported`, docs URL + verification date, and tests that prove the level; expose `/.well-known/semblance-databricks-compat.json`. Unknown paths return 404; known-but-unimplemented operations may return 501 only in `strict` mode. Optional Jobs 2.1 aliases are `representative`, not primary.
-- **Fixture-backed workspace** — YAML/JSON fixture v1: bundled `acme` with clusters spanning two list pages, ≥2 jobs, ≥1 run, warehouse, secret-scope **metadata** (no secret values on REST), DBFS stubs, one workspace path. Deterministic IDs; load-time validation. Process-local state; capped temp-dir opt-in for DBFS only.
-- **Phase A — reads** — public REST:
-  - `GET /api/2.1/clusters/list` and `GET /api/2.1/clusters/get`
-  - `GET /api/2.2/jobs/list`, `GET /api/2.2/jobs/get`, `GET /api/2.2/jobs/runs/get`
-  - `GET /api/2.0/workspace/get-status` (object **path**, not workspace health)
-  - `GET /api/2.0/preview/scim/v2/Me` if the pinned SDK requires current user
-- **Phase B — writes and lifecycle** — cluster create/edit/delete/restart; jobs create/reset/delete; runs submit/cancel; SQL warehouses `/api/2.0/sql/warehouses`; workspace secrets `GET/POST /api/2.0/secrets/...` (keys only). Virtual-clock cluster/run states (`PENDING` → `RUNNING` / `ERROR`, cancel → `TERMINATED`).
-- **Phase C — artifacts** — libraries install/uninstall, `GET /api/2.2/jobs/runs/get-output`, cluster events, DBFS `list`/`read` and `POST /api/2.0/dbfs/add-block` stub. No invented audit-log URLs.
-- **Phase D — permissions and SQL** — `GET`/`PATCH /api/2.0/permissions/{object_type}/{object_id}`; `POST`/`GET /api/2.0/sql/statements` (fixture or allow-listed callback chunks; no Spark SQL).
-- **Auth, errors, pagination** — auth modes `disabled`, `optional` (default), and `strict`; Databricks `{error_code, message}` (not Foundry envelopes); opaque checksummed page tokens owned by the adapter (`PageTokenCodec` copy); request-id header. Do not add Databricks-shaped helpers to core in Phase 10.
-- **Testing surface** — `DatabricksMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. HTTP contract tests are required; one pinned `databricks-sdk` version is the compatibility acceptance test (optional/non-blocking if the SDK cannot target localhost in CI). No live Databricks; no network in unit/contract tests.
-- **Exit criterion** — HTTP client (and SDK if CI-feasible) lists fixture clusters across two pages, gets a cluster and job, gets a run, drives one virtual-clock write (create/restart cluster or submit/cancel run), lists secret keys without values, and hits get-status plus one SQL statement or permissions get — all locally.
-
 ### Later (see Databricks plan)
 
 Not Phase 10: Unity Catalog (including UC secrets), Model Serving, Spark Declarative Pipelines / DLT, Jobs 2.0 as primary, OAuth, Databricks adapter 1.0. Those are post–Phase 10 in the [Databricks plan](semblance_databricks_plan.md).
 
 ## Phase 11 — Core Infrastructure for Multi-Package Development
 
-- **Shared test/lint/type-check surface in core tool config**
-  - include package source trees in lint/type-check path config
-  - document pytest commands that include package test trees when available
-  - allow stable imports from `src/`, `packages/semblance-foundry/src`, `packages/semblance-databricks/src`
-- **Developer onboarding docs for multi-package installs**
-  - contribution docs with editable installs for each package
-  - README development commands that install all active packages
-- **Monorepo CI shape**
-  - single command matrix for core + both packages
-  - independent package test slices to keep failures actionable
-  - workspace-wide checks that preserve per-package dependency boundaries
-- **Cross-package dependency hygiene**
-  - pin shared dev tooling in root
-  - keep package-specific extras isolated unless intentionally shared
-- **Deliverable**
-  - Seamless local development from one environment where both adapter packages can be built and tested without path hacks
+Workspace plumbing so core + both adapters develop from one environment without path hacks. Do not extract `PageTokenCodec` (or other vendor-shaped helpers) into core in this phase; Foundry and Databricks copies wrap different error types. Leave extraction for a later phase if the codecs stay identical.
+
+### Already in tree (do not redo)
+
+- Root `pyproject.toml` pytest `pythonpath`, ruff `src`, and mypy `mypy_path` include `src/`, `packages/semblance-foundry/src`, and `packages/semblance-databricks/src`.
+- CONTRIBUTING and README document editable installs for core + both adapters.
+- CI installs all three packages and runs ruff, mypy, bandit, and a single combined pytest (`-m "not sdk"`).
+
+### Remaining work
+
+- **CI slices** — Split pytest so a Foundry or Databricks failure is not buried in one `test` job: matrix `package: [core, foundry, databricks]` (or three jobs) with the same OS/Python matrix, `-m "not sdk"`. Keep one workspace lint/mypy/security job. Optionally report adapter coverage separately (today `--cov=src/semblance` only).
+- **Install/cache hygiene** — Hash adapter `pyproject.toml` files in pip cache keys, not only the root. README Development still runs `pytest tests/ -v`; point it at the full CONTRIBUTING command (core + both package test trees).
+- **Dependency boundaries** — Cheap import/graph check (or documented rule + test) that `semblance_foundry` and `semblance_databricks` do not import each other, and neither imports private core modules beyond the published `semblance` surface. Pin shared dev tools (ruff/mypy/pytest) in root extras; adapter `[dev]` extras stay for package-only installs.
+- **Tree hygiene** — Remove accidental unpack `packages/semblance-databricks/semblance_databricks-0.1.0/` if still present; it is not the live package.
+- **Docs** — CONTRIBUTING: one “from a clean clone” block (core + both adapters + slice commands). Update [publishing](publishing.md) example tags to the versions below when those versions ship (not before).
+
+### Release versions (before tagging)
+
+Current: core `0.7.0`, Foundry `0.1.1`, Databricks `0.1.0`. Tags follow [publishing](publishing.md) (`v*`, `foundry-v*`, `databricks-v*`).
+
+| Package | From | To | Tag | Why |
+|---|---|---|---|---|
+| `semblance` | 0.7.0 | **0.8.0** | `v0.8.0` | Monorepo-infra milestone (same pattern as 0.7.0 for Foundry). Public `SemblanceAPI` stays compatible. |
+| `semblance-foundry` | 0.1.1 | **0.1.2** | `foundry-v0.1.2` | Patch: widen core range + changelog. No new Foundry operations. |
+| `semblance-databricks` | 0.1.0 | **0.1.1** | `databricks-v0.1.1` | Patch: same. No new Databricks operations. |
+
+Adapter dependency on core: today Foundry is `semblance>=0.6.1,<0.8` and Databricks is `>=0.7.0,<0.8`. After 0.8.0 those upper bounds cannot take latest core. Bump both adapters to **`semblance>=0.7.0,<0.9`** unless a test proves Foundry still needs `>=0.6.1` (then `>=0.6.1,<0.9`). Do not require `>=0.8.0` unless a later phase extracts shared code adapters consume.
+
+Publish order: **core `v0.8.0` first**, then adapter tags.
+
+Core changelog: Phase 11 is a **0.8.0** Added/Changed section (not a silent stay-on-0.7.0 note).
+
+### Acceptance
+
+- From one venv: editable installs of all three packages; both adapters build and test without path hacks.
+- CI green with independent test slices.
+- Versions and changelogs dated; three tags ready as in the table above.
+
+Do not mark this phase complete until the remaining work and release versions are done.
 
 ## Phase 12 — Open Enhancement Issues
 
