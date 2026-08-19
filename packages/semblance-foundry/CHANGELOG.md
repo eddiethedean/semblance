@@ -4,12 +4,15 @@ All notable changes to `semblance-foundry` are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-19
+
+### Fixed
+
+- Page tokens reject HMAC length mismatch and stale revision after writes (400 `InvalidPageToken` instead of 500 or a silent offset).
+
 ## [0.1.0] - 2026-08-18
 
 Ontology-read MVP. Independently versioned from `semblance` 0.7.0.
-
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.0...HEAD
-[0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/foundry-v0.1.0
 
 ### Added
 
@@ -20,3 +23,7 @@ Ontology-read MVP. Independently versioned from `semblance` 0.7.0.
 - Ontology-read operations listed in `compatibility.yaml` (docs date 2026-08-18)
 - CLI: `serve` (bundled acme if `--fixture` omitted), `validate`, `fixture init`, `operations`
 - HTTP contract tests; optional `sdk` extra (`foundry-platform-sdk==1.101.0`) skipped unless installed
+
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.1...HEAD
+[0.1.1]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.0...foundry-v0.1.1
+[0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/foundry-v0.1.0

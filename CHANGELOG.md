@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Phase 10 — External API mock packages: Databricks
 - Independently versioned `semblance-databricks` adapter under `packages/semblance-databricks/` (workspace compute, jobs, artifacts, permissions, SQL statements). Install separately: `pip install semblance-databricks`. Core `semblance` remains 0.7.0; this note does not bump the library.
+- Adapter patches: `semblance-foundry` 0.1.1 (page-token validation). Databricks remains 0.1.0 (unpublished; job/run IDs, Jobs create, and DBFS sandboxing are in that first cut).
 
 ## [0.7.0] - 2026-08-18
 

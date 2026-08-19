@@ -5,12 +5,12 @@ This repository publishes independently versioned packages:
 | Package | `pyproject.toml` | Tag | PyPI |
 |---|---|---|---|
 | `semblance` | repo root | `v0.7.0` | https://pypi.org/project/semblance/ |
-| `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.0` | https://pypi.org/project/semblance-foundry/ |
+| `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.1` | https://pypi.org/project/semblance-foundry/ |
 | `semblance-databricks` | `packages/semblance-databricks/` | `databricks-v0.1.0` | not published yet |
 
 Tagging is the release. Pushing a matching tag runs [.github/workflows/release.yml](https://github.com/eddiethedean/semblance/blob/main/.github/workflows/release.yml): lint, typecheck, tests, security, then build and upload **only** the package that matches the tag. The workflow refuses to publish if the tag version does not equal the version in that package's `pyproject.toml`.
 
-Do **not** tag `v0.1.0` for Foundry or Databricks — that pattern is reserved for core Semblance and would fail the version check. Databricks 0.1.0 is release-ready in-tree; do not push `databricks-v0.1.0` until a later publish pass.
+Do **not** tag `v0.1.0` for Foundry or Databricks — that pattern is reserved for core Semblance and would fail the version check. Do not push adapter tags until a publish pass.
 
 ## Prerequisites
 
@@ -34,8 +34,8 @@ git tag v0.7.0
 git push origin v0.7.0
 
 # Foundry adapter (separate tag, separate PyPI project)
-git tag foundry-v0.1.0
-git push origin foundry-v0.1.0
+git tag foundry-v0.1.1
+git push origin foundry-v0.1.1
 
 # Databricks adapter (do not push until a publish pass)
 # git tag databricks-v0.1.0
