@@ -63,6 +63,8 @@ Requires `hypothesis` (included in `[dev]`).
 
 `semblance-foundry` is an independently versioned unofficial Foundry API v2 ontology mock. Install with `pip install semblance-foundry`. See the [Foundry adapter guide](../guides/foundry.md).
 
+`semblance-databricks` is an independently versioned unofficial Databricks workspace REST mock. Install with `pip install semblance-databricks`. See the [Databricks adapter guide](../guides/databricks.md).
+
 ## CLI
 
 ```bash

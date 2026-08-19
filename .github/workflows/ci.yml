@@ -25,10 +25,10 @@ jobs:
         run: pip install ruff==0.16.3
 
       - name: Ruff check
-        run: ruff check src tests packages/semblance-foundry
+        run: ruff check src tests packages/semblance-foundry packages/semblance-databricks
 
       - name: Ruff format
-        run: ruff format --check src tests packages/semblance-foundry
+        run: ruff format --check src tests packages/semblance-foundry packages/semblance-databricks
 
   typecheck:
     runs-on: ubuntu-latest
@@ -51,9 +51,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Mypy
-        run: mypy src packages/semblance-foundry/src
+        run: mypy src packages/semblance-foundry/src packages/semblance-databricks/src
 
   test:
     runs-on: ${{ matrix.os }}
@@ -82,9 +83,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Run tests
-        run: pytest tests/ packages/semblance-foundry/tests -v --cov=src/semblance --cov-report=xml -m "not sdk"
+        run: pytest tests/ packages/semblance-foundry/tests packages/semblance-databricks/tests -v --cov=src/semblance --cov-report=xml -m "not sdk"
 
   security:
     runs-on: ubuntu-latest
@@ -107,9 +109,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Bandit
-        run: bandit -r src/ packages/semblance-foundry/src -ll
+        run: bandit -r src/ packages/semblance-foundry/src packages/semblance-databricks/src -ll
 
       - name: pip-audit
         run: pip-audit

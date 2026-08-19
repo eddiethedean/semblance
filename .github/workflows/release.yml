@@ -5,6 +5,7 @@ on:
     tags:
       - "v[0-9]*"
       - "foundry-v[0-9]*"
+      - "databricks-v[0-9]*"
 
 permissions:
   contents: write
@@ -28,10 +29,10 @@ jobs:
         run: pip install ruff==0.16.3
 
       - name: Ruff check
-        run: ruff check src tests packages/semblance-foundry
+        run: ruff check src tests packages/semblance-foundry packages/semblance-databricks
 
       - name: Ruff format
-        run: ruff format --check src tests packages/semblance-foundry
+        run: ruff format --check src tests packages/semblance-foundry packages/semblance-databricks
 
   typecheck:
     runs-on: ubuntu-latest
@@ -54,9 +55,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Mypy
-        run: mypy src packages/semblance-foundry/src
+        run: mypy src packages/semblance-foundry/src packages/semblance-databricks/src
 
   test:
     runs-on: ${{ matrix.os }}
@@ -85,9 +87,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Run tests
-        run: pytest tests/ packages/semblance-foundry/tests -v --cov=src/semblance --cov-report=xml -m "not sdk"
+        run: pytest tests/ packages/semblance-foundry/tests packages/semblance-databricks/tests -v --cov=src/semblance --cov-report=xml -m "not sdk"
 
   security:
     runs-on: ubuntu-latest
@@ -110,9 +113,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
+          pip install -e "packages/semblance-databricks[dev]"
 
       - name: Bandit
-        run: bandit -r src/ packages/semblance-foundry/src -ll
+        run: bandit -r src/ packages/semblance-foundry/src packages/semblance-databricks/src -ll
 
       - name: pip-audit
         run: pip-audit
@@ -210,5 +214,54 @@ jobs:
         with:
           generate_release_notes: true
           files: packages/semblance-foundry/dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-publish-databricks:
+    if: startsWith(github.ref_name, 'databricks-v')
+    needs: [lint, typecheck, test, security]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify tag matches semblance-databricks version
+        run: |
+          TAG="${GITHUB_REF_NAME#databricks-v}"
+          VERSION=$(python -c "import tomllib; print(tomllib.load(open('packages/semblance-databricks/pyproject.toml','rb'))['project']['version'])")
+          echo "tag=$TAG pyproject=$VERSION"
+          test "$TAG" = "$VERSION"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-release-databricks-${{ hashFiles('packages/semblance-databricks/pyproject.toml') }}
+
+      - name: Install build
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build package
+        run: python -m build packages/semblance-databricks
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/semblance-databricks/dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: packages/semblance-databricks/dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

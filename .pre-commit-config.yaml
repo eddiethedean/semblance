@@ -4,9 +4,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
-        files: ^(src|tests|packages/semblance-foundry)/
+        files: ^(src|tests|packages/semblance-foundry|packages/semblance-databricks)/
       - id: ruff-format
-        files: ^(src|tests|packages/semblance-foundry)/
+        files: ^(src|tests|packages/semblance-foundry|packages/semblance-databricks)/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0

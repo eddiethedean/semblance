@@ -84,3 +84,4 @@ The handler body is empty; Semblance generates responses from your schemas.
 - [Simulation Options](simulation-options.md) – error rate, latency, rate limiting, response validation
 - [Testing](testing.md) – test client, deterministic seeding, property-based testing with Hypothesis
 - [Foundry adapter](foundry.md) – unofficial local Foundry API v2 ontology mock
+- [Databricks adapter](databricks.md) – unofficial local Databricks workspace REST mock

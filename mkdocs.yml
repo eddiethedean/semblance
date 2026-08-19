@@ -22,6 +22,7 @@ nav:
     - Testing: guides/testing.md
     - Request Links: guides/request-links.md
     - Foundry adapter: guides/foundry.md
+    - Databricks adapter: guides/databricks.md
     - Troubleshooting: guides/troubleshooting.md
     - Cookbook: guides/cookbook.md
   - Examples:
@@ -39,6 +40,7 @@ nav:
   - Roadmap:
     - Overview: roadmap.md
     - Foundry package plan: semblance_foundry_plan.md
+    - Databricks package plan: semblance_databricks_plan.md
   - API Reference: api/index.md
 
 markdown_extensions:

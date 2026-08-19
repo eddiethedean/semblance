@@ -1,39 +1,96 @@
 # Semblance Databricks Package Plan
 
-## 1. Purpose
+## Status
 
-Build a new package named `semblance-databricks` that simulates the Databricks REST API for local development and testing. The package should provide deterministic, reproducible, and fast responses for common Databricks workflows without requiring a live workspace.
+- **Working name (distribution):** `semblance-databricks`
+- **Import package:** `semblance_databricks`
+- **Repository:** developed alongside `semblance` under `packages/semblance-databricks/`,
+  independently versioned and publishable
+- **Status:** implemented as `semblance-databricks` 0.1.0 (Phase 10 A–D). Not tagged or published to PyPI yet.
+- **Roadmap mapping:** [Phase 10](roadmap.md#phase-10--external-api-mock-packages-databricks)
+  is phases A–D (workspace compute, jobs, artifacts, permissions, SQL statements).
+  Unity Catalog, Model Serving, and DLT are post–Phase 10.
+- **Primary objective:** provide a deterministic, local HTTP simulation of selected
+  public Databricks workspace REST operations for client development, automated
+  tests, demos, and failure-mode testing
 
-The package is an unofficial compatibility layer. It is not affiliated with or endorsed by Databricks and should make this explicit in docs and error text where relevant.
+`semblance-databricks` is an unofficial compatibility package. It must not claim
+affiliation with, endorsement by, or complete behavioral parity with Databricks.
+The package should document the Databricks API documentation revision or date
+against which each supported operation was implemented.
 
-## 2. Goals and Non-Goals
+Public workspace REST operations in this plan are verified against documentation
+dated **2026-08-19** unless a newer verification pass is recorded in
+`compatibility.yaml`. API families are **not** all `/api/2.1`: Jobs primary paths
+are **2.2**; Clusters list/create family is **2.1**; SQL warehouses, DBFS, workspace
+secrets, permissions, workspace objects, and SQL statements are **2.0**.
 
-### Goals
+## 1. Problem Statement
 
-- Provide local HTTP endpoints for Databricks API v2.1 style workflows.
-- Support SDK and raw HTTP clients with identical behavior.
-- Offer deterministic fixture-driven data with repeatable ordering, ids, and pagination.
-- Provide controlled authentication and clear error/ratelimit simulation.
-- Include a compatibility manifest per endpoint with support levels and last validation date.
-- Include a CLI and Python API to run as ASGI app or helper in tests.
+Teams integrating with Databricks currently need a live workspace, credentials, and
+test data to exercise client code. This makes local development and CI slower,
+introduces external state, and makes edge cases such as throttling, failed cluster
+starts, paginated job lists, or canceled runs difficult to reproduce.
 
-### Quality objectives
+The package will run a local FastAPI application whose paths, request shapes,
+response shapes, status codes, pagination, and state transitions resemble selected
+public Databricks workspace REST operations. It will use Semblance for seeded
+output, latency/error simulation, and test integration while adding
+Databricks-specific behavior in a thin compatibility layer.
 
-- deterministic by default at seed level
-- fast startup and steady-state response (single-process test-friendly)
-- safe default behavior for unknown/invalid inputs
-- behavior stable across Python 3.10-3.12
+`SemblanceAPI` route handlers are ignored by core. Like `FoundryMock`,
+`DatabricksMock` is a **custom FastAPI factory** (`as_fastapi()`), not a set of
+empty `@api.get` handlers.
 
-### Non-Goals
+## 2. Goals
 
-- Full Databricks compute replication.
-- Running real jobs or executing user code.
-- Production-grade security or auth token introspection.
-- Infinite API breadth in v1 release.
+- Let existing HTTP clients target a local base URL with minimal or no code changes.
+- Support both fixture-driven data and allow-listed Python callbacks for SQL/run
+  output (never evaluate fixture expressions).
+- Preserve process-local state across related calls (cluster lifecycle, job runs).
+- Produce deterministic results from a seed so failures are reproducible.
+- Model Databricks conventions consistently: bearer authentication, resource IDs,
+  `page_token` / `next_page_token`, `{error_code, message}` errors, request IDs.
+- Make supported behavior explicit and testable through a compatibility matrix.
+- Remain useful as a Python fixture, an ASGI app, and a standalone local server.
 
-## 3. Package and Repo Layout
+## 3. Non-goals
 
-Add a sibling package under the repo root:
+- Reimplementing Spark, Photon, or Databricks compute.
+- Running real jobs, notebooks, SQL engines, or user code.
+- Perfect parity with undocumented behavior or private/internal APIs.
+- Acting as a security emulator or validating real Databricks credentials or OAuth.
+- Proxying production traffic or storing production secrets (secret **values** are
+  never returned on list/get-key REST; metadata only).
+- Unity Catalog, Model Serving, Spark Declarative Pipelines / DLT, or Jobs 2.0 as
+  the primary Jobs surface.
+- Promoting Databricks- or Foundry-shaped pagination, error envelopes, or auth
+  into core Semblance in Phase 10. Copy the `PageTokenCodec` pattern into this
+  adapter. Phase 11 may extract a shared primitive later if both adapters stabilize
+  the same codec.
+
+## 4. Target Users and Core Scenarios
+
+1. **Client-library tests:** point an HTTP or `databricks-sdk` `WorkspaceClient` at
+   the local server and assert request construction and response handling.
+2. **Application development:** unblock UI and service work before a workspace is
+   ready.
+3. **Contract tests:** verify an integration against pinned request/response models
+   and known endpoint semantics.
+4. **Failure testing:** deterministically simulate authorization failures, missing
+   resources, conflicts, throttling, cluster `ERROR`, canceled runs, and latency.
+5. **Demo environments:** load a small workspace fixture without a live Databricks
+   dependency.
+
+## 5. Package and Repository Layout
+
+Keep the adapter isolated from the core library so Databricks-specific models and
+release cadence do not expand `semblance` itself. Shared conventions with
+`semblance-foundry`: factory + config object, CLI verbs (`serve`, `validate`,
+`fixture init`, `operations`), and a per-operation compatibility manifest.
+
+Phase 10 creates only A–D service trees. Unity Catalog / serving / DLT directories
+wait until those milestones.
 
 ```text
 packages/
@@ -41,564 +98,405 @@ packages/
     pyproject.toml
     README.md
     CHANGELOG.md
+    LICENSE.md
     src/
       semblance_databricks/
         __init__.py
-        app.py
-        cli.py
-        config.py
-        auth.py
-        errors.py
-        ids.py
-        registry.py
-        state.py
-        compatibility.py
+        app.py                 # DatabricksMock factory and ASGI construction
+        cli.py                 # serve, validate, fixture init, operations
+        config.py              # typed configuration
+        auth.py                # configurable bearer-token simulation
+        errors.py              # Databricks error_code/message mapper
+        ids.py                 # deterministic IDs and PageTokenCodec
+        registry.py            # service/operation registration
+        state.py               # process-local DatabricksState
+        compatibility.py       # manifest load/publish
         models/
         services/
-          workspace/
           clusters/
           jobs/
-          dbsql/
-          secrets/
-          users/
+          workspace/           # get-status, current user
+          dbsql/               # warehouses, statements
+          secrets/             # workspace secrets 2.0 (not UC secrets)
+          dbfs/
+          permissions/
         fixtures/
           loaders.py
           defaults/
-            minimal.json
-        templates/
-          examples/
+            acme.yaml
         py.typed
     tests/
       unit/
       contract/
-      compatibility/
-      fixtures/
-
+      integration/
+      compat/                  # optional @pytest.mark.sdk
 ```
 
-Add package entry points at repository root for running this package independently and in combination with core `semblance` tooling.
+Logical layers:
 
+| Layer | Modules |
+|---|---|
+| contracts | `compatibility.py`, `models/`, `registry.py` |
+| transport | `app.py`, `auth.py`, `errors.py`, `cli.py` |
+| runtime | `state.py`, `ids.py` (`PageTokenCodec`) |
+| adapters | `services/*` |
+| io | `fixtures/` |
 
-## 4. Public API Proposal
+Root `pythonpath`, ruff, and mypy already list `packages/semblance-databricks/src`
+([Phase 11](roadmap.md#phase-11--core-infrastructure-for-multi-package-development)).
+Phase 10 plugs tests into those paths and extends CI the same way Foundry did
+(install `-e packages/semblance-databricks[dev]`, pytest that tree, `-m "not sdk"`).
+Do not invent a second CI matrix. Depend on `semblance>=0.7.0,<0.8`. Independent
+package version `0.1.0`. Do not tag or publish in the docs-only refinement.
 
-Proposed minimal API:
+## 6. Public API Proposal
 
 ```python
 from semblance_databricks import DatabricksMock, DatabricksMockConfig
+from semblance_databricks.testing import databricks_test_client
 
-mock = DatabricksMock(
-    DatabricksMockConfig(
-        seed=123,
-        auth="optional",
-        stateful=True,
-        base_domain="https://api.cloud.databricks.com",
-    )
-)
+dbx = DatabricksMock(DatabricksMockConfig(seed=42, auth="optional"))
+dbx.load_bundled_fixture()  # shipped acme workspace
+client = databricks_test_client(dbx)
 
-mock.load_fixture("tests/fixtures/sample_workspace.json")
-app = mock.as_fastapi()
+r = client.get("/api/2.1/clusters/list?page_size=2")
+assert r.status_code == 200
 ```
 
-CLI:
+`load_fixture(path)` loads user YAML/JSON. `as_fastapi()` returns the ASGI app.
+
+CLI (default port **8766** so it does not collide with 8080 or Foundry 8765):
 
 ```bash
-semblance-databricks serve --fixture fixtures/sample_workspace.json --port 8080
-semblance-databricks validate fixtures/sample_workspace.json
-semblance-databricks fixture init --output sample_workspace.json
+semblance-databricks fixture init --output databricks.yaml
+semblance-databricks validate databricks.yaml
 semblance-databricks operations
+semblance-databricks serve --fixture databricks.yaml --port 8766
+# or: semblance-databricks serve   # bundled acme
 ```
 
-Recommended runtime defaults:
+Local-only environment variables (not Databricks credentials):
+`SEMBLANCE_DATABRICKS_HOST`, `SEMBLANCE_DATABRICKS_TOKEN`,
+`SEMBLANCE_DATABRICKS_SEED`.
 
-- deterministic seed: `SEMBLANCE_DATABRICKS_SEED`
-- default auth mode: `optional`
-- default port: `8080`
-- base path: `/api/2.1` for cluster/jobs/spaces-style endpoints
-- operation mode: permissive by default, strict in CI with `--strict`
+`DatabricksMockContext` should support `with` and pytest fixtures: in-memory
+fixture load, per-test state reset, optional shared session state.
 
-## 5. Compatibility Model
+## 7. Compatibility Model
 
-Each endpoint must be tracked in `compatibility.yaml` with:
+Compatibility is per operation in `compatibility.yaml`:
 
-- method and path template
-- support level: `exact`, `representative`, `stub`, `unsupported`
-- query/body fields supported
-- response shape and key status codes covered
-- error variants supported
-- request/response examples
-- fixture schema version
-- last doc verification date
-- supportNotes and known-limits
-- test tags: `unit`, `contract`, `compat`
+- HTTP method and path template
+- API family and version
+- support level: `exact`, `representative`, `stub`, or `unsupported`
+- request fields and validation covered
+- response and error variants covered
+- stateful side effects, if any
+- upstream documentation URL and last verification date (**2026-08-19** unless
+  updated)
+- tests that prove the declared level
 
-Unknown endpoints return API-accurate `404` unless flagged as known-unimplemented (where an explicit `501` can be used in strict mode).
+Unknown paths return Databricks-style **404**. Known-but-unimplemented operations
+may return **501** only in `auth=strict`. Optional **representative** aliases for
+Jobs **2.1** (`/api/2.1/jobs/...`) may exist for older clients; they are not
+`exact` if the pinned SDK uses 2.2.
 
-Compatibility manifest shape (suggested):
+Emit `/.well-known/semblance-databricks-compat.json`.
+
+## 8. Endpoint Scope (Phase 10 / A–D)
+
+Pinned public workspace REST (docs dated **2026-08-19**). Implementation must copy
+method and path from the linked page; if the pinned `databricks-sdk` wire path
+differs, record that path as `exact` for the SDK extra and keep the documented
+path `exact` or `representative` as proven by HTTP contracts.
+
+### Phase A — Workspace and identity foundation (reads)
+
+| Operation | Method and path | Support | Docs |
+|---|---|---|---|
+| ListClusters | `GET /api/2.1/clusters/list` | exact | [clusters/list](https://docs.databricks.com/api/workspace/clusters/list) |
+| GetCluster | `GET /api/2.1/clusters/get` | exact | [clusters/get](https://docs.databricks.com/api/workspace/clusters/get) |
+| ListJobs | `GET /api/2.2/jobs/list` | exact | [jobs/list](https://docs.databricks.com/api/workspace/jobs/list) |
+| GetJob | `GET /api/2.2/jobs/get` | exact | [jobs/get](https://docs.databricks.com/api/workspace/jobs/get) |
+| GetRun | `GET /api/2.2/jobs/runs/get` | exact | [jobs/getrun](https://docs.databricks.com/api/workspace/jobs/getrun) |
+| GetStatus | `GET /api/2.0/workspace/get-status` | exact | [workspace/getstatus](https://docs.databricks.com/api/workspace/workspace/getstatus) |
+| CurrentUserMe | `GET /api/2.0/preview/scim/v2/Me` | representative | [current user](https://docs.databricks.com/api/workspace/currentuser/) |
+
+Notes:
+
+- `workspace/get-status` is **object path** status (`path` query), not workspace
+  health. Missing path → `RESOURCE_DOES_NOT_EXIST`.
+- `CurrentUserMe` is required if the pinned SDK’s `WorkspaceClient` calls it during
+  setup; otherwise it may stay representative. Prove localhost SDK in Milestone 0
+  or keep SDK tests optional/non-blocking.
+- Cluster **lifecycle states** (`PENDING`, `RUNNING`, `RESTARTING`, `TERMINATING`,
+  `TERMINATED`, `ERROR`) appear on get/list in A from fixtures; **advancing** those
+  states on create/restart is Phase B.
+- Minimum fields: clusters `cluster_id`, `cluster_name`, `spark_version`,
+  `node_type_id`, `state`; jobs `job_id`, `settings`, `created_time`,
+  `creator_user_name`; runs `run_id`, `run_name`, `state.life_cycle_state`,
+  `state.result_state`.
+- Pagination: `page_token` / `next_page_token` (and documented `page_size` /
+  `limit` aliases per operation).
+
+### Phase B — Stateful compute, jobs, warehouses, secrets
+
+| Operation | Method and path | Support | Docs |
+|---|---|---|---|
+| CreateCluster | `POST /api/2.1/clusters/create` | exact | [clusters/create](https://docs.databricks.com/api/workspace/clusters/create) |
+| EditCluster | `POST /api/2.1/clusters/edit` | representative | [clusters/edit](https://docs.databricks.com/api/workspace/clusters/edit) |
+| DeleteCluster | `POST /api/2.1/clusters/delete` | exact | [clusters/delete](https://docs.databricks.com/api/workspace/clusters/delete) |
+| RestartCluster | `POST /api/2.1/clusters/restart` | exact | [clusters/restart](https://docs.databricks.com/api/workspace/clusters/restart) |
+| PermanentDeleteCluster | `POST /api/2.1/clusters/permanent-delete` | stub | [clusters/permanentdelete](https://docs.databricks.com/api/workspace/clusters/permanentdelete) |
+| CreateJob | `POST /api/2.2/jobs/create` | exact | [jobs/create](https://docs.databricks.com/api/workspace/jobs/create) |
+| ResetJob | `POST /api/2.2/jobs/reset` | representative | [jobs/reset](https://docs.databricks.com/api/workspace/jobs/reset) |
+| DeleteJob | `POST /api/2.2/jobs/delete` | exact | [jobs/delete](https://docs.databricks.com/api/workspace/jobs/delete) |
+| SubmitRun | `POST /api/2.2/jobs/runs/submit` | exact | [jobs/submit](https://docs.databricks.com/api/workspace/jobs/submit) |
+| CancelRun | `POST /api/2.2/jobs/runs/cancel` | exact | [jobs/cancelrun](https://docs.databricks.com/api/workspace/jobs/cancelrun) |
+| ListWarehouses | `GET /api/2.0/sql/warehouses` | exact | [warehouses/list](https://docs.databricks.com/api/workspace/warehouses/list) |
+| GetWarehouse | `GET /api/2.0/sql/warehouses/{id}` | exact | [warehouses/get](https://docs.databricks.com/api/workspace/warehouses/get) |
+| CreateWarehouse | `POST /api/2.0/sql/warehouses` | representative | [warehouses/create](https://docs.databricks.com/api/workspace/warehouses/create) |
+| DeleteWarehouse | `DELETE /api/2.0/sql/warehouses/{id}` | representative | [warehouses/delete](https://docs.databricks.com/api/workspace/warehouses/delete) |
+| PutSecret | `POST /api/2.0/secrets/put` | representative | [secrets/putsecret](https://docs.databricks.com/api/workspace/secrets/putsecret) |
+| ListSecrets | `GET /api/2.0/secrets/list` | exact | [secrets/listsecrets](https://docs.databricks.com/api/workspace/secrets/listsecrets) |
+| ListSecretScopes | `GET /api/2.0/secrets/scopes/list` | exact | [secrets/listscopes](https://docs.databricks.com/api/workspace/secrets/listscopes) |
+
+If a linked page on 2026-08-19 still documents Clusters writes as `/api/2.0/...`,
+record **that** path as `exact` and treat 2.1 as alias (or the reverse). Do not
+invent `/api/2.1` for SQL warehouses or workspace secrets.
+
+**Cluster / run virtual clock:** `behavior.clock` = `real` | `virtual`. Create or
+restart sets `PENDING` (or `RESTARTING` then `PENDING`); ticks advance to
+`RUNNING` or `ERROR` from fixture `startupDelayTicks` / `startupFailureMode`.
+Submit run: `PENDING` → `RUNNING` → `TERMINATED` with `SUCCESS` or `FAILED`.
+Cancel: `TERMINATING` then `TERMINATED` / `CANCELED`. Repeatable under virtual
+clock; no wall-clock sleeps in tests.
+
+Secret list/get-key returns **metadata only** (keys, timestamps). Never echo
+fixture secret values in HTTP bodies.
+
+### Phase C — Artifacts and storage stubs
+
+| Operation | Method and path | Support | Docs |
+|---|---|---|---|
+| InstallLibraries | `POST /api/2.0/libraries/install` | representative | [libraries/installlibraries](https://docs.databricks.com/api/workspace/libraries/installlibraries) |
+| UninstallLibraries | `POST /api/2.0/libraries/uninstall` | representative | [libraries/uninstalllibraries](https://docs.databricks.com/api/workspace/libraries/uninstalllibraries) |
+| GetRunOutput | `GET /api/2.2/jobs/runs/get-output` | representative | [jobs/getrunoutput](https://docs.databricks.com/api/workspace/jobs/getrunoutput) |
+| ListClusterEvents | `POST /api/2.1/clusters/events` | representative | [clusters/events](https://docs.databricks.com/api/workspace/clusters/events) |
+| ListDbfs | `GET /api/2.0/dbfs/list` | representative | [dbfs/list](https://docs.databricks.com/api/workspace/dbfs/list) |
+| ReadDbfs | `GET /api/2.0/dbfs/read` | representative | [dbfs/read](https://docs.databricks.com/api/workspace/dbfs/read) |
+| AddBlock | `POST /api/2.0/dbfs/add-block` | stub | [dbfs/addblock](https://docs.databricks.com/api/workspace/dbfs/addblock) |
+
+DBFS is in-memory by default with size/count caps. Temp-dir backend is opt-in.
+There are **no** public `workspace-events/list` or `audit-logs` REST paths in this
+pin; do not implement invented URLs.
+
+### Phase D — Permissions and SQL statements
+
+| Operation | Method and path | Support | Docs |
+|---|---|---|---|
+| GetPermissions | `GET /api/2.0/permissions/{object_type}/{object_id}` | representative | [permissions](https://docs.databricks.com/api/workspace/permissions/) |
+| UpdatePermissions | `PATCH /api/2.0/permissions/{object_type}/{object_id}` | representative | [permissions](https://docs.databricks.com/api/workspace/permissions/) |
+| ExecuteStatement | `POST /api/2.0/sql/statements` | representative | [statementexecution/execute](https://docs.databricks.com/api/workspace/statementexecution/execute) |
+| GetStatement | `GET /api/2.0/sql/statements/{statement_id}` | representative | [statementexecution/getstatement](https://docs.databricks.com/api/workspace/statementexecution/getstatement) |
+
+SQL results: static fixture chunks or allow-listed Python callbacks; paginated
+`next_chunk_internal` / documented chunk tokens as `representative`. No Spark SQL
+engine.
+
+Jobs **2.1** (`/api/2.1/jobs/...`): optional `representative` aliases. Jobs **2.0**
+is out of Phase 10 except as `unsupported` 404 (or 501 in `strict` if listed).
+
+### Later (not Phase 10)
+
+Unity Catalog (including `GET /api/2.1/unity-catalog/secrets`), Model Serving,
+Spark Declarative Pipelines / DLT, account-level APIs, OAuth device flows, and a
+Databricks adapter `1.0.0` stability gate.
+
+## 9. Auth, errors, IDs, pagination, headers
+
+**Auth modes:** `disabled` | `optional` (default) | `strict` (token must be in
+`DatabricksMockConfig.tokens`). Never echo tokens. Not an OAuth server.
+
+**Errors:** Databricks `{error_code, message}` (and documented extras). Map
+missing resource, bad request, permission denied, invalid token, conflict,
+throttling, injected 500. Distinct from Foundry envelopes.
+
+**IDs:** deterministic from seed + resource type + identity (cluster/job/run/
+warehouse IDs).
+
+**Pagination:** adapter `PageTokenCodec`; tamper or cross-resource reuse → 400
+with a documented-style error, not an empty reset.
+
+**Headers:** `x-request-id` or documented `x-databricks-request-id`; optional
+`x-databricks-org-id` from config. Do not claim undocumented headers.
+
+**Simulation:** seed, `error_rate`, `latency_ms` / jitter, rate limit, virtual
+clock, `fail_stage` (`before_validate` | `before_write` | `after_write`).
+
+## 10. Fixture Design
+
+YAML/JSON version 1, extra fields rejected. Data only — no expressions.
+
+Bundled `acme`: one workspace, ≥1 cluster (enough rows for two list pages),
+≥2 jobs, ≥1 run, ≥1 warehouse, one secret scope with metadata-only keys, a small
+DBFS path tree, one notebook path for `get-status`.
 
 ```yaml
-packageVersion: "0.1.0"
-documentedAt: "2026-08-18"
-source: "Databricks API v2.1"
-operations:
-  - operationId: ListClusters
-    method: GET
-    path: /api/2.1/clusters/list
-    supportLevel: exact
-    supports:
-      - order
-      - limit
-      - next_page_token
-    strictChecks:
-      unknownQueryKeys: reject
-      pageToken: signed
-    statusCoverage:
-      200:
-        fixtureRefs:
-          - tests/contract/test_clusters.py::test_list_clusters
-      400: true
-      403: true
-      404: false
-    lastValidated: "2026-08-18"
-    notes: "Supports canonical list + pagination; cursor tokens are opaque and stable"
+version: 1
+workspace:
+  workspaceId: "1234567890"
+  name: acme
+clusters: []
+jobs: []
+runs: []
+warehouses: []
+secretScopes: []
+dbfs: []
+workspaceObjects: []
 ```
 
-Manifest should be shipped in package root as
-`/api/compatibility/semblance-databricks.json` and optionally exposed at
-`/.well-known/semblance-databricks-compat.json` for runtime discoverability.
+Load-time validation: unique IDs, dangling references, unknown enums. Process-local
+state; no restart durability in Phase 10.
 
-## 6. Focused API Surface by Phase
-
-### Phase A: Workspace & Identity foundation
-
-- Workspace info endpoints (`/api/2.1/workspace/get-status`, etc.)
-- users/me and personal token introspection patterns
-- clusters: list and get cluster
-- jobs: list and get job
-- minimal `/api/2.1/jobs/runs/get` and run lookup semantics
-- pagination for list endpoints
-
-Concrete phase A endpoint set:
-
-- `GET /api/2.1/clusters/list`
-- `GET /api/2.1/clusters/get`
-- `GET /api/2.1/jobs/list`
-- `GET /api/2.1/jobs/get`
-- `GET /api/2.1/jobs/runs/get`
-- `GET /api/2.1/workspace/get-status`
-- `GET /api/2.1/permissions/cluster/get`
-
-Minimum required request/response fields:
-
-- clusters: `cluster_id`, `cluster_name`, `spark_version`, `node_type_id`, `state`
-- jobs: `job_id`, `settings`, `created_time`, `creator_user_name`
-- runs: `run_id`, `run_name`, `life_cycle_state`, `state`, `result_state`
-
-### Phase B: Object, SQL, and jobs write operations
-
-- Create/update/get/delete jobs
-- Create cluster (stateful), restart/terminate/delete semantics
-- Runs: submit run, cancel run, get run status
-- SQL warehouses: list/get/create/delete
-- Secrets scope/list/set/get semantics using declarative secret values
-
-Concrete phase B endpoints (initial support):
-
-- `POST /api/2.1/clusters/create`
-- `POST /api/2.1/clusters/edit`
-- `POST /api/2.1/clusters/delete`
-- `POST /api/2.1/clusters/restart`
-- `POST /api/2.1/clusters/permanent-delete` (optional alias if exposed by fixtures)
-- `POST /api/2.1/jobs/create`
-- `POST /api/2.1/jobs/reset`
-- `POST /api/2.1/jobs/delete`
-- `POST /api/2.1/jobs/runs/submit`
-- `POST /api/2.1/jobs/runs/cancel`
-- `POST /api/2.1/warehouses`
-- `PATCH /api/2.1/warehouses`
-- `DELETE /api/2.1/warehouses/{warehouse_id}`
-- `POST /api/2.1/secrets/put`
-- `GET /api/2.1/secrets/list`
-
-#### Cluster startup model
-
-The cluster startup surface in phase B must expose deterministic lifecycle transitions:
-
-- `PENDING` -> `RUNNING`
-- `PENDING` -> `ERROR`
-- `TERMINATING` -> `TERMINATED`
-- `RUNNING` -> `TERMINATING`
-- `RESTARTING` -> `RUNNING`
-
-When cluster startup is triggered by `/api/2.1/clusters/create` or `/api/2.1/clusters/restart`, the server should:
-
-- set state to `PENDING` at request accept time
-- advance to `RUNNING` on the next lifecycle tick
-- expose intermediate state via `clusters/get`
-- optionally emit a transition event via `clusters/events` when event endpoints are enabled
-
-Deterministic startup behavior should support these controls per cluster:
-
-- `startupDelayTicks`: integer number of virtual clock ticks before entering `RUNNING`
-- `startupFailureMode`: `always_fail | never_fail | random_with_seed`
-- `startupFailureAfterTicks`: optional tick at which failure switches to `ERROR`
-
-Example response shape for `clusters/get` during startup:
-
-```json
-{
-  "cluster_id": "0123-abc",
-  "cluster_name": "acme-ingest",
-  "spark_version": "13.3.x-scala2.12",
-  "node_type_id": "i3.xlarge",
-  "state": "PENDING",
-  "state_message": "Starting 1/3 nodes"
-}
-```
-
-When startup fails, `clusters/get` should show:
-
-- `state`: `ERROR`
-- `state_message`: stable, fixture-driven reason
-- a deterministic error reason for compatibility tests
-
-### Phase C: Compute and artifact simulation
-
-- Libraries install/remove for cluster attachments
-- Job task-level outputs and run logs endpoints
-- Cluster event log snippets and run timeline
-- Lightweight file operation stubs for DBFS-like endpoints in a minimal scope
-
-Concrete phase C endpoints:
-
-- `POST /api/2.1/libraries/install`
-- `POST /api/2.1/libraries/uninstall`
-- `GET /api/2.1/jobs/runs/get-output`
-- `GET /api/2.1/jobs/runs/get-response`
-- `GET /api/2.1/clusters/events`
-- `GET /api/2.1/dbfs/list`
-- `GET /api/2.1/dbfs/read`
-- `GET /api/2.1/dbfs/add-block`
-
-### Phase D: Advanced and high-value admin APIs
-
-- Permissions and role-like stubs
-- SQL query execution simulation with result chunking
-- Audit/event listing with deterministic order and filtering
-
-Concrete phase D endpoints:
-
-- `GET /api/2.1/permissions/cluster/get`
-- `PATCH /api/2.1/permissions/cluster/put`
-- `POST /api/2.1/sql/statements`
-- `GET /api/2.1/sql/statements/{statement_id}`
-- `GET /api/2.1/workspace-events/list`
-- `GET /api/2.1/audit-logs`
-
-### Deferred to later releases
-
-- Full Unity Catalog implementation
-- Advanced SQL warehouse tuning and cluster scaling internals
-- ML/Model Serving full surface
-- Delta Live Tables deep parity
-
-## 7. Endpoint Semantics
-
-### Authentication modes
-
-- disabled: skip auth checks
-- optional (default): accept any non-empty bearer token
-- strict: require configured tokens and optional workspace/audience scoping
-
-### Identity model
-
-- Include stable `userId`, `userName`, `workspaceId`, `accountId`, and token subject mappings from config.
-- Support optional workspace-id routing via host or explicit path/header where relevant.
-
-### IDs, tokens, and versions
-
-- Deterministic resource IDs from seed + canonical context.
-- API version in routing should be normalized per endpoint family.
-- Request IDs should be generated and returned for traceability.
-
-Default headers:
-
-- `x-databricks-request-id`
-- `x-databricks-organization-id`
-- `date` in RFC 1123 format
-- `cache-control: no-store`
-
-### Pagination
-
-- Cursor tokens are opaque and signed/tamper-detectable.
-- Deterministic ordering with explicit `order`/`sort` behavior when implemented.
-- Invalid tokens return documented-style errors, not empty resets.
-
-Cursor model:
-
-- token format: `<resource>:<rev>:<index>:<hmac>`
-- revision increments on mutation to invalidate stale pages when strict mode is enabled
-- support `page_token` and `next_page_token` aliases where APIs differ
-
-### Cluster startup lifecycle (Databricks-style)
-
-Define startup lifecycle in `FoundryMockState`-like simulator state:
-
-- request creates cluster with initial `PENDING` state and optional `created_time`
-- lifecycle update function advances state per configured tick budget
-- lifecycle is repeatable under `behavior.clock=virtual`
-- `clusters/get` reflects current state, `clusters/events` can expose startup timeline
-
-Recommended lifecycle transitions and expected statuses:
-
-- initial create -> `PENDING`
-- success path -> `RUNNING`
-- restart path -> `RESTARTING` then `PENDING` then `RUNNING`
-- stop path -> `TERMINATING` then `TERMINATED`
-- failure path -> `ERROR`
-
-When `behavior.fail_stage` is `before_write`, cluster writes should fail with a deterministic error before state mutation.
-
-### Errors and simulation controls
-
-- Centralized error mapper covering:
-  - permission denied
-  - not found
-  - bad request
-  - too many requests
-  - conflict
-  - internal failure
-- Per-operation failure injection settings:
-  - fixed error mode
-  - random error rate
-  - latency simulation
-  - max in-flight operations
-
-Simulation controls should include:
-
-- `behavior.clock`: `real` or `virtual`
-- `behavior.clock_start_unix_ms`
-- `behavior.error_rate`
-- `behavior.latency_ms` with jitter
-- `behavior.fail_stage` with values `before_validate`, `before_write`, `after_write`
-
-## 8. Fixture Design
-
-Fixture format should support JSON or YAML:
-
-- workspace object state
-- identity map and allowed principals
-- clusters, jobs, runs, warehouses, secrets, files metadata
-- custom behavior hooks for operations that need dynamic result shaping
-
-Validation at load time:
-
-- unique IDs per resource type
-- valid references between resources
-- schema validation and unknown-field checks in strict mode
-- deterministic defaults from seeded generators
-
-Fixture precedence: explicit fixture data must override generated data by default.
-
-Minimum fixture envelope:
-
-```json
-{
-  "schemaVersion": 1,
-  "fixturesVersion": "2026-08-18",
-  "workspace": { "workspaceId": "1234567890", "name": "local" },
-  "clusters": [],
-  "jobs": [],
-  "runs": [],
-  "warehouses": [],
-  "secrets": []
-}
-```
-
-Validation rules:
-
-- fail on duplicate IDs
-- fail on dangling references
-- fail on unknown enum values
-- strict-mode unknown fields rejected
-- allow partial load in non-strict mode with warnings
-
-## 9. Internal Architecture
+## 11. Internal Architecture
 
 ```mermaid
 flowchart LR
-    Client[HTTP / SDK Client] --> App[DatabricksMock FastAPI App]
-    App --> MW[Auth + Error + Rate Middleware]
-    MW --> Reg[Operation Registry]
-    Reg --> S[Shared Simulation Helpers]
-    Reg --> H[Databricks Handlers]
-    H --> State[State Store]
-    H --> FX[Fixture Store]
-    State --> Backend[In-Memory or Temp Dir Backend]
+    Client[HTTP_or_SDK] --> App[DatabricksMock_FastAPI]
+    App --> MW[Auth_Error_Rate_Middleware]
+    MW --> Reg[Operation_Registry]
+    Reg --> H[Family_Handlers]
+    H --> State[DatabricksState]
+    H --> FX[Fixture_Loader]
 ```
 
-Core abstractions:
+Core types: `DatabricksMock`, `DatabricksMockConfig`, `DatabricksState`,
+`DatabricksError`, `PageTokenCodec`, per-family routers. Storage: in-memory
+default; capped temp-dir opt-in for DBFS only.
 
-- `DatabricksOperation` with metadata and handler
-- `DatabricksMockState` for clusters/jobs/warehouses/runs/users
-- `OperationResult` and `ErrorResponse` model families
-- `FixtureLoader`, `FixtureMergePolicy`
-- `DatabricksError` and mapper matrix
-- storage backend abstraction (`InMemory`, `TempDir`)
+## 12. Testing Strategy
 
-## 10. Testing Strategy
+- **Unit:** fixtures, IDs/tokens, cluster/run state machine, auth, error mapping.
+- **Contract:** golden HTTP per operation family; pagination; invalid cursor;
+  unknown 404 vs strict 501.
+- **Integration exit:** list clusters across two pages, get cluster, list/get job,
+  get run; then create or restart a cluster (or submit/cancel a run) under virtual
+  clock; list secret **keys** without values; get-status for a fixture path.
+- **SDK extra:** pin one `databricks-sdk` version; `@pytest.mark.sdk` skipped in
+  default CI (`-m "not sdk"`). If `WorkspaceClient` cannot target HTTP localhost,
+  keep SDK non-blocking (Foundry rule).
+- No network in unit/contract tests. Python 3.10–3.12. Plug into existing root
+  lint/typecheck/test/security jobs.
 
-### Unit
+## 13. Documentation Deliverables
 
-- fixture validation and merge behavior
-- ID determinism and token encoding/decoding
-- state machine correctness for run and cluster transitions
-- auth mode transitions
-- error mapping and response headers
+README (unofficial notice), fixture schema, compatibility matrix, auth/simulation,
+limitations, security (no production tokens in fixtures). User guide under docs
+when the package exists (Foundry already has `guides/foundry.md`).
 
-### Contract
+## 14. Implementation sequence
 
-- one canonical test per supported endpoint family
-- strict query/field validation tests
-- status and payload stability tests
-- pagination edge cases: first page, empty page, exhausted page, invalid cursor
+No calendar estimates. Finish A with contracts before B writes.
 
-Golden matrix requirement:
+1. Scaffold `packages/semblance-databricks/` (`DatabricksMock` /
+   `DatabricksMockConfig`, CLI, tests, unofficial README, `compatibility.yaml`).
+2. Fixture v1 + bundled `acme` + auth/errors/page tokens + well-known manifest.
+3. Phase A reads with golden tests; SDK localhost spike.
+4. Phase B writes + virtual-clock cluster/run machine + warehouses + secrets
+   metadata.
+5. Phase C libraries/events/DBFS/run output.
+6. Phase D permissions + SQL statements.
+7. Docs + CI wiring (same pattern as Foundry). Do not tag until a later release
+   pass.
 
-- one positive + one negative response per endpoint
-- include expected status, headers, and headers' request-id
+### Exit criteria
 
-### Client compatibility
+- **A:** HTTP client lists fixture clusters across two pages, gets one cluster,
+  lists/gets a job, gets a run, and resolves one workspace path — locally.
+- **B:** create or restart a cluster (or submit then cancel a run) and observe
+  deterministic state under virtual clock; warehouse get; secret keys listed
+  without values.
+- **C:** get-output or cluster events for a fixture run/cluster; DBFS list of a
+  stub path.
+- **D:** get permissions for a cluster or job object; execute or get a SQL
+  statement with fixture/callback chunks.
 
-- raw `httpx` contract checks
-- optional official Databricks Python client compatibility tests if available in CI
-- include expected failures for unsupported endpoints so test suites can handle fallbacks
+Phase 10 DoD is **all of A–D**, not Databricks 1.0.
 
-### Quality gates
+## 15. Versioning and Support Policy
 
-- Python 3.10-3.12
-- lint/type-check/test parity with repo patterns
-- no network access during unit/contract tests
-- deterministic results regardless of order
+- Version `semblance-databricks` independently (semver). First implementation
+  target: `0.1.0`.
+- Depend on `semblance>=0.7.0,<0.8`.
+- Pin one official `databricks-sdk` version in the `sdk` extra; untested versions
+  are not implied compatible.
+- Fixture schema versioned separately from the Python package.
+- Response shape, default strictness, fixture schema, and lifecycle defaults are
+  compatibility-sensitive.
 
-CI matrix suggestion:
+## 16. Risks and Mitigations
 
-- `py3.10`, `py3.11`, `py3.12`
-- sync tests and async tests separated for visibility
-- optional scheduled compatibility job against latest supported official client
+| Risk | Mitigation |
+|---|---|
+| Docs mix 2.0 / 2.1 / 2.2 | Pin date, per-operation path, SDK wire capture in Milestone 0. |
+| “Mock Databricks” implies Spark | Endpoint-level claims; no job/SQL execution engine. |
+| SDK requires HTTPS or `*.cloud.databricks.com` | Prove localhost in Milestone 0; SDK extra optional. |
+| Secret fixtures leak | Metadata-only REST; never log tokens; redact error bodies. |
+| DBFS memory growth | Caps; temp-dir opt-in. |
+| Shared codec temptation | Copy `PageTokenCodec`; extract in Phase 11 only if both adapters match. |
+| Trademark confusion | Unofficial/non-affiliation notice; no copied proprietary schemas. |
 
-## 11. Documentation Deliverables
+## 17. Locked Decisions
 
-- quickstart for direct API and SDK clients
-- fixture schema reference
-- endpoint compatibility matrix with support levels
-- authentication and simulation guide
-- common recipes: jobs lifecycle, run status polling, warehouse mock, secret management
-- explicit limitations and unsupported list
-- non-affiliation and data handling notice
+1. **Consumers:** raw HTTP and `databricks-sdk` `WorkspaceClient` against the same
+   ASGI app. HTTP contracts required. One pinned SDK version is optional/non-blocking
+   if it cannot target localhost.
+2. **Repo:** `packages/semblance-databricks/` in this repository, independently
+   versioned, `semblance>=0.7.0,<0.8`.
+3. **Factory:** custom FastAPI (`DatabricksMock.as_fastapi()`), not `SemblanceAPI`
+   handlers.
+4. **Auth default:** `optional`. Also `disabled` and `strict`. Never echo tokens.
+5. **Persistence:** process-local. Temp-dir only as capped DBFS opt-in.
+6. **Phase 10 exit:** A–D as pinned in §8, not Databricks 1.0.
+7. **Pagination/errors:** adapter-owned; do not add Databricks-shaped helpers to
+   core in Phase 10.
+8. **Unknown vs unimplemented:** 404 vs 501-only-in-`strict`.
+9. **Jobs primary version:** 2.2. Jobs 2.1 aliases may be `representative`.
+10. **Docs date:** public workspace REST dated 2026-08-19 unless
+    `compatibility.yaml` records a newer pass.
+11. **CLI port:** default 8766.
+12. **No invented admin APIs:** no fake audit-log or workspace-events REST.
 
-## 12. Milestones
+## 18. Definition of Done for Phase 10
 
-### Milestone 0: Bootstrap and minimal contract
+Complete when:
 
-- scaffold package and CLI
-- wire test configuration + basic app factory
-- support workspace/jobs/clusters basic GET/list routes with auth + errors
+- the package installs independently and exposes `DatabricksMock`,
+  `DatabricksMockConfig`, `as_fastapi()`, `load_bundled_fixture()`
+- HTTP client (and SDK if CI-feasible) passes the A–D exit criteria in §14
+- bundled fixture meets §10
+- cluster/run virtual-clock transitions have deterministic tests
+- missing resources, invalid requests, invalid tokens, denied access, throttling,
+  and injected failure each have tests
+- state resets without process restart
+- compatibility matrix links every implemented operation to tests and the public
+  docs used
+- README, limitations, security guidance, and non-affiliation notice are complete
+- root lint, typecheck, tests, and security jobs include this package for Python
+  3.10–3.12
 
-Exit criterion: SDK-like client can list clusters and jobs from fixture without external dependencies.
-
-### Milestone 1: Stateful workspace core
-
-- add create/update/delete jobs and runs
-- add submit/cancel/get runs with deterministic status transitions
-- add fixture validation and merge rules
-
-Exit criterion: run lifecycle test can create a run, poll status, then cancel deterministically.
-
-### Milestone 2: SQL + warehouse support
-
-- warehouse CRUD
-- SQL statement stubs and result paging semantics
-- secrets and permission stubs
-
-Exit criterion: query and warehouse endpoints return schema-consistent, seeded payloads and controlled error cases.
-
-### Milestone 2.5: Interim hardening
-
-- add DBFS and run-output/readiness transitions from phase C
-- add virtual clock behavior for run lifecycle determinism
-- tighten fixture-schema migration checks
-
-Exit criterion: deterministic async state transitions under virtual clock with repeatable errors.
-
-### Milestone 3: Hardening and release
-
-- compatibility pass against documented sources and support manifest
-- security/safety review (especially secret and token behavior)
-- docs and changelog cleanup
-- `1.0.0` readiness gate
-
-## 13. Execution Roadmap
-
-### Day 1-3
-
-- scaffold package, CLI, config, and app factory
-- add compatibility manifest generation and `operations` CLI command
-- implement first five endpoints from phase A
-
-### Day 4-7
-
-- implement remaining phase A
-- add auth modes and error middleware
-- create golden tests for `jobs`, `clusters`, pagination, auth
-
-### Day 8-12
-
-- implement core phase B writes
-- add seed-based ID generation and fixture validators
-- ship minimal docs and example fixture
-
-### Day 13-21
-
-- finish phase C and optional phase D subset
-- add virtual-clock + fault injection
-- complete v0.1 review and release criteria
-
-## 14. Release and Support Policy
-
-- Semantic versioning for package only.
-- Pin compatible `semblance` ranges and test lower+upper supported bounds.
-- Define supported Databricks API docs revision dates in manifest.
-- Backward-incompatible fixture format changes require migration docs and minor/major version alignment.
-
-Supported versioning model:
-
-- patch: documentation, bug fixes, simulation tuning
-- minor: compatible API additions, new endpoints, stable behavior expansion
-- major: response-shape changes, required fixture migration, auth or contract policy shifts
-
-## 15. Risks and Mitigations
-
-- Databricks API drift: pin docs revision and require manifest updates per release.
-- Over-simulation complexity: keep behaviors callback-based and thin.
-- State explosion in long tests: add configurable limits and cleanup hooks.
-- Credential confusion: avoid token replay or storage of sensitive material; scrub logs.
-- DBFS simulation can balloon artifact storage: cap file size/count by default and require opt-in for large fixtures.
-
-## 16. Definition of Done (v0.1)
-- at least 12 contract tests across core families
-- at least 1 negative auth/authorization compatibility test
-- at least 1 fixture migration/validation test
-- unsupported endpoints explicitly documented and tested as 404/501
-- full local smoke run for `workspace/jobs/clusters/runs` through both HTTP and any supported SDK
-- independent installable package exists under `packages/semblance-databricks`
-- `DatabricksMock(...).as_fastapi()` works with fixture-based startup
-- workspace/jobs/clusters/runs core read and write routes implemented
-- deterministic pagination and error injection covered by tests
-- manifest + readme + quickstart published
-- tests pass for Python 3.10/3.11/3.12
+Adapter `1.0.0` is not part of this DoD.
 
 ## References
 
-- Databricks API documentation homepage
-- Databricks REST API v2.1 workspace/cluster/jobs sections
-- Databricks token and authentication docs
+- [Roadmap Phase 10](roadmap.md#phase-10--external-api-mock-packages-databricks)
+- [Databricks workspace REST](https://docs.databricks.com/api/workspace/)
+- [List clusters](https://docs.databricks.com/api/workspace/clusters/list)
+- [List jobs](https://docs.databricks.com/api/workspace/jobs/list)
+- [Get a single job run](https://docs.databricks.com/api/workspace/jobs/getrun)
+- [Create a job](https://docs.databricks.com/api/workspace/jobs/create)
+- [Cancel a run](https://docs.databricks.com/api/workspace/jobs/cancelrun)
+- [List secret keys](https://docs.databricks.com/api/workspace/secrets/listsecrets)
+- [SQL warehouses](https://docs.databricks.com/api/workspace/warehouses/)
+- [Databricks SDK for Python](https://docs.databricks.com/aws/en/dev-tools/sdk-python)

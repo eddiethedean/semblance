@@ -1,0 +1,47 @@
+version: 1
+workspace:
+  workspaceId: "1234567890"
+  name: acme
+clusters:
+  - cluster_id: "0101-acme-0001"
+    cluster_name: ingest-1
+    state: RUNNING
+  - cluster_id: "0101-acme-0002"
+    cluster_name: ingest-2
+    state: RUNNING
+  - cluster_id: "0101-acme-0003"
+    cluster_name: ingest-3
+    state: TERMINATED
+  - cluster_id: "0101-acme-0004"
+    cluster_name: ingest-4
+    state: PENDING
+    startup_delay_ticks: 1
+jobs:
+  - job_id: "1001"
+    name: nightly-etl
+  - job_id: "1002"
+    name: weekly-report
+runs:
+  - run_id: "2001"
+    job_id: "1001"
+    run_name: nightly-etl-run
+    life_cycle_state: TERMINATED
+    result_state: SUCCESS
+    output_notebook: "ok"
+warehouses:
+  - id: "wh-acme"
+    name: analytics
+    state: RUNNING
+secretScopes:
+  - name: acme-scope
+    keys:
+      - api-key
+dbfs:
+  - path: "/mnt/acme"
+    is_dir: true
+  - path: "/mnt/acme/readme.txt"
+    is_dir: false
+    content: hello
+workspaceObjects:
+  - path: "/Users/user@acme.example/notebook"
+    object_type: NOTEBOOK

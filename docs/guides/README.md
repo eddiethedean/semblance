@@ -16,6 +16,7 @@ Guides for building and testing schema-driven API simulators with Semblance.
 | [Plugins](plugins.md) | Custom link types, register_link |
 | [Testing](testing.md) | test_client, deterministic seeding, property-based testing, pytest |
 | [Foundry adapter](foundry.md) | unofficial ontology-read mock (`semblance-foundry`) |
+| [Databricks adapter](databricks.md) | unofficial workspace REST mock (`semblance-databricks`) |
 | [Troubleshooting](troubleshooting.md) | common 404/422/429, stateful, and link issues |
 
 ## Quick Reference

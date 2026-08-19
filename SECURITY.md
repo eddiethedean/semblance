@@ -10,6 +10,7 @@ We release patches for security vulnerabilities in the following versions:
 | semblance | 0.6.x | :white_check_mark: |
 | semblance | < 0.6 | :x: |
 | semblance-foundry | 0.1.x | :white_check_mark: |
+| semblance-databricks | 0.1.x | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -29,6 +30,7 @@ We aim to acknowledge reports within 48 hours and will work with you to understa
 
 - **Semblance is for mock/simulation** — Use it for prototyping, testing, and development. Do not use it as a production API backend without additional hardening.
 - **Foundry adapter** — `semblance-foundry` is an unofficial test double. Do not put production secrets in fixtures or mock tokens. Authentication errors never echo tokens.
+- **Databricks adapter** — `semblance-databricks` is an unofficial test double. Secret REST is metadata only; never put production tokens in fixtures. Authentication errors never echo tokens.
 - **Dependencies** — We rely on FastAPI, Pydantic, Polyfactory, and Uvicorn. Keep these and your Python environment updated: `pip install -U pip semblance`.
 - **Randomness** — Semblance uses `random` for test data generation and latency simulation, not for cryptographic purposes.
 
@@ -38,6 +40,6 @@ For local auditing:
 
 ```bash
 pip install bandit pip-audit
-bandit -r src/ packages/semblance-foundry/src -ll
+bandit -r src/ packages/semblance-foundry/src packages/semblance-databricks/src -ll
 pip-audit
 ```

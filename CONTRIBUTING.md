@@ -65,7 +65,7 @@ Before submitting a pull request, ensure the following pass:
 
 - **Security (bandit, pip-audit)**
   ```bash
-  bandit -r src/ packages/semblance-foundry/src -ll
+  bandit -r src/ packages/semblance-foundry/src packages/semblance-databricks/src -ll
   pip-audit
   ```
 

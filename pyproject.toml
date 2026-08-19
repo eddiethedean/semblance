@@ -61,8 +61,9 @@ Changelog = "https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md"
 where = ["src"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "packages/semblance-foundry/tests"]
+testpaths = ["tests", "packages/semblance-foundry/tests", "packages/semblance-databricks/tests"]
 pythonpath = ["src", "packages/semblance-foundry/src", "packages/semblance-databricks/src"]
+addopts = "--import-mode=importlib"
 markers = [
     "slow: marks tests as slow (e.g. time.sleep); use -m 'not slow' for fast runs",
     "sdk: optional official SDK compatibility tests; skipped unless extra installed",
@@ -96,6 +97,10 @@ disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]
 module = ["semblance_foundry.*"]
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["semblance_databricks.*"]
 disallow_untyped_defs = true
 
 [[tool.mypy.overrides]]

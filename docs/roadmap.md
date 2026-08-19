@@ -102,30 +102,45 @@ Ontology-read MVP for an unofficial `semblance-foundry` adapter. Detailed spec: 
 
 Not Phase 9: apply/applyBatch actions, aggregates, object sets, datasets/transactions, orchestration/streams, Foundry 1.0. Those are post–Phase 9 milestones in the [Foundry plan](semblance_foundry_plan.md).
 
-## Phase 10 — External API Mock Packages: Databricks
+## Phase 10 — External API Mock Packages: Databricks ✓
 
-- **`semblance-databricks` package bootstrap and workspace integration**
-  - Add package scaffold under `packages/semblance-databricks/`
-  - Add adapter-specific `pyproject.toml`, typed API surface, CLI entrypoint, and test entry points
-  - Add compatibility manifest support and API operation registry for Databricks endpoints
-- **Phase A — Workspace and identity foundation**
-  - Implement `clusters` and `jobs` list/get, `jobs/runs/get`, basic workspace status endpoints
-  - Add auth modes, deterministic IDs, cursor pagination, and unknown endpoint semantics
-  - Add cluster startup lifecycle simulation with deterministic states (`PENDING`, `RUNNING`, `ERROR`, `TERMINATING`)
-- **Phase B — Stateful compute and runs**
-  - Add cluster/job creation/edit/restart/terminate/delete flows
-  - Add run submit/cancel/get-status with deterministic state transitions
-  - Add SQL warehouse basic CRUD and secrets read/list/put scaffolding
-- **Phase C — Compute artifacts and storage**
-  - Add run output/runs logs, cluster events, lightweight DBFS-like file stubs
-  - Add temporary-file and in-memory storage backend controls
-- **Phase D — Advanced APIs (incremental)**
-  - Add permissions and SQL statement simulation with paginated results
-  - Add audit/event listing and explicit unsupported-endpoint handling
-- **Deliverables**
-  - README/fixtures schema docs and non-affiliation notice
-  - CLI commands: `serve`, `validate`, `fixture init`, `operations`
-  - CI coverage with contract/golden tests and optional official client compatibility checks
+Unofficial `semblance-databricks` adapter covering workspace compute, jobs, artifacts, permissions, and SQL statements (phases A–D). Detailed spec: [Semblance Databricks Package Plan](semblance_databricks_plan.md). Workspace `pythonpath` / ruff / mypy plumbing lives in [Phase 11](#phase-11--core-infrastructure-for-multi-package-development); Databricks tests plug into those paths rather than duplicating CI matrix work here. `DatabricksMock` is a custom FastAPI factory (same reason as Foundry: core ignores handler bodies). Independently versioned; depends on `semblance>=0.7.0,<0.8`. Public REST pinned **2026-08-19** (Jobs **2.2**, Clusters **2.1**, SQL/DBFS/secrets/permissions **2.0**).
+
+- **Package bootstrap** ✓ — `packages/semblance-databricks/` with `pyproject.toml`, `semblance_databricks` import, `DatabricksMock` / `DatabricksMockConfig`, CLI (`serve` default port 8766, `validate`, `fixture init`, `operations`), tests layout, unofficial/non-affiliation notice.
+- **Compatibility model** ✓ — per-operation `compatibility.yaml` with support levels `exact` | `representative` | `stub` | `unsupported`, docs URL + verification date, and tests that prove the level; expose `/.well-known/semblance-databricks-compat.json`. Unknown paths return 404; known-but-unimplemented operations may return 501 only in `strict` mode. Optional Jobs 2.1 aliases are `representative`, not primary.
+- **Fixture-backed workspace** ✓ — YAML/JSON fixture v1: bundled `acme` with clusters spanning two list pages, ≥2 jobs, ≥1 run, warehouse, secret-scope **metadata** (no secret values on REST), DBFS stubs, one workspace path. Deterministic IDs; load-time validation. Process-local state; capped temp-dir opt-in for DBFS only.
+- **Phase A — reads** ✓ — public REST:
+  - `GET /api/2.1/clusters/list` and `GET /api/2.1/clusters/get`
+  - `GET /api/2.2/jobs/list`, `GET /api/2.2/jobs/get`, `GET /api/2.2/jobs/runs/get`
+  - `GET /api/2.0/workspace/get-status` (object **path**, not workspace health)
+  - `GET /api/2.0/preview/scim/v2/Me` if the pinned SDK requires current user
+- **Phase B — writes and lifecycle** ✓ — cluster create/edit/delete/restart; jobs create/reset/delete; runs submit/cancel; SQL warehouses `/api/2.0/sql/warehouses`; workspace secrets `GET/POST /api/2.0/secrets/...` (keys only). Virtual-clock cluster/run states (`PENDING` → `RUNNING` / `ERROR`, cancel → `TERMINATED`).
+- **Phase C — artifacts** ✓ — libraries install/uninstall, `GET /api/2.2/jobs/runs/get-output`, cluster events, DBFS `list`/`read` and `POST /api/2.0/dbfs/add-block` stub. No invented audit-log URLs.
+- **Phase D — permissions and SQL** ✓ — `GET`/`PATCH /api/2.0/permissions/{object_type}/{object_id}`; `POST`/`GET /api/2.0/sql/statements` (fixture or allow-listed callback chunks; no Spark SQL).
+- **Auth, errors, pagination** ✓ — auth modes `disabled`, `optional` (default), and `strict`; Databricks `{error_code, message}` (not Foundry envelopes); opaque checksummed page tokens owned by the adapter (`PageTokenCodec` copy); request-id header. Do not add Databricks-shaped helpers to core in Phase 10.
+- **Testing surface** ✓ — `DatabricksMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. HTTP contract tests are required; one pinned `databricks-sdk` version is the compatibility acceptance test (optional/non-blocking if the SDK cannot target localhost in CI). No live Databricks; no network in unit/contract tests.
+- **Exit criterion** ✓ — HTTP client (and SDK if CI-feasible) lists fixture clusters across two pages, gets a cluster and job, gets a run, drives one virtual-clock write (create/restart cluster or submit/cancel run), lists secret keys without values, and hits get-status plus one SQL statement or permissions get — all locally.
+
+Unofficial `semblance-databricks` adapter covering workspace compute, jobs, artifacts, permissions, and SQL statements (phases A–D). Detailed spec: [Semblance Databricks Package Plan](semblance_databricks_plan.md). Workspace `pythonpath` / ruff / mypy plumbing lives in [Phase 11](#phase-11--core-infrastructure-for-multi-package-development); Databricks tests plug into those paths rather than duplicating CI matrix work here. `DatabricksMock` is a custom FastAPI factory (same reason as Foundry: core ignores handler bodies). Independently versioned; depends on `semblance>=0.7.0,<0.8`. Public REST pinned **2026-08-19** (Jobs **2.2**, Clusters **2.1**, SQL/DBFS/secrets/permissions **2.0**).
+
+- **Package bootstrap** — `packages/semblance-databricks/` with `pyproject.toml`, `semblance_databricks` import, `DatabricksMock` / `DatabricksMockConfig`, CLI (`serve` default port 8766, `validate`, `fixture init`, `operations`), tests layout, unofficial/non-affiliation notice.
+- **Compatibility model** — per-operation `compatibility.yaml` with support levels `exact` | `representative` | `stub` | `unsupported`, docs URL + verification date, and tests that prove the level; expose `/.well-known/semblance-databricks-compat.json`. Unknown paths return 404; known-but-unimplemented operations may return 501 only in `strict` mode. Optional Jobs 2.1 aliases are `representative`, not primary.
+- **Fixture-backed workspace** — YAML/JSON fixture v1: bundled `acme` with clusters spanning two list pages, ≥2 jobs, ≥1 run, warehouse, secret-scope **metadata** (no secret values on REST), DBFS stubs, one workspace path. Deterministic IDs; load-time validation. Process-local state; capped temp-dir opt-in for DBFS only.
+- **Phase A — reads** — public REST:
+  - `GET /api/2.1/clusters/list` and `GET /api/2.1/clusters/get`
+  - `GET /api/2.2/jobs/list`, `GET /api/2.2/jobs/get`, `GET /api/2.2/jobs/runs/get`
+  - `GET /api/2.0/workspace/get-status` (object **path**, not workspace health)
+  - `GET /api/2.0/preview/scim/v2/Me` if the pinned SDK requires current user
+- **Phase B — writes and lifecycle** — cluster create/edit/delete/restart; jobs create/reset/delete; runs submit/cancel; SQL warehouses `/api/2.0/sql/warehouses`; workspace secrets `GET/POST /api/2.0/secrets/...` (keys only). Virtual-clock cluster/run states (`PENDING` → `RUNNING` / `ERROR`, cancel → `TERMINATED`).
+- **Phase C — artifacts** — libraries install/uninstall, `GET /api/2.2/jobs/runs/get-output`, cluster events, DBFS `list`/`read` and `POST /api/2.0/dbfs/add-block` stub. No invented audit-log URLs.
+- **Phase D — permissions and SQL** — `GET`/`PATCH /api/2.0/permissions/{object_type}/{object_id}`; `POST`/`GET /api/2.0/sql/statements` (fixture or allow-listed callback chunks; no Spark SQL).
+- **Auth, errors, pagination** — auth modes `disabled`, `optional` (default), and `strict`; Databricks `{error_code, message}` (not Foundry envelopes); opaque checksummed page tokens owned by the adapter (`PageTokenCodec` copy); request-id header. Do not add Databricks-shaped helpers to core in Phase 10.
+- **Testing surface** — `DatabricksMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. HTTP contract tests are required; one pinned `databricks-sdk` version is the compatibility acceptance test (optional/non-blocking if the SDK cannot target localhost in CI). No live Databricks; no network in unit/contract tests.
+- **Exit criterion** — HTTP client (and SDK if CI-feasible) lists fixture clusters across two pages, gets a cluster and job, gets a run, drives one virtual-clock write (create/restart cluster or submit/cancel run), lists secret keys without values, and hits get-status plus one SQL statement or permissions get — all locally.
+
+### Later (see Databricks plan)
+
+Not Phase 10: Unity Catalog (including UC secrets), Model Serving, Spark Declarative Pipelines / DLT, Jobs 2.0 as primary, OAuth, Databricks adapter 1.0. Those are post–Phase 10 in the [Databricks plan](semblance_databricks_plan.md).
 
 ## Phase 11 — Core Infrastructure for Multi-Package Development
 
@@ -145,3 +160,41 @@ Not Phase 9: apply/applyBatch actions, aggregates, object sets, datasets/transac
   - keep package-specific extras isolated unless intentionally shared
 - **Deliverable**
   - Seamless local development from one environment where both adapter packages can be built and tested without path hacks
+
+## Phase 12 — Open Enhancement Issues
+
+- **Status (2026-08-19):** the currently open Semblance enhancement issues are all labeled and tracked below.
+
+- **Goal:** implement all currently open GitHub issues labeled `enhancement` across every Semblance package and ship in one focused cycle.
+
+- **Issue tracking plan**
+  - Keep one checklist item per open `enhancement` issue with title + link.
+  - Link each item to the GitHub issue as source of truth.
+  - Mark items as implemented only when code, tests, and docs updates are complete.
+  - Route each issue to the package or packages it affects, including core `semblance` and any adapter packages under `packages/`.
+
+- **Current open enhancement issues**
+  - [#1 Native support for Bearer token auth in route definitions](https://github.com/eddiethedean/semblance/issues/1)
+  - [#2 JSON-only route limitation workaround via native binary body/response support](https://github.com/eddiethedean/semblance/issues/2)
+  - [#3 First-class conditional fixture resolution](https://github.com/eddiethedean/semblance/issues/3)
+  - [#4 Better fixture-miss behavior controls](https://github.com/eddiethedean/semblance/issues/4)
+  - [#5 Improved list/collection traversal in fixture selectors](https://github.com/eddiethedean/semblance/issues/5)
+  - [#6 Explicit query/path param validation helpers](https://github.com/eddiethedean/semblance/issues/6)
+  - [#7 Structured error helpers for status/body pairing](https://github.com/eddiethedean/semblance/issues/7)
+  - [#8 Better unsupported/invalid input simulation APIs](https://github.com/eddiethedean/semblance/issues/8)
+  - [#9 Deterministic pagination helpers](https://github.com/eddiethedean/semblance/issues/9)
+  - [#10 Built-in fixture matrix + stateful scenario support](https://github.com/eddiethedean/semblance/issues/10)
+
+- **Roll-up tasks**
+  - Stabilize implementation approach for each issue, avoiding partial fixes.
+  - Prefer backward-compatible APIs; add migration notes where behavior changes.
+  - Add/extend tests to lock in accepted behavior.
+  - Update docs (roadmap/usage guides/examples) for user-visible changes.
+  - Apply shared behavior changes consistently across `semblance`, `semblance-foundry`, and `semblance-databricks` when the issue impacts more than one package.
+
+- **Acceptance criteria**
+  - Every linked issue has a linked implementation entry and a status.
+  - All linked issue implementations are verified in CI-equivalent local checks before phase completion.
+  - Roadmap and `CHANGELOG.md` are updated for any externally visible behavior changes.
+
+Source of truth: [`enhancement` issues view](https://github.com/eddiethedean/semblance/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)

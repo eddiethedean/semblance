@@ -29,10 +29,11 @@ Define API behavior declaratively using schemas and dependency metadata—no end
 pip install semblance
 ```
 
-Optional unofficial Foundry ontology mock (separate package):
+Optional unofficial adapters (separate packages):
 
 ```bash
 pip install semblance-foundry
+pip install semblance-databricks
 ```
 
 From source (development):
@@ -263,6 +264,7 @@ Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.i
 - [Troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/)
 - [Cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/)
 - [Foundry adapter](https://semblance.readthedocs.io/en/latest/guides/foundry/)
+- [Databricks adapter](https://semblance.readthedocs.io/en/latest/guides/databricks/)
 - [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/)
 - [API Reference](https://semblance.readthedocs.io/en/latest/api/)
 

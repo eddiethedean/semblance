@@ -1,0 +1,262 @@
+packageVersion: "0.1.0"
+documentedAt: "2026-08-19"
+source: "https://docs.databricks.com/api/workspace/"
+operations:
+  - operationId: ListClusters
+    method: GET
+    path: /api/2.1/clusters/list
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/list
+    tests:
+      - tests/contract/test_clusters.py::test_list_clusters
+  - operationId: GetCluster
+    method: GET
+    path: /api/2.1/clusters/get
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/get
+    tests:
+      - tests/contract/test_clusters.py::test_get_cluster
+  - operationId: ListJobs
+    method: GET
+    path: /api/2.2/jobs/list
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/list
+    tests:
+      - tests/contract/test_jobs.py::test_list_jobs
+  - operationId: GetJob
+    method: GET
+    path: /api/2.2/jobs/get
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/get
+    tests:
+      - tests/contract/test_jobs.py::test_get_job
+  - operationId: GetRun
+    method: GET
+    path: /api/2.2/jobs/runs/get
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/getrun
+    tests:
+      - tests/contract/test_runs.py::test_get_run
+  - operationId: GetStatus
+    method: GET
+    path: /api/2.0/workspace/get-status
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/workspace/getstatus
+    tests:
+      - tests/contract/test_workspace.py::test_get_status
+  - operationId: CurrentUserMe
+    method: GET
+    path: /api/2.0/preview/scim/v2/Me
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/currentuser/
+    tests:
+      - tests/contract/test_workspace.py::test_me
+  - operationId: CreateCluster
+    method: POST
+    path: /api/2.1/clusters/create
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/create
+    tests:
+      - tests/contract/test_clusters.py::test_create_cluster_virtual_clock
+  - operationId: EditCluster
+    method: POST
+    path: /api/2.1/clusters/edit
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/edit
+    tests:
+      - tests/contract/test_clusters.py::test_edit_cluster
+  - operationId: DeleteCluster
+    method: POST
+    path: /api/2.1/clusters/delete
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/delete
+    tests:
+      - tests/contract/test_clusters.py::test_delete_cluster
+  - operationId: RestartCluster
+    method: POST
+    path: /api/2.1/clusters/restart
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/restart
+    tests:
+      - tests/contract/test_clusters.py::test_restart_cluster
+  - operationId: PermanentDeleteCluster
+    method: POST
+    path: /api/2.1/clusters/permanent-delete
+    supportLevel: stub
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/permanentdelete
+    tests:
+      - tests/contract/test_unsupported.py::test_permanent_delete_strict_501
+  - operationId: CreateJob
+    method: POST
+    path: /api/2.2/jobs/create
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/create
+    tests:
+      - tests/contract/test_jobs.py::test_create_job
+  - operationId: ResetJob
+    method: POST
+    path: /api/2.2/jobs/reset
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/reset
+    tests:
+      - tests/contract/test_jobs.py::test_reset_job
+  - operationId: DeleteJob
+    method: POST
+    path: /api/2.2/jobs/delete
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/delete
+    tests:
+      - tests/contract/test_jobs.py::test_delete_job
+  - operationId: SubmitRun
+    method: POST
+    path: /api/2.2/jobs/runs/submit
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/submit
+    tests:
+      - tests/contract/test_runs.py::test_submit_and_cancel
+  - operationId: CancelRun
+    method: POST
+    path: /api/2.2/jobs/runs/cancel
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/cancelrun
+    tests:
+      - tests/contract/test_runs.py::test_submit_and_cancel
+  - operationId: ListWarehouses
+    method: GET
+    path: /api/2.0/sql/warehouses
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/warehouses/list
+    tests:
+      - tests/contract/test_warehouses.py::test_list_warehouses
+  - operationId: GetWarehouse
+    method: GET
+    path: /api/2.0/sql/warehouses/{id}
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/warehouses/get
+    tests:
+      - tests/contract/test_warehouses.py::test_get_warehouse
+  - operationId: CreateWarehouse
+    method: POST
+    path: /api/2.0/sql/warehouses
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/warehouses/create
+    tests:
+      - tests/contract/test_warehouses.py::test_create_delete_warehouse
+  - operationId: DeleteWarehouse
+    method: DELETE
+    path: /api/2.0/sql/warehouses/{id}
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/warehouses/delete
+    tests:
+      - tests/contract/test_warehouses.py::test_create_delete_warehouse
+  - operationId: PutSecret
+    method: POST
+    path: /api/2.0/secrets/put
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/secrets/putsecret
+    tests:
+      - tests/contract/test_secrets.py::test_put_and_list_keys_only
+  - operationId: ListSecrets
+    method: GET
+    path: /api/2.0/secrets/list
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/secrets/listsecrets
+    tests:
+      - tests/contract/test_secrets.py::test_list_secret_keys
+  - operationId: ListSecretScopes
+    method: GET
+    path: /api/2.0/secrets/scopes/list
+    supportLevel: exact
+    docsUrl: https://docs.databricks.com/api/workspace/secrets/listscopes
+    tests:
+      - tests/contract/test_secrets.py::test_list_scopes
+  - operationId: InstallLibraries
+    method: POST
+    path: /api/2.0/libraries/install
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/libraries/installlibraries
+    tests:
+      - tests/contract/test_libraries.py::test_install_uninstall
+  - operationId: UninstallLibraries
+    method: POST
+    path: /api/2.0/libraries/uninstall
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/libraries/uninstalllibraries
+    tests:
+      - tests/contract/test_libraries.py::test_install_uninstall
+  - operationId: GetRunOutput
+    method: GET
+    path: /api/2.2/jobs/runs/get-output
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/jobs/getrunoutput
+    tests:
+      - tests/contract/test_runs.py::test_get_output
+  - operationId: ListClusterEvents
+    method: POST
+    path: /api/2.1/clusters/events
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/clusters/events
+    tests:
+      - tests/contract/test_events.py::test_cluster_events
+  - operationId: ListDbfs
+    method: GET
+    path: /api/2.0/dbfs/list
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/dbfs/list
+    tests:
+      - tests/contract/test_dbfs.py::test_list_dbfs
+  - operationId: ReadDbfs
+    method: GET
+    path: /api/2.0/dbfs/read
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/dbfs/read
+    tests:
+      - tests/contract/test_dbfs.py::test_read_dbfs
+  - operationId: AddBlock
+    method: POST
+    path: /api/2.0/dbfs/add-block
+    supportLevel: stub
+    docsUrl: https://docs.databricks.com/api/workspace/dbfs/addblock
+    tests:
+      - tests/contract/test_unsupported.py::test_add_block_strict_501
+  - operationId: GetPermissions
+    method: GET
+    path: /api/2.0/permissions/{object_type}/{object_id}
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/permissions/
+    tests:
+      - tests/contract/test_permissions.py::test_get_permissions
+  - operationId: UpdatePermissions
+    method: PATCH
+    path: /api/2.0/permissions/{object_type}/{object_id}
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/permissions/
+    tests:
+      - tests/contract/test_permissions.py::test_patch_permissions
+  - operationId: ExecuteStatement
+    method: POST
+    path: /api/2.0/sql/statements
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/statementexecution/execute
+    tests:
+      - tests/contract/test_sql.py::test_execute_statement
+  - operationId: GetStatement
+    method: GET
+    path: /api/2.0/sql/statements/{statement_id}
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/statementexecution/getstatement
+    tests:
+      - tests/contract/test_sql.py::test_get_statement
+  - operationId: ListJobs21
+    method: GET
+    path: /api/2.1/jobs/list
+    supportLevel: representative
+    notes: Jobs 2.1 alias of 2.2
+    tests:
+      - tests/contract/test_jobs.py::test_jobs_21_alias
+  - operationId: Jobs20Unsupported
+    method: GET
+    path: /api/2.0/jobs/list
+    supportLevel: unsupported
+    tests:
+      - tests/contract/test_unsupported.py::test_unknown_path_404

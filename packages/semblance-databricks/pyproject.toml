@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "semblance-databricks"
+version = "0.1.0"
+description = "Unofficial local HTTP simulation of selected Databricks workspace REST operations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [{name = "Semblance Contributors"}]
+keywords = ["databricks", "mock", "simulation", "testing", "fastapi"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "semblance>=0.7.0,<0.8",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "httpx>=0.25.0",
+    "ruff>=0.16.0",
+    "mypy>=1.0.0",
+    "types-PyYAML>=6.0.0",
+]
+sdk = [
+    "databricks-sdk==0.57.0",
+]
+
+[project.scripts]
+semblance-databricks = "semblance_databricks.cli:main"
+
+[project.urls]
+Documentation = "https://semblance.readthedocs.io/en/latest/guides/databricks/"
+Repository = "https://github.com/eddiethedean/semblance"
+Changelog = "https://github.com/eddiethedean/semblance/blob/main/packages/semblance-databricks/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+semblance_databricks = [
+    "py.typed",
+    "compatibility.yaml",
+    "fixtures/defaults/*.yaml",
+]
