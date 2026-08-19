@@ -1,6 +1,7 @@
+import pytest
 from pydantic import BaseModel
 
-from semblance import PageSlice, PageTable, SemblanceAPI
+from semblance import PageSlice, PageTable, PaginatedResponse, SemblanceAPI
 from semblance.testing import test_client as make_client
 
 
@@ -59,3 +60,33 @@ def test_empty_token_uses_first_page() -> None:
     )(lambda: None)
     client = make_client(api.as_fastapi())
     assert client.get("/users", params={"page_token": ""}).json()[0]["name"] == "a"
+
+
+def test_page_table_rejects_paginated_response() -> None:
+    api = SemblanceAPI(seed=1)
+    api.get(
+        "/users",
+        input=Query,
+        output=PaginatedResponse[User],
+        page_table=PageTable(pages={None: [{"name": "a"}]}),
+    )(lambda: None)
+    with pytest.raises(ValueError, match="page_table requires"):
+        api.as_fastapi()
+
+
+def test_page_table_used_when_stateful_list() -> None:
+    api = SemblanceAPI(seed=1, stateful=True)
+
+    class Create(BaseModel):
+        name: str
+
+    api.post("/users", input=Create, output=User)(lambda: None)
+    api.get(
+        "/users",
+        input=Query,
+        output=list[User],
+        page_table=PageTable(pages={None: [{"name": "from-table"}]}),
+    )(lambda: None)
+    client = make_client(api.as_fastapi())
+    client.post("/users", json={"name": "stored"})
+    assert client.get("/users").json() == [{"name": "from-table"}]

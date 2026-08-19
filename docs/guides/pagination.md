@@ -55,7 +55,7 @@ curl "http://127.0.0.1:8000/users?name=alice&limit=5&offset=10"
 
 ## PageTable and PageSlice
 
-For a declared token → page map (not adapter page-token codecs), pass `page_table=` and use `PageSlice[Model]` or `list[Model]`. `None` is the first page. Unknown tokens return 400 `Invalid page token`.
+For a declared token → page map (not adapter page-token codecs), pass `page_table=` and use `PageSlice[Model]` or `list[Model]`. `PaginatedResponse` stays offset/limit and is not valid with `page_table`. `None` is the first page. Unknown tokens return 400 `Invalid page token`. Stateful list GET still serves the table when `page_table` is set.
 
 ```python
 from semblance import PageSlice, PageTable

@@ -23,7 +23,7 @@ app = api.as_fastapi()
 - **bearer_tokens** — optional Bearer allow-list (401 when set and the header does not match).
 - **errors** — sequence of `ErrorCase` (predicate → status/detail).
 - **scenario** — sequence of `ScenarioStep` (holds last after the sequence).
-- **page_table** — `PageTable` for token-keyed pages (`PageSlice` or `list`).
+- **page_table** — `PageTable` for token-keyed pages (`PageSlice[Model]` or `list[Model]` only).
 
 ### Links
 

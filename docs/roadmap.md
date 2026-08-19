@@ -161,7 +161,7 @@ Adapters depend on **`semblance>=0.7.0,<0.9`**. Publish order: **core `v0.8.0` f
 
 ## Phase 12 — Declarative Simulation APIs ✓
 
-Core APIs so downstream simulators stop dropping to Starlette middleware and one-off handlers. The ten open [`enhancement` issues](https://github.com/eddiethedean/semblance/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) are the backlog; this phase ships the **core-library slice** plus adapter dependency-range bumps. Issues were written against consumer simulators (`tests/simulators/…`) that are **not** in this repo — implement against `SemblanceAPI` / link plugins, do not import those files.
+Core APIs so downstream simulators stop dropping to Starlette middleware and one-off handlers. GitHub issues [#1](https://github.com/eddiethedean/semblance/issues/1) and [#3](https://github.com/eddiethedean/semblance/issues/3)–[#10](https://github.com/eddiethedean/semblance/issues/10) are the Phase 12 backlog; this phase ships the **core-library slice** plus adapter dependency-range bumps. Issues were written against consumer simulators (`tests/simulators/…`) that are **not** in this repo — implement against `SemblanceAPI` / link plugins, do not import those files.
 
 Do **not** extract `PageTokenCodec` (or other vendor-shaped helpers) into core. Do **not** replace Foundry/Databricks auth modes or error envelopes. Adapters keep custom FastAPI factories (handlers are still ignored by core). Native bytes/streaming ([#2](https://github.com/eddiethedean/semblance/issues/2)) waits until an in-tree adapter needs `/content` or `/upload`.
 
@@ -186,14 +186,6 @@ Prefer backward-compatible defaults; new strictness is opt-in.
 - **Scenario steps ([#10](https://github.com/eddiethedean/semblance/issues/10))** ✓ — `ScenarioStep` sequence; holds last. `StatefulStore` remains CRUD.
 - **Validation docs ([#6](https://github.com/eddiethedean/semblance/issues/6))** ✓ — Cookbook for Pydantic `Field` / `Literal`; no parallel validator.
 - **Adapter ranges** ✓ — `semblance>=0.8.0,<1.0`; no new Foundry/Databricks operations.
-
-- **Route Bearer ([#1](https://github.com/eddiethedean/semblance/issues/1))** — Declare Bearer on the route (tokens + 401 when missing/invalid). Default stays open. Do not echo tokens. Adapters do not switch to this helper in this phase.
-- **Error maps ([#7](https://github.com/eddiethedean/semblance/issues/7), [#8](https://github.com/eddiethedean/semblance/issues/8))** — Declarative status + body (or fixture) keyed by input predicate (invalid combo, unsupported, unauthorized). Complements `error_rate`; does not replace adapter envelopes.
-- **Fixture links ([#3](https://github.com/eddiethedean/semblance/issues/3), [#4](https://github.com/eddiethedean/semblance/issues/4), [#5](https://github.com/eddiethedean/semblance/issues/5))** — JSON fixture links with input-aware variant selection, list index/filter selectors, and per-link `strict` miss (raise instead of silent empty). Default miss behavior stays non-strict.
-- **Pagination fixtures ([#9](https://github.com/eddiethedean/semblance/issues/9))** — First-class page sequence / page map on top of existing pagination helpers. Do not fold adapter `PageTokenCodec` into core.
-- **Scenario steps ([#10](https://github.com/eddiethedean/semblance/issues/10))** — Lightweight per-route response sequence (e.g. 503 then 200, token-expiry then success). Not a workflow engine; `StatefulStore` remains the CRUD store.
-- **Validation docs ([#6](https://github.com/eddiethedean/semblance/issues/6))** — Cookbook for required params, enums, and pattern constraints via Pydantic `Field`. Add a core helper only if a gap remains after docs.
-- **Adapter ranges** — Widen `semblance-foundry` / `semblance-databricks` to include 0.9.x; no new Foundry/Databricks operations in this phase.
 
 ### Not this phase
 

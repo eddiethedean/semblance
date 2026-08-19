@@ -3,19 +3,21 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
-
-_CACHE: dict[str, Any] = {}
 
 
 def load_json_file(path: str) -> Any:
     """Load and cache a JSON file by resolved path."""
     resolved = str(Path(path).expanduser().resolve())
-    if resolved not in _CACHE:
-        with open(resolved, encoding="utf-8") as fh:
-            _CACHE[resolved] = json.load(fh)
-    return _CACHE[resolved]
+    return _load_json_resolved(resolved)
+
+
+@lru_cache(maxsize=128)
+def _load_json_resolved(resolved: str) -> Any:
+    with open(resolved, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 def resolve_pointer(doc: Any, pointer: str) -> Any:

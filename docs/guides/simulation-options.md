@@ -25,7 +25,7 @@ def users():
 
 ## Bearer tokens
 
-When `bearer_tokens` is set, the route requires `Authorization: Bearer <token>` matching the allow-list. Missing, malformed, or unknown tokens return 401 `Unauthorized` (the presented token is never echoed). Omit the kwarg to leave the route open.
+When `bearer_tokens` is set to a non-empty allow-list, the route requires `Authorization: Bearer <token>` matching the list. Missing, malformed, or unknown tokens return 401 `Unauthorized` (the presented token is never echoed). Omit the kwarg (or pass an empty sequence) to leave the route open.
 
 ```python
 @api.get(

@@ -8,7 +8,7 @@ PageTable / PageSlice serve a declared token → page map (not adapter codecs).
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, get_origin
 
 from pydantic import BaseModel
 
@@ -45,3 +45,18 @@ class PageSlice(BaseModel, Generic[T]):
 
     items: list[T]
     next_page_token: str | None = None
+
+
+def is_page_slice_output(annotation: object) -> bool:
+    """True for ``PageSlice`` and parameterized ``PageSlice[Model]``."""
+    candidates: list[object] = [annotation]
+    origin = get_origin(annotation)
+    if origin is not None:
+        candidates.append(origin)
+    for candidate in candidates:
+        try:
+            if isinstance(candidate, type) and issubclass(candidate, PageSlice):
+                return True
+        except TypeError:
+            continue
+    return False

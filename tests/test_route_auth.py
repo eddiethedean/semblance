@@ -44,6 +44,35 @@ def test_bearer_allow_list() -> None:
     assert malformed.status_code == 401
 
 
+def test_empty_bearer_list_is_open() -> None:
+    api = SemblanceAPI(seed=1)
+    api.get(
+        "/users",
+        input=Query,
+        output=list[User],
+        list_count=1,
+        bearer_tokens=(),
+    )(lambda: None)
+    client = make_client(api.as_fastapi())
+    assert client.get("/users").status_code == 200
+
+
+def test_bytes_bearer_token_matches() -> None:
+    api = SemblanceAPI(seed=1)
+    api.get(
+        "/users",
+        input=Query,
+        output=list[User],
+        list_count=1,
+        bearer_tokens=(b"secret",),  # type: ignore[arg-type]
+    )(lambda: None)
+    client = make_client(api.as_fastapi())
+    assert (
+        client.get("/users", headers={"Authorization": "Bearer secret"}).status_code
+        == 200
+    )
+
+
 def test_openapi_documents_401() -> None:
     api = SemblanceAPI(seed=1)
     api.get(

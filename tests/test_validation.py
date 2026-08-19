@@ -10,6 +10,7 @@ from semblance import (
     DateRangeFrom,
     FromInput,
     FromJsonFixture,
+    PageSlice,
     SemblanceAPI,
     WhenInput,
 )
@@ -182,3 +183,16 @@ def test_validate_specs_variant_from_missing_field():
     api.get("/f", input=Query, output=Out)(lambda: None)
     errors = validate_specs(api.get_endpoint_specs())
     assert any("pageToken" in e for e in errors)
+
+
+def test_validate_specs_fixture_inside_page_slice():
+    class Query(BaseModel):
+        q: str = "x"
+
+    class Row(BaseModel):
+        name: Annotated[str, FromJsonFixture("/no/such/fixture.json")]
+
+    api = SemblanceAPI()
+    api.get("/f", input=Query, output=PageSlice[Row])(lambda: None)
+    errors = validate_specs(api.get_endpoint_specs())
+    assert any("does not exist" in e for e in errors)

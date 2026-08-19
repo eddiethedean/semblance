@@ -68,6 +68,9 @@ site/
 packages/semblance-databricks/semblance_databricks-*/
 packages/semblance-foundry/semblance_foundry-*/
 
+# Unpacked core sdist accidentally left in the repo root
+/semblance-[0-9]*/
+
 # Jupyter
 .ipynb_checkpoints/
 

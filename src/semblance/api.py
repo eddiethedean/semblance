@@ -12,7 +12,7 @@ import hmac
 import random
 import re
 from collections.abc import Callable, Sequence
-from typing import Annotated, Any, get_origin
+from typing import Annotated, Any, cast, get_origin
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -21,7 +21,7 @@ from pydantic import BaseModel, ValidationError
 from semblance.config import load_config
 from semblance.errors import ErrorCase, ScenarioStep
 from semblance.factory import build_response, validate_response
-from semblance.pagination import PageSlice, PageTable
+from semblance.pagination import PageTable, is_page_slice_output
 from semblance.rate_limit import get_limiter
 from semblance.resolver import get_output_model_for_type
 from semblance.state import StatefulStore
@@ -36,6 +36,19 @@ def _parse_path_params(path: str) -> list[str]:
 def _collection_path(path_template: str) -> str:
     """Strip the last /{param} segment for store key. '/users/{id}' -> '/users'."""
     return re.sub(r"/\{\w+\}$", "", path_template)
+
+
+def _normalize_bearer_tokens(tokens: Sequence[str] | None) -> tuple[str, ...] | None:
+    """Coerce an allow-list to str tokens. Empty or None means the route is open."""
+    if not tokens:
+        return None
+    normalized: list[str] = []
+    for token in tokens:
+        if isinstance(token, bytes):
+            normalized.append(token.decode("utf-8"))
+        else:
+            normalized.append(str(token))
+    return tuple(normalized)
 
 
 class EndpointSpec:
@@ -103,7 +116,7 @@ class EndpointSpec:
         self.summary = summary
         self.description = description
         self.tags = tags
-        self.bearer_tokens = None if bearer_tokens is None else tuple(bearer_tokens)
+        self.bearer_tokens = _normalize_bearer_tokens(bearer_tokens)
         self.errors = None if errors is None else tuple(errors)
         self.scenario = None if scenario is None else tuple(scenario)
         self.page_table = page_table
@@ -529,6 +542,18 @@ class SemblanceAPI:
         for mw_class, mw_kwargs in self._middleware:
             app.add_middleware(mw_class, **mw_kwargs)  # type: ignore[arg-type]
         seen: set[tuple[str, str]] = set()
+        for spec in self._specs:
+            if spec.page_table is None:
+                continue
+            ann = spec.output_annotation
+            if ann is None or (
+                get_origin(ann) is not list and not is_page_slice_output(ann)
+            ):
+                method = spec.methods[0]
+                raise ValueError(
+                    f"{method} {spec.path}: page_table requires "
+                    "list[Model] or PageSlice[Model]"
+                )
 
         for spec in self._specs:
             for method in spec.methods:
@@ -645,8 +670,13 @@ class SemblanceAPI:
         presented = parts[1]
         matched = False
         for token in allowed:
-            if len(presented) == len(token) and hmac.compare_digest(presented, token):
-                matched = True
+            if len(presented) != len(token):
+                continue
+            try:
+                if hmac.compare_digest(presented, token):
+                    matched = True
+            except TypeError:
+                continue
         if not matched:
             raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -725,7 +755,10 @@ class SemblanceAPI:
                 inner.model_validate(item) if isinstance(item, dict) else item
                 for item in raw_items
             ]
-        items_field = getattr(output_annotation, "model_fields", {}).get("items")
+        if not is_page_slice_output(output_annotation):
+            raise TypeError("page_table requires list[Model] or PageSlice[Model]")
+        slice_model = cast(type[BaseModel], output_annotation)
+        items_field = slice_model.model_fields.get("items")
         if items_field is None:
             raise TypeError("page_table requires list[Model] or PageSlice[Model]")
         items_ann = getattr(items_field, "annotation", None)
@@ -740,7 +773,7 @@ class SemblanceAPI:
             inner_model.model_validate(item) if isinstance(item, dict) else item
             for item in raw_items
         ]
-        return PageSlice(items=items, next_page_token=next_tok)
+        return slice_model.model_validate({"items": items, "next_page_token": next_tok})
 
     def _generated_response(
         self,
@@ -773,7 +806,7 @@ class SemblanceAPI:
         if spec.error_rate and spec.error_rate > 0 and spec.error_codes:
             for code in spec.error_codes:
                 responses[code] = {"description": "Simulated error"}
-        if spec.bearer_tokens is not None:
+        if spec.bearer_tokens:
             responses[401] = {"description": "Unauthorized"}
         if spec.errors:
             for case in spec.errors:
@@ -828,7 +861,11 @@ class SemblanceAPI:
             assert output_annotation is not None
             merged, seed = await self._run_preamble(spec, request, query)
             response: BaseModel | list[BaseModel]
-            if store is not None and get_origin(output_annotation) is list:
+            if (
+                store is not None
+                and spec.page_table is None
+                and get_origin(output_annotation) is list
+            ):
                 response = store.get_all(path)
                 if filter_by:
                     target = merged.model_dump().get(filter_by)

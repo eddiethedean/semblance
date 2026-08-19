@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ScenarioStep` per-route sequences (holds last step). Cookbook documents Pydantic `Field` validation.
 - Adapter packages on this train: `semblance-foundry` 0.1.3 and `semblance-databricks` 0.1.2 (core range `semblance>=0.8.0,<1.0`).
 
+### Fixed
+
+- `page_table` is limited to `list[Model]` / `PageSlice[Model]` (not `PaginatedResponse`) and is honored on stateful list GET.
+- Link validation walks `items` on `PageSlice` / `PaginatedResponse`. Bearer allow-lists accept `bytes` tokens and treat an empty list as open.
+
 ## [0.8.0] - 2026-08-19
 
 ### Added

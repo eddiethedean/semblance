@@ -6,7 +6,7 @@ so missing or invalid references surface at startup or via `semblance validate`.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, get_origin
 
 from pydantic import BaseModel
 
@@ -20,6 +20,19 @@ from semblance.links import (
     get_field_metadata,
 )
 from semblance.resolver import _get_nested_model, get_output_model_for_type
+
+
+def _get_list_item_model(field_annotation: object) -> type[BaseModel] | None:
+    """Inner BaseModel for ``list[Model]`` annotations."""
+    if get_origin(field_annotation) is not list:
+        return None
+    args = getattr(field_annotation, "__args__", ())
+    if not args:
+        return None
+    arg = args[0]
+    if isinstance(arg, type) and issubclass(arg, BaseModel):
+        return arg
+    return _get_nested_model(arg)
 
 
 def _validate_output_links(
@@ -39,7 +52,7 @@ def _validate_output_links(
         field_prefix = f"{prefix}{field_name}" if prefix else field_name
 
         if meta is None:
-            # Nested BaseModel: recurse
+            # Nested BaseModel or list[BaseModel]: recurse
             field_info = output_model.model_fields.get(field_name)
             if field_info is not None:
                 ann = getattr(field_info, "annotation", None)
@@ -52,6 +65,16 @@ def _validate_output_links(
                         method,
                         errors,
                         prefix=f"{field_prefix}.",
+                    )
+                list_item = _get_list_item_model(ann or object)
+                if list_item is not None:
+                    _validate_output_links(
+                        list_item,
+                        input_model,
+                        path,
+                        method,
+                        errors,
+                        prefix=f"{field_prefix}[].",
                     )
             continue
 
