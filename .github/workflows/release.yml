@@ -168,6 +168,9 @@ jobs:
     if: startsWith(github.ref_name, 'foundry-v')
     needs: [lint, typecheck, test, security]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -201,8 +204,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/semblance-foundry/dist
-          username: __token__
-          password: ${{ secrets.PYPI_FOUNDRY_API_TOKEN || secrets.PYPI_API_TOKEN }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

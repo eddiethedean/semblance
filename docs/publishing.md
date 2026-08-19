@@ -14,7 +14,8 @@ Do **not** tag `v0.1.0` for Foundry — that pattern is reserved for core Sembla
 ## Prerequisites
 
 1. **PyPI account** – [Register](https://pypi.org/account/register/) if needed.
-2. **API token** – stored as the `PYPI_API_TOKEN` GitHub secret. For Foundry, the token must be allowed to publish `semblance-foundry` (account-scoped, or a project token for that package). Optional: set `PYPI_FOUNDRY_API_TOKEN` if Foundry uses a separate token.
+2. **`semblance`** – API token stored as the `PYPI_API_TOKEN` GitHub secret (project-scoped to `semblance` is enough).
+3. **`semblance-foundry`** – [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) on PyPI for this repo, workflow `release.yml`, no GitHub Environment. The Foundry publish job uses OIDC (`id-token: write`) and does not use `PYPI_API_TOKEN`.
 
 ## Release checklist
 
