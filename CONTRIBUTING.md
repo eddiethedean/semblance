@@ -4,53 +4,36 @@ Thanks for your interest in contributing to Semblance. This document covers how 
 
 ## Development Setup
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/eddiethedean/semblance.git
-   cd semblance
-   ```
-
-2. **Create a virtual environment and install in editable mode**
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate   # On Windows: .venv\Scripts\activate
-   pip install -e ".[dev]"
-   ```
-
-3. **Optional: Install pre-commit hooks**
-   ```bash
-   pre-commit install
-   ```
-   This runs ruff and other checks before each commit.
-
-### Multi-package development notes
-
-The repository also hosts adapter packages:
-
-- `packages/semblance-foundry/`
-- `packages/semblance-databricks/`
-
-Install the editable packages when they are present:
+From a clean clone:
 
 ```bash
-pip install -e .[dev]
-pip install -e packages/semblance-foundry[dev]
-pip install -e packages/semblance-databricks[dev]
+git clone https://github.com/eddiethedean/semblance.git
+cd semblance
+python -m venv .venv
+source .venv/bin/activate   # On Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+pip install -e "packages/semblance-foundry[dev]"
+pip install -e "packages/semblance-databricks[dev]"
+pre-commit install   # optional
 ```
 
-If a package is not yet available, install only the existing ones.
+The adapters live at `packages/semblance-foundry/` and `packages/semblance-databricks/`. Root pytest, ruff, and mypy already include those trees.
 
 ## Running Checks
 
 Before submitting a pull request, ensure the following pass:
 
-- **Tests**
-  ```bash
-  pytest tests/ packages/semblance-foundry/tests packages/semblance-databricks/tests -v --cov=src/semblance --cov-fail-under=73 -m "not sdk"
-  ```
-  Run from the project root so that `examples.*` imports work (e.g. in `test_doc_examples`). If you add a new entry to `docs/guides/examples/run_examples.py` (the `EXAMPLES` list), the callable must return successfully; `test_run_examples_produces_valid_output` enforces that.
+- **Tests** (run from the project root so `examples.*` imports work). Prefer the same slices CI uses:
 
-  If one or more package test directories are not present yet, run only the available directories for that commit.
+  ```bash
+  pytest tests/ -v --cov=src/semblance -m "not sdk"
+  pytest packages/semblance-foundry/tests -v --cov=packages/semblance-foundry/src/semblance_foundry -m "not sdk"
+  pytest packages/semblance-databricks/tests -v --cov=packages/semblance-databricks/src/semblance_databricks -m "not sdk"
+  ```
+
+  Coverage gate for core (optional locally): `--cov-fail-under=73` on the `tests/` slice.
+
+  If you add a new entry to `docs/guides/examples/run_examples.py` (the `EXAMPLES` list), the callable must return successfully; `test_run_examples_produces_valid_output` enforces that.
 
 - **Lint (ruff)**
   ```bash

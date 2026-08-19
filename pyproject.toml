@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semblance"
-version = "0.7.0"
+version = "0.8.0"
 description = "Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,7 +39,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "httpx>=0.25.0",
     "hypothesis>=6.0.0",
-    "ruff>=0.16.0",
+    "ruff==0.16.3",
     "mypy>=1.0.0",
     "bandit>=1.7.0",
     "pip-audit>=2.0.0",
@@ -73,7 +73,12 @@ markers = [
 target-version = "py310"
 line-length = 88
 src = ["src", "tests", "packages/semblance-foundry/src", "packages/semblance-databricks/src"]
-exclude = ["docs", "examples"]
+exclude = [
+    "docs",
+    "examples",
+    "packages/semblance-foundry/semblance_foundry-*",
+    "packages/semblance-databricks/semblance_databricks-*",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]

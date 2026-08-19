@@ -4,9 +4,9 @@ This repository publishes independently versioned packages:
 
 | Package | `pyproject.toml` | Tag | PyPI |
 |---|---|---|---|
-| `semblance` | repo root | `v0.7.0` | https://pypi.org/project/semblance/ |
-| `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.1` | https://pypi.org/project/semblance-foundry/ |
-| `semblance-databricks` | `packages/semblance-databricks/` | `databricks-v0.1.0` | https://pypi.org/project/semblance-databricks/ |
+| `semblance` | repo root | `v0.8.0` | https://pypi.org/project/semblance/ |
+| `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.2` | https://pypi.org/project/semblance-foundry/ |
+| `semblance-databricks` | `packages/semblance-databricks/` | `databricks-v0.1.1` | https://pypi.org/project/semblance-databricks/ |
 
 Tagging is the release. Pushing a matching tag runs [.github/workflows/release.yml](https://github.com/eddiethedean/semblance/blob/main/.github/workflows/release.yml): lint, typecheck, tests, security, then build and upload **only** the package that matches the tag. The workflow refuses to publish if the tag version does not equal the version in that package's `pyproject.toml`.
 
@@ -40,16 +40,16 @@ For a project that does not exist yet, add a **pending** publisher with that pro
 
 ```bash
 # Core Semblance
-git tag v0.7.0
-git push origin v0.7.0
+git tag v0.8.0
+git push origin v0.8.0
 
 # Foundry adapter (separate tag, separate PyPI project)
-git tag foundry-v0.1.1
-git push origin foundry-v0.1.1
+git tag foundry-v0.1.2
+git push origin foundry-v0.1.2
 
 # Databricks adapter (separate tag, separate PyPI project)
-git tag databricks-v0.1.0
-git push origin databricks-v0.1.0
+git tag databricks-v0.1.1
+git push origin databricks-v0.1.1
 ```
 
 You cannot reuse a version number once it has been published.

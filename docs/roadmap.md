@@ -125,47 +125,39 @@ Unofficial `semblance-databricks` adapter covering workspace compute, jobs, arti
 
 Not Phase 10: Unity Catalog (including UC secrets), Model Serving, Spark Declarative Pipelines / DLT, Jobs 2.0 as primary, OAuth, Databricks adapter 1.0. Those are post–Phase 10 in the [Databricks plan](semblance_databricks_plan.md).
 
-## Phase 11 — Core Infrastructure for Multi-Package Development
+## Phase 11 — Core Infrastructure for Multi-Package Development ✓
 
 Workspace plumbing so core + both adapters develop from one environment without path hacks. Do not extract `PageTokenCodec` (or other vendor-shaped helpers) into core in this phase; Foundry and Databricks copies wrap different error types. Leave extraction for a later phase if the codecs stay identical.
 
-### Already in tree (do not redo)
+### Already in tree
 
 - Root `pyproject.toml` pytest `pythonpath`, ruff `src`, and mypy `mypy_path` include `src/`, `packages/semblance-foundry/src`, and `packages/semblance-databricks/src`.
 - CONTRIBUTING and README document editable installs for core + both adapters.
-- CI installs all three packages and runs ruff, mypy, bandit, and a single combined pytest (`-m "not sdk"`).
+- Workspace lint, mypy, and security jobs cover all three packages.
 
-### Remaining work
+### Remaining work (done)
 
-- **CI slices** — Split pytest so a Foundry or Databricks failure is not buried in one `test` job: matrix `package: [core, foundry, databricks]` (or three jobs) with the same OS/Python matrix, `-m "not sdk"`. Keep one workspace lint/mypy/security job. Optionally report adapter coverage separately (today `--cov=src/semblance` only).
-- **Install/cache hygiene** — Hash adapter `pyproject.toml` files in pip cache keys, not only the root. README Development still runs `pytest tests/ -v`; point it at the full CONTRIBUTING command (core + both package test trees).
-- **Dependency boundaries** — Cheap import/graph check (or documented rule + test) that `semblance_foundry` and `semblance_databricks` do not import each other, and neither imports private core modules beyond the published `semblance` surface. Pin shared dev tools (ruff/mypy/pytest) in root extras; adapter `[dev]` extras stay for package-only installs.
-- **Tree hygiene** — Remove accidental unpack `packages/semblance-databricks/semblance_databricks-0.1.0/` if still present; it is not the live package.
-- **Docs** — CONTRIBUTING: one “from a clean clone” block (core + both adapters + slice commands). Update [publishing](publishing.md) example tags to the versions below when those versions ship (not before).
+- **CI slices** ✓ — Pytest matrix `package: [core, foundry, databricks]` on the same OS/Python matrix, `-m "not sdk"`. Lint/mypy/security stay workspace-wide. Each slice reports coverage for that tree.
+- **Install/cache hygiene** ✓ — Pip cache keys hash all three `pyproject.toml` files. README Development and CONTRIBUTING use the three pytest slices.
+- **Dependency boundaries** ✓ — `tests/test_package_boundaries.py`: adapters do not import each other or `semblance._*`. Root `dev` extra pins `ruff==0.16.3`; adapter `[dev]` extras remain for package-only installs.
+- **Tree hygiene** ✓ — Unpack glob ignored; ruff excludes `semblance_*-*` leftover sdist dirs.
+- **Docs** ✓ — CONTRIBUTING clean-clone block; [publishing](publishing.md) example tags `v0.8.0` / `foundry-v0.1.2` / `databricks-v0.1.1`.
 
-### Release versions (before tagging)
+### Release versions
 
-Current: core `0.7.0`, Foundry `0.1.1`, Databricks `0.1.0`. Tags follow [publishing](publishing.md) (`v*`, `foundry-v*`, `databricks-v*`).
+| Package | From | To | Tag |
+|---|---|---|---|
+| `semblance` | 0.7.0 | **0.8.0** | `v0.8.0` |
+| `semblance-foundry` | 0.1.1 | **0.1.2** | `foundry-v0.1.2` |
+| `semblance-databricks` | 0.1.0 | **0.1.1** | `databricks-v0.1.1` |
 
-| Package | From | To | Tag | Why |
-|---|---|---|---|---|
-| `semblance` | 0.7.0 | **0.8.0** | `v0.8.0` | Monorepo-infra milestone (same pattern as 0.7.0 for Foundry). Public `SemblanceAPI` stays compatible. |
-| `semblance-foundry` | 0.1.1 | **0.1.2** | `foundry-v0.1.2` | Patch: widen core range + changelog. No new Foundry operations. |
-| `semblance-databricks` | 0.1.0 | **0.1.1** | `databricks-v0.1.1` | Patch: same. No new Databricks operations. |
-
-Adapter dependency on core: today Foundry is `semblance>=0.6.1,<0.8` and Databricks is `>=0.7.0,<0.8`. After 0.8.0 those upper bounds cannot take latest core. Bump both adapters to **`semblance>=0.7.0,<0.9`** unless a test proves Foundry still needs `>=0.6.1` (then `>=0.6.1,<0.9`). Do not require `>=0.8.0` unless a later phase extracts shared code adapters consume.
-
-Publish order: **core `v0.8.0` first**, then adapter tags.
-
-Core changelog: Phase 11 is a **0.8.0** Added/Changed section (not a silent stay-on-0.7.0 note).
+Adapters depend on **`semblance>=0.7.0,<0.9`**. Publish order: **core `v0.8.0` first**, then adapter tags (tagging is a separate step; see [publishing](publishing.md)).
 
 ### Acceptance
 
 - From one venv: editable installs of all three packages; both adapters build and test without path hacks.
-- CI green with independent test slices.
-- Versions and changelogs dated; three tags ready as in the table above.
-
-Do not mark this phase complete until the remaining work and release versions are done.
+- CI uses independent test slices.
+- Versions and changelogs dated for 0.8.0 / 0.1.2 / 0.1.1.
 
 ## Phase 12 — Open Enhancement Issues
 

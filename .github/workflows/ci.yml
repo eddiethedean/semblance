@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'packages/semblance-foundry/pyproject.toml', 'packages/semblance-databricks/pyproject.toml') }}
 
       - name: Install project
         run: |
@@ -63,6 +63,14 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12"]
+        package: [core, foundry, databricks]
+        include:
+          - package: core
+            pytest-args: tests/ --cov=src/semblance
+          - package: foundry
+            pytest-args: packages/semblance-foundry/tests --cov=packages/semblance-foundry/src/semblance_foundry
+          - package: databricks
+            pytest-args: packages/semblance-databricks/tests --cov=packages/semblance-databricks/src/semblance_databricks
 
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +84,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+          key: pip-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('pyproject.toml', 'packages/semblance-foundry/pyproject.toml', 'packages/semblance-databricks/pyproject.toml') }}
 
       - name: Install dependencies
         run: |
@@ -85,8 +93,8 @@ jobs:
           pip install -e "packages/semblance-foundry[dev]"
           pip install -e "packages/semblance-databricks[dev]"
 
-      - name: Run tests
-        run: pytest tests/ packages/semblance-foundry/tests packages/semblance-databricks/tests -v --cov=src/semblance --cov-report=xml -m "not sdk"
+      - name: Run tests (${{ matrix.package }})
+        run: pytest ${{ matrix.pytest-args }} -v --cov-report=xml -m "not sdk"
 
   security:
     runs-on: ubuntu-latest
@@ -102,7 +110,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-security-${{ hashFiles('pyproject.toml') }}
+          key: pip-security-${{ hashFiles('pyproject.toml', 'packages/semblance-foundry/pyproject.toml', 'packages/semblance-databricks/pyproject.toml') }}
 
       - name: Install project
         run: |

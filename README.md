@@ -278,10 +278,10 @@ cd semblance
 pip install -e ".[dev]"
 pip install -e packages/semblance-foundry[dev]
 pip install -e packages/semblance-databricks[dev]
-pytest tests/ -v
+pytest tests/ -v -m "not sdk"
+pytest packages/semblance-foundry/tests -v -m "not sdk"
+pytest packages/semblance-databricks/tests -v -m "not sdk"
 ```
-
-When one of the package directories is not present yet, install only the available package(s).
 
 ## License
 

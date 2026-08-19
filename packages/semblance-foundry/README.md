@@ -6,7 +6,7 @@ This package is **not affiliated with, endorsed by, or equivalent to Palantir**.
 
 Verified against public API v2 documentation dated **2026-08-18**. See `compatibility.yaml` (also served at `/.well-known/foundry-mock-compatibility.json`).
 
-Requires `semblance` 0.6.1 or 0.7.x.
+Requires `semblance` 0.7.x or 0.8.x (`>=0.7.0,<0.9`).
 
 ## Install
 

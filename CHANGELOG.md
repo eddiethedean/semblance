@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-19
+
 ### Added
 
 #### Phase 10 — External API mock packages: Databricks
-- Independently versioned `semblance-databricks` adapter under `packages/semblance-databricks/` (workspace compute, jobs, artifacts, permissions, SQL statements). Install separately: `pip install semblance-databricks`. Core `semblance` remains 0.7.0; this note does not bump the library.
-- Adapter releases (independently tagged): `semblance-foundry` 0.1.1 (page-token validation) and first `semblance-databricks` 0.1.0.
+- Independently versioned `semblance-databricks` adapter under `packages/semblance-databricks/` (workspace compute, jobs, artifacts, permissions, SQL statements). Install separately: `pip install semblance-databricks`.
+- Adapter packages on this train: `semblance-foundry` 0.1.2 and `semblance-databricks` 0.1.1 (core range `semblance>=0.7.0,<0.9`). Earlier adapter tags `foundry-v0.1.1` and `databricks-v0.1.0` remain valid.
+
+### Changed
+
+#### Phase 11 — Core infrastructure for multi-package development
+- CI and release pytest run as independent slices (`core` / `foundry` / `databricks`) on the same OS/Python matrix; lint, mypy, and security stay workspace-wide.
+- Pip cache keys hash root and both adapter `pyproject.toml` files.
+- Import-boundary tests forbid cross-adapter imports and private `semblance._*` modules.
+- Contributor docs: one clean-clone install for all three packages and the three pytest slice commands.
+- Root `dev` extra pins `ruff==0.16.3` to match CI.
 
 ## [0.7.0] - 2026-08-18
 
@@ -170,7 +181,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/eddiethedean/semblance/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/eddiethedean/semblance/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/eddiethedean/semblance/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/eddiethedean/semblance/releases/tag/v0.6.0

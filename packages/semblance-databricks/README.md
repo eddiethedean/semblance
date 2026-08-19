@@ -6,7 +6,7 @@ This package is **not affiliated with, endorsed by, or equivalent to Databricks*
 
 Verified against public workspace REST documentation dated **2026-08-19**. See `compatibility.yaml` (also served at `/.well-known/semblance-databricks-compat.json`).
 
-Requires `semblance` 0.7.x.
+Requires `semblance` 0.7.x or 0.8.x (`>=0.7.0,<0.9`).
 
 ## Install
 

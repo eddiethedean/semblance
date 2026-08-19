@@ -4,6 +4,12 @@ All notable changes to `semblance-databricks` are documented in this file.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-19
+
+### Changed
+
+- Depend on `semblance>=0.7.0,<0.9` so the adapter installs with Semblance 0.8.x. No new Databricks operations.
+
 ## [0.1.0] - 2026-08-19
 
 Workspace compute / jobs / artifacts / permissions / SQL-statement MVP (Phase 10 A–D).
@@ -28,5 +34,6 @@ Workspace compute / jobs / artifacts / permissions / SQL-statement MVP (Phase 10
 - Invalid JSON bodies return 400 instead of empty-object creates
 - DBFS put stores base64 contents and refuses path traversal in the temp-dir backend
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.1...HEAD
+[0.1.1]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.0...databricks-v0.1.1
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/databricks-v0.1.0
