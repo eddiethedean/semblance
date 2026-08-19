@@ -7,19 +7,12 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object
 from semblance_databricks.pagination import paginate
 from semblance_databricks.services.deps import mock_from, require_fail_stage
 from semblance_databricks.state import JobRecord, RunRecord
 
-
-async def _json_body(request: Request) -> dict[str, Any]:
-    try:
-        body = await request.json()
-    except Exception:
-        return {}
-    if not isinstance(body, dict):
-        raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "JSON object required")
-    return body
+_TERMINAL_RUNS = {"TERMINATED", "SKIPPED", "INTERNAL_ERROR"}
 
 
 def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
@@ -32,6 +25,7 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
         page_token: str | None = None,
     ) -> dict[str, Any]:
         mock = mock_from(request)
+        mock.state.maybe_tick_real(mock.config.clock)
         jobs = sorted(mock.state.jobs.values(), key=lambda rec: rec.job_id)
         items = [mock.state.job_json(job) for job in jobs]
         page, nxt = paginate(
@@ -72,42 +66,48 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
 
     @router.post(f"{prefix}/jobs/create", name=f"create_job{slug}")
     async def create_job(request: Request) -> dict[str, Any]:
-        require_fail_stage(request, "before_write")
+        require_fail_stage(request, "before_validate")
         mock = mock_from(request)
-        body = await _json_body(request)
-        jid = str(1000 + mock.state.next_seq())
-        settings_raw = body.get("settings")
-        settings: dict[str, Any] = (
-            dict(settings_raw) if isinstance(settings_raw, dict) else {}
-        )
-        name = str(body.get("name") or settings.get("name") or "job")
-        merged = {"name": name, **settings}
-        mock.state.jobs[jid] = JobRecord(job_id=jid, settings=merged)
+        body = await json_object(request)
+        require_fail_stage(request, "before_write")
+        jid = mock.state.allocate_numeric_id(mock.state.jobs, 1000)
+        if isinstance(body.get("settings"), dict):
+            settings = dict(body["settings"])
+        else:
+            settings = {key: value for key, value in body.items() if key != "job_id"}
+        if "name" not in settings:
+            settings["name"] = str(body.get("name") or "job")
+        mock.state.jobs[jid] = JobRecord(job_id=jid, settings=settings)
         mock.state.permissions[("jobs", jid)] = {
             "object_id": jid,
             "object_type": "job",
             "access_control_list": [],
         }
         mock.state.bump()
+        require_fail_stage(request, "after_write")
         return {"job_id": int(jid)}
 
     @router.post(f"{prefix}/jobs/reset", name=f"reset_job{slug}")
     async def reset_job(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         jid = str(body.get("job_id", ""))
         rec = mock.state.jobs.get(jid)
         if rec is None:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Job not found")
-        settings = body.get("new_settings") or body.get("settings") or {}
-        rec.settings = dict(settings)
+        settings_raw = body.get("new_settings") or body.get("settings") or {}
+        if not isinstance(settings_raw, dict):
+            raise DatabricksError(
+                400, "INVALID_PARAMETER_VALUE", "settings must be an object"
+            )
+        rec.settings = dict(settings_raw)
         mock.state.bump()
         return {}
 
     @router.post(f"{prefix}/jobs/delete", name=f"delete_job{slug}")
     async def delete_job(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         jid = str(body.get("job_id", ""))
         if jid not in mock.state.jobs:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Job not found")
@@ -118,8 +118,8 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
     @router.post(f"{prefix}/jobs/runs/submit", name=f"submit_run{slug}")
     async def submit_run(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
-        rid = str(2000 + mock.state.next_seq())
+        body = await json_object(request)
+        rid = mock.state.allocate_numeric_id(mock.state.runs, 2000)
         job_id = str(body["job_id"]) if body.get("job_id") is not None else None
         mock.state.runs[rid] = RunRecord(
             run_id=rid,
@@ -135,11 +135,13 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
     @router.post(f"{prefix}/jobs/runs/cancel", name=f"cancel_run{slug}")
     async def cancel_run(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         rid = str(body.get("run_id", ""))
         rec = mock.state.runs.get(rid)
         if rec is None:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Run not found")
+        if rec.life_cycle_state in _TERMINAL_RUNS:
+            raise DatabricksError(400, "INVALID_STATE", "Run is not active")
         rec.canceling = True
         rec.life_cycle_state = "TERMINATING"
         mock.state.bump()

@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object
 from semblance_databricks.services.deps import mock_from
 
 
@@ -39,14 +40,7 @@ def create_permissions_router() -> APIRouter:
             raise DatabricksError(
                 404, "RESOURCE_DOES_NOT_EXIST", "Permissions not found"
             )
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
-        if not isinstance(body, dict):
-            raise DatabricksError(
-                400, "INVALID_PARAMETER_VALUE", "JSON object required"
-            )
+        body = await json_object(request)
         acl = body.get("access_control_list")
         if isinstance(acl, list):
             rec["access_control_list"] = acl

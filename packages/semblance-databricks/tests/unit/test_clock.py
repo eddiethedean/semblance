@@ -1,6 +1,13 @@
 from semblance_databricks.state import DatabricksState
 
 
+def test_cluster_pending_zero_ticks_advances() -> None:
+    state = DatabricksState(seed=42)
+    rec = state.add_cluster("c", state="PENDING", ticks_remaining=0)
+    state.tick()
+    assert rec.state == "RUNNING"
+
+
 def test_cluster_pending_to_running() -> None:
     state = DatabricksState(seed=42)
     rec = state.add_cluster("c", state="PENDING", ticks_remaining=1)
@@ -24,10 +31,9 @@ def test_run_cancel() -> None:
         run_id="1",
         job_id=None,
         run_name="x",
-        life_cycle_state="RUNNING",
+        life_cycle_state="TERMINATING",
         canceling=True,
     )
-    run.life_cycle_state = "TERMINATING"
     state.runs["1"] = run
     state.tick()
     assert run.life_cycle_state == "TERMINATED"

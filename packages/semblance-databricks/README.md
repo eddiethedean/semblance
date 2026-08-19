@@ -66,7 +66,7 @@ Authentication errors never echo the token. This is not an OAuth server.
 
 ## Fixtures
 
-YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only**. Secret **values** are never returned on REST list/get-key.
+YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only**. Secret **values** are never returned on REST (list and put only; there is no get-key).
 
 `load_bundled_fixture()` loads the shipped `acme` workspace. Use `load_fixture(path)` for your own files. Advance cluster/run state with `dbx.tick()`.
 

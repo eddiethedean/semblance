@@ -40,3 +40,14 @@ def test_fail_stage_before_write() -> None:
     client = TestClient(mock.as_fastapi())
     r = client.post("/api/2.1/clusters/create", json={"cluster_name": "x"})
     assert r.status_code == 500
+
+
+def test_invalid_startup_delay_ticks() -> None:
+    mock = DatabricksMock(DatabricksMockConfig(seed=42))
+    mock.load_fixture(bundled_acme_path())
+    client = TestClient(mock.as_fastapi())
+    r = client.post(
+        "/api/2.1/clusters/create",
+        json={"cluster_name": "x", "startup_delay_ticks": "nope"},
+    )
+    assert r.status_code == 400

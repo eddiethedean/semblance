@@ -182,6 +182,7 @@ def apply_fixture(doc: FixtureDocument, state: DatabricksState) -> None:
         state.workspace_objects[obj.path] = WorkspaceObject(
             path=obj.path, object_type=obj.object_type
         )
+    state.reindex_seq()
     state.bump()
 
 

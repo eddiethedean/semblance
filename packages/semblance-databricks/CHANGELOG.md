@@ -20,5 +20,14 @@ Not tagged or published yet.
 - CLI: `serve` (port 8766; bundled acme if `--fixture` omitted), `validate`, `fixture init`, `operations`
 - HTTP contract tests; optional `sdk` extra (`databricks-sdk==0.57.0`) skipped unless installed
 
+### Fixed
+
+- Job and run create IDs no longer overwrite bundled fixture `1001` / `2001`
+- Jobs create persists top-level JobSettings (`tasks`, etc.)
+- Cancel of terminal runs returns `INVALID_STATE`
+- Page tokens reject HMAC length mismatch and stale revision after writes
+- Invalid JSON bodies return 400 instead of empty-object creates
+- DBFS put stores base64 contents and refuses path traversal in the temp-dir backend
+
 [Unreleased]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.0...HEAD
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/databricks-v0.1.0

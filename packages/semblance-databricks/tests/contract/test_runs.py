@@ -25,6 +25,9 @@ def test_submit_and_cancel() -> None:
     submitted = client.post("/api/2.2/jobs/runs/submit", json={"job_id": 1001})
     assert submitted.status_code == 200
     rid = submitted.json()["run_id"]
+    assert rid != 2001
+    fixture = client.get("/api/2.2/jobs/runs/get?run_id=2001")
+    assert fixture.json()["state"]["life_cycle_state"] == "TERMINATED"
     pending = client.get(f"/api/2.2/jobs/runs/get?run_id={rid}")
     assert pending.json()["state"]["life_cycle_state"] == "PENDING"
     mock.tick()
@@ -36,3 +39,9 @@ def test_submit_and_cancel() -> None:
     done = client.get(f"/api/2.2/jobs/runs/get?run_id={rid}")
     assert done.json()["state"]["life_cycle_state"] == "TERMINATED"
     assert done.json()["state"]["result_state"] == "CANCELED"
+
+
+def test_cancel_terminal_run_rejected(client: TestClient) -> None:
+    r = client.post("/api/2.2/jobs/runs/cancel", json={"run_id": 2001})
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "INVALID_STATE"

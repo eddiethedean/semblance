@@ -42,3 +42,9 @@ def test_statement_callback() -> None:
     )
     assert r.json()["result"]["data_array"] == [["a"]]
     assert r.json()["result"]["next_chunk_internal"] == 1
+
+
+def test_execute_requires_warehouse(client: TestClient) -> None:
+    r = client.post("/api/2.0/sql/statements", json={"statement": "SELECT 1"})
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "INVALID_PARAMETER_VALUE"

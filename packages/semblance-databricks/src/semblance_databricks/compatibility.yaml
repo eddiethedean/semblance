@@ -254,6 +254,13 @@ operations:
     notes: Jobs 2.1 alias of 2.2
     tests:
       - tests/contract/test_jobs.py::test_jobs_21_alias
+  - operationId: PutDbfs
+    method: POST
+    path: /api/2.0/dbfs/put
+    supportLevel: representative
+    docsUrl: https://docs.databricks.com/api/workspace/dbfs/put
+    tests:
+      - tests/contract/test_dbfs.py::test_put_and_read_base64
   - operationId: Jobs20Unsupported
     method: GET
     path: /api/2.0/jobs/list

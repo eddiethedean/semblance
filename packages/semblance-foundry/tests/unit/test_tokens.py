@@ -28,3 +28,17 @@ def test_page_token_wrong_resource() -> None:
     with pytest.raises(FoundryError) as exc:
         codec.decode(token, "objects:acme:Office")
     assert exc.value.error_name == "InvalidPageToken"
+
+
+def test_page_token_short_sig_rejected() -> None:
+    import base64
+
+    codec = PageTokenCodec(rid_secret(42))
+    token = codec.encode("objects:acme:Employee", 0, 1)
+    padded = token + "=" * (-len(token) % 4)
+    decoded = base64.urlsafe_b64decode(padded.encode()).decode()
+    payload, _sig = decoded.rsplit("|", 1)
+    short = base64.urlsafe_b64encode(f"{payload}|ab".encode()).decode().rstrip("=")
+    with pytest.raises(FoundryError) as exc:
+        codec.decode(short, "objects:acme:Employee")
+    assert exc.value.error_name == "InvalidPageToken"

@@ -50,6 +50,7 @@ class DatabricksMock:
         self._rng = random.Random(self.config.seed)
 
     def load_fixture(self, path: str | Path) -> DatabricksMock:
+        self.state.clear()
         doc = load_fixture_file(path)
         apply_fixture(doc, self.state)
         return self

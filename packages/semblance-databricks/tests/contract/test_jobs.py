@@ -19,11 +19,21 @@ def test_get_job(client: TestClient) -> None:
 
 
 def test_create_job(client: TestClient) -> None:
-    r = client.post("/api/2.2/jobs/create", json={"name": "adhoc"})
+    r = client.post(
+        "/api/2.2/jobs/create",
+        json={
+            "name": "adhoc",
+            "tasks": [{"task_key": "t1", "notebook_task": {"notebook_path": "/n"}}],
+        },
+    )
     assert r.status_code == 200
     jid = r.json()["job_id"]
+    assert jid != 1001
+    leftover = client.get("/api/2.2/jobs/get?job_id=1001")
+    assert leftover.json()["settings"]["name"] == "nightly-etl"
     got = client.get(f"/api/2.2/jobs/get?job_id={jid}")
     assert got.json()["settings"]["name"] == "adhoc"
+    assert got.json()["settings"]["tasks"][0]["task_key"] == "t1"
 
 
 def test_reset_job(client: TestClient) -> None:

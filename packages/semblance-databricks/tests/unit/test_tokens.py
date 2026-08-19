@@ -28,3 +28,17 @@ def test_page_token_wrong_resource() -> None:
     with pytest.raises(DatabricksError) as exc:
         codec.decode(token, "jobs")
     assert exc.value.error_code == "INVALID_PARAMETER_VALUE"
+
+
+def test_page_token_short_sig_rejected() -> None:
+    import base64
+
+    codec = PageTokenCodec(token_secret(42))
+    token = codec.encode("clusters", 0, 1)
+    padded = token + "=" * (-len(token) % 4)
+    decoded = base64.urlsafe_b64decode(padded.encode()).decode()
+    payload, _sig = decoded.rsplit("|", 1)
+    short = base64.urlsafe_b64encode(f"{payload}|ab".encode()).decode().rstrip("=")
+    with pytest.raises(DatabricksError) as exc:
+        codec.decode(short, "clusters")
+    assert exc.value.status_code == 400

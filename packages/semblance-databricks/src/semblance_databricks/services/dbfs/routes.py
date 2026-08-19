@@ -1,4 +1,4 @@
-"""DBFS list/read and add-block stub."""
+"""DBFS list/read, put, and add-block stub."""
 
 from __future__ import annotations
 
@@ -9,14 +9,23 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object
 from semblance_databricks.services.deps import mock_from, stub_unimplemented
 from semblance_databricks.state import DbfsNode
 
 
 def _normalize(path: str) -> str:
-    if not path.startswith("/"):
-        path = "/" + path
-    return path.rstrip("/") or "/"
+    raw = path.replace("\\", "/")
+    if not raw.startswith("/"):
+        raw = "/" + raw
+    parts: list[str] = []
+    for seg in raw.split("/"):
+        if seg in {"", "."}:
+            continue
+        if seg == ".." or ":" in seg:
+            raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid path")
+        parts.append(seg)
+    return "/" + "/".join(parts) if parts else "/"
 
 
 def _parent(path: str) -> str:
@@ -25,6 +34,18 @@ def _parent(path: str) -> str:
     stripped = path.rstrip("/")
     idx = stripped.rfind("/")
     return stripped[:idx] or "/"
+
+
+def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
+    base = Path(root).resolve()
+    rel = dbfs_path.lstrip("/")
+    dest = base.joinpath(*rel.split("/")).resolve()
+    try:
+        dest.relative_to(base)
+    except ValueError as exc:
+        raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid path") from exc
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(data)
 
 
 def create_dbfs_router() -> APIRouter:
@@ -80,28 +101,25 @@ def create_dbfs_router() -> APIRouter:
     @router.post("/api/2.0/dbfs/put")
     async def put_file(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        try:
-            body = await request.json()
-        except Exception:
-            body = {}
-        if not isinstance(body, dict):
-            raise DatabricksError(
-                400, "INVALID_PARAMETER_VALUE", "JSON object required"
-            )
+        body = await json_object(request)
         path = _normalize(str(body.get("path", "")))
         if not path or path == "/":
             raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "path required")
         if len(mock.state.dbfs) >= mock.config.dbfs_max_files:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS file cap")
-        content = str(body.get("contents", "")).encode()
+        raw = str(body.get("contents", ""))
+        try:
+            content = base64.b64decode(raw, validate=True)
+        except Exception as exc:
+            raise DatabricksError(
+                400, "INVALID_PARAMETER_VALUE", "contents must be base64"
+            ) from exc
         total = sum(len(n.data) for n in mock.state.dbfs.values()) + len(content)
         if total > mock.config.dbfs_max_bytes:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS size cap")
         mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)
         if mock.config.dbfs_temp_dir:
-            dest = Path(mock.config.dbfs_temp_dir) / path.lstrip("/")
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            dest.write_bytes(content)
+            _write_temp(mock.config.dbfs_temp_dir, path, content)
         mock.state.bump()
         return {}
 

@@ -7,19 +7,11 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object
 from semblance_databricks.ids import make_id
+from semblance_databricks.pagination import paginate
 from semblance_databricks.services.deps import mock_from
 from semblance_databricks.state import WarehouseRecord
-
-
-async def _json_body(request: Request) -> dict[str, Any]:
-    try:
-        body = await request.json()
-    except Exception:
-        return {}
-    if not isinstance(body, dict):
-        raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "JSON object required")
-    return body
 
 
 def _statement_payload(statement_id: str, rec: dict[str, Any]) -> dict[str, Any]:
@@ -54,24 +46,40 @@ def create_dbsql_router() -> APIRouter:
     router = APIRouter()
 
     @router.get("/api/2.0/sql/warehouses")
-    def list_warehouses(request: Request) -> dict[str, Any]:
+    def list_warehouses(
+        request: Request,
+        page_size: int | None = None,
+        page_token: str | None = None,
+    ) -> dict[str, Any]:
         mock = mock_from(request)
-        return {
-            "warehouses": [
-                {
-                    "id": w.id,
-                    "name": w.name,
-                    "state": w.state,
-                    "cluster_size": w.cluster_size,
-                }
-                for w in mock.state.warehouses.values()
-            ]
-        }
+        items = [
+            {
+                "id": w.id,
+                "name": w.name,
+                "state": w.state,
+                "cluster_size": w.cluster_size,
+            }
+            for w in mock.state.warehouses.values()
+        ]
+        page, nxt = paginate(
+            items,
+            page_size=page_size,
+            page_token=page_token,
+            resource="warehouses",
+            codec=mock.page_token_codec,
+            revision=mock.state.revision,
+            default_page_size=mock.config.default_page_size,
+            max_page_size=mock.config.max_page_size,
+        )
+        body: dict[str, Any] = {"warehouses": page}
+        if nxt:
+            body["next_page_token"] = nxt
+        return body
 
     @router.post("/api/2.0/sql/warehouses")
     async def create_warehouse(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         name = str(body.get("name", "warehouse"))
         wid = make_id("warehouse", f"{name}:{mock.state.next_seq()}", mock.config.seed)
         rec = WarehouseRecord(
@@ -113,10 +121,14 @@ def create_dbsql_router() -> APIRouter:
     @router.post("/api/2.0/sql/statements")
     async def execute_statement(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
-        warehouse_id = str(body.get("warehouse_id", ""))
+        body = await json_object(request)
+        warehouse_id = str(body.get("warehouse_id") or "")
         sql = str(body.get("statement", ""))
-        if warehouse_id and warehouse_id not in mock.state.warehouses:
+        if not warehouse_id:
+            raise DatabricksError(
+                400, "INVALID_PARAMETER_VALUE", "warehouse_id required"
+            )
+        if warehouse_id not in mock.state.warehouses:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Warehouse not found")
         sid = make_id("statement", f"{sql}:{mock.state.next_seq()}", mock.config.seed)
         callback = mock.state.statement_callbacks.get(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,13 @@ from semblance_databricks.registry import registered_operations
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
-    config = DatabricksMockConfig(seed=args.seed, auth=args.auth)
+    seed = (
+        args.seed
+        if args.seed is not None
+        else int(os.environ.get("SEMBLANCE_DATABRICKS_SEED", "42"))
+    )
+    host = os.environ.get("SEMBLANCE_DATABRICKS_HOST", args.host)
+    config = DatabricksMockConfig(seed=seed, auth=args.auth)
     mock = DatabricksMock(config)
     mock.load_fixture(args.fixture or bundled_acme_path())
     app = mock.as_fastapi()
@@ -23,7 +30,7 @@ def cmd_serve(args: argparse.Namespace) -> None:
         raise SystemExit(
             "uvicorn not found. Install semblance (pulls uvicorn)."
         ) from exc
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host=host, port=args.port)
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
@@ -71,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8766)
-    serve.add_argument("--seed", type=int, default=42)
+    serve.add_argument("--seed", type=int, default=None)
     serve.add_argument(
         "--auth",
         default="optional",

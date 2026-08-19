@@ -61,13 +61,19 @@ class PageTokenCodec:
             expected = hmac.new(
                 self._secret, payload.encode(), hashlib.sha256
             ).hexdigest()[:16]
-            if not hmac.compare_digest(sig, expected):
+            if len(sig) != len(expected) or not hmac.compare_digest(sig, expected):
                 raise ValueError("checksum mismatch")
             data = json.loads(payload)
             resource = str(data["r"])
             offset = int(data["o"])
             revision = int(data["v"])
-        except (ValueError, KeyError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+        except (
+            ValueError,
+            KeyError,
+            TypeError,
+            json.JSONDecodeError,
+            UnicodeDecodeError,
+        ) as exc:
             raise DatabricksError(
                 400,
                 "INVALID_PARAMETER_VALUE",

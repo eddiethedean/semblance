@@ -34,6 +34,13 @@ def paginate(
     offset = 0
     if page_token:
         cursor = codec.decode(page_token, resource)
+        if cursor.revision != revision:
+            raise FoundryError(
+                status_code=400,
+                error_code="INVALID_ARGUMENT",
+                error_name="InvalidPageToken",
+                parameters={"pageToken": "<redacted>"},
+            )
         offset = cursor.offset
     page = list(items[offset : offset + size])
     next_offset = offset + len(page)

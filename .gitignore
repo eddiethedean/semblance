@@ -64,6 +64,10 @@ Thumbs.db
 # MkDocs
 site/
 
+# Unpacked adapter sdists accidentally left next to sources
+packages/semblance-databricks/semblance_databricks-*/
+packages/semblance-foundry/semblance_foundry-*/
+
 # Jupyter
 .ipynb_checkpoints/
 

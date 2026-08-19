@@ -102,6 +102,20 @@ class DatabricksState:
         self.seq += 1
         return self.seq
 
+    def allocate_numeric_id(self, existing: dict[str, Any], floor: int) -> str:
+        used = {int(key) for key in existing if str(key).isdigit()}
+        n = max([floor - 1, *used]) + 1
+        while str(n) in existing:
+            n += 1
+        self.seq = max(self.seq, n)
+        return str(n)
+
+    def reindex_seq(self) -> None:
+        nums = [int(k) for k in self.jobs if str(k).isdigit()]
+        nums.extend(int(k) for k in self.runs if str(k).isdigit())
+        if nums:
+            self.seq = max(self.seq, max(nums))
+
     def clear(self) -> None:
         self.clusters.clear()
         self.jobs.clear()
@@ -120,11 +134,9 @@ class DatabricksState:
         for cluster in self.clusters.values():
             if cluster.deleted:
                 continue
-            if (
-                cluster.state in {"PENDING", "RESTARTING"}
-                and cluster.ticks_remaining > 0
-            ):
-                cluster.ticks_remaining -= 1
+            if cluster.state in {"PENDING", "RESTARTING"}:
+                if cluster.ticks_remaining > 0:
+                    cluster.ticks_remaining -= 1
                 if cluster.ticks_remaining <= 0:
                     if cluster.state == "RESTARTING":
                         cluster.state = "PENDING"
@@ -216,6 +228,7 @@ class DatabricksState:
             "state": rec.state,
             "state_message": rec.state_message,
             "num_workers": rec.num_workers,
+            "libraries": rec.libraries,
         }
 
     def job_json(self, rec: JobRecord) -> dict[str, Any]:

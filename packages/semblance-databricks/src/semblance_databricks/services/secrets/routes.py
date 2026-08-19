@@ -7,18 +7,9 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object
 from semblance_databricks.services.deps import mock_from
 from semblance_databricks.state import SecretScope
-
-
-async def _json_body(request: Request) -> dict[str, Any]:
-    try:
-        body = await request.json()
-    except Exception:
-        return {}
-    if not isinstance(body, dict):
-        raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "JSON object required")
-    return body
 
 
 def create_secrets_router() -> APIRouter:
@@ -47,7 +38,7 @@ def create_secrets_router() -> APIRouter:
     @router.post("/api/2.0/secrets/put")
     async def put_secret(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         scope = str(body.get("scope", ""))
         key = str(body.get("key", ""))
         if not scope or not key:

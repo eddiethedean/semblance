@@ -33,6 +33,12 @@ def paginate(
     offset = 0
     if page_token:
         cursor = codec.decode(page_token, resource)
+        if cursor.revision != revision:
+            raise DatabricksError(
+                400,
+                "INVALID_PARAMETER_VALUE",
+                "Invalid page token",
+            )
         offset = cursor.offset
     page = list(items[offset : offset + size])
     next_offset = offset + len(page)

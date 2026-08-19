@@ -105,3 +105,23 @@ def test_restart_cluster(mock: DatabricksMock, client: TestClient) -> None:
 def test_clusters_20_get_alias(client: TestClient) -> None:
     r = client.get("/api/2.0/clusters/get?cluster_id=0101-acme-0001")
     assert r.status_code == 200
+
+
+def test_invalid_json_create(client: TestClient) -> None:
+    r = client.post(
+        "/api/2.1/clusters/create",
+        content=b"not-json",
+        headers={"Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "INVALID_PARAMETER_VALUE"
+
+
+def test_stale_page_token_after_write(client: TestClient) -> None:
+    first = client.get("/api/2.1/clusters/list?page_size=2")
+    token = first.json()["next_page_token"]
+    created = client.post("/api/2.1/clusters/create", json={"cluster_name": "extra"})
+    assert created.status_code == 200
+    stale = client.get(f"/api/2.1/clusters/list?page_size=2&page_token={token}")
+    assert stale.status_code == 400
+    assert stale.json()["error_code"] == "INVALID_PARAMETER_VALUE"

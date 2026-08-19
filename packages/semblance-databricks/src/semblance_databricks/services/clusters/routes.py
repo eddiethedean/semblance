@@ -7,22 +7,13 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from semblance_databricks.errors import DatabricksError
+from semblance_databricks.http import json_object, require_int
 from semblance_databricks.pagination import paginate
 from semblance_databricks.services.deps import (
     mock_from,
     require_fail_stage,
     stub_unimplemented,
 )
-
-
-async def _json_body(request: Request) -> dict[str, Any]:
-    try:
-        body = await request.json()
-    except Exception:
-        return {}
-    if not isinstance(body, dict):
-        raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "JSON object required")
-    return body
 
 
 def create_clusters_router() -> APIRouter:
@@ -94,16 +85,18 @@ def create_clusters_router() -> APIRouter:
     async def create(request: Request) -> dict[str, Any]:
         require_fail_stage(request, "before_validate")
         mock = mock_from(request)
+        body = await json_object(request)
         require_fail_stage(request, "before_write")
-        body = await _json_body(request)
         rec = mock.state.add_cluster(
             str(body.get("cluster_name", "cluster")),
             spark_version=str(body.get("spark_version", "13.3.x-scala2.12")),
             node_type_id=str(body.get("node_type_id", "i3.xlarge")),
             state="PENDING",
-            ticks_remaining=int(body.get("startup_delay_ticks", 1)),
+            ticks_remaining=require_int(
+                body.get("startup_delay_ticks"), 1, "startup_delay_ticks"
+            ),
             fail_after=bool(body.get("startup_failure", False)),
-            num_workers=int(body.get("num_workers", 1)),
+            num_workers=require_int(body.get("num_workers"), 1, "num_workers"),
         )
         require_fail_stage(request, "after_write")
         return {"cluster_id": rec.cluster_id}
@@ -112,7 +105,7 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/clusters/edit")
     async def edit(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
@@ -120,7 +113,7 @@ def create_clusters_router() -> APIRouter:
         if "cluster_name" in body:
             rec.cluster_name = str(body["cluster_name"])
         if "num_workers" in body:
-            rec.num_workers = int(body["num_workers"])
+            rec.num_workers = require_int(body["num_workers"], 1, "num_workers")
         mock.state.bump()
         return {}
 
@@ -128,7 +121,7 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/clusters/delete")
     async def delete(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
@@ -141,7 +134,7 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/clusters/restart")
     async def restart(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
@@ -162,7 +155,7 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/clusters/events")
     async def events(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
@@ -172,7 +165,7 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/libraries/install")
     async def install(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
@@ -183,12 +176,16 @@ def create_clusters_router() -> APIRouter:
     @router.post("/api/2.0/libraries/uninstall")
     async def uninstall(request: Request) -> dict[str, Any]:
         mock = mock_from(request)
-        body = await _json_body(request)
+        body = await json_object(request)
         cid = str(body.get("cluster_id", ""))
         rec = mock.state.clusters.get(cid)
         if rec is None or rec.deleted:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Cluster not found")
-        rec.libraries = []
+        requested = list(body.get("libraries") or [])
+        if requested:
+            rec.libraries = [lib for lib in rec.libraries if lib not in requested]
+        else:
+            rec.libraries = []
         return {}
 
     return router

@@ -52,7 +52,7 @@ jobs:
 
       - name: Install project
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
           pip install -e "packages/semblance-databricks[dev]"
@@ -84,7 +84,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
           pip install -e "packages/semblance-databricks[dev]"
@@ -110,7 +110,7 @@ jobs:
 
       - name: Install project
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install -e ".[dev]"
           pip install -e "packages/semblance-foundry[dev]"
           pip install -e "packages/semblance-databricks[dev]"
@@ -148,7 +148,7 @@ jobs:
 
       - name: Install build
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install build
 
       - name: Build package
@@ -198,7 +198,7 @@ jobs:
 
       - name: Install build
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install build
 
       - name: Build package
@@ -247,7 +247,7 @@ jobs:
 
       - name: Install build
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install build
 
       - name: Build package
