@@ -159,40 +159,71 @@ Adapters depend on **`semblance>=0.7.0,<0.9`**. Publish order: **core `v0.8.0` f
 - CI uses independent test slices.
 - Versions and changelogs dated for 0.8.0 / 0.1.2 / 0.1.1.
 
-## Phase 12 — Open Enhancement Issues
+## Phase 12 — Declarative Simulation APIs
 
-- **Status (2026-08-19):** the currently open Semblance enhancement issues are all labeled and tracked below.
+Core APIs so downstream simulators stop dropping to Starlette middleware and one-off handlers. The ten open [`enhancement` issues](https://github.com/eddiethedean/semblance/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement) are the backlog; this phase ships the **core-library slice** plus adapter dependency-range bumps. Issues were written against consumer simulators (`tests/simulators/…`) that are **not** in this repo — implement against `SemblanceAPI` / link plugins, do not import those files.
 
-- **Goal:** implement all currently open GitHub issues labeled `enhancement` across every Semblance package and ship in one focused cycle.
+Do **not** extract `PageTokenCodec` (or other vendor-shaped helpers) into core. Do **not** replace Foundry/Databricks auth modes or error envelopes. Adapters keep custom FastAPI factories (handlers are still ignored by core). Native bytes/streaming ([#2](https://github.com/eddiethedean/semblance/issues/2)) waits until an in-tree adapter needs `/content` or `/upload`.
 
-- **Issue tracking plan**
-  - Keep one checklist item per open `enhancement` issue with title + link.
-  - Link each item to the GitHub issue as source of truth.
-  - Mark items as implemented only when code, tests, and docs updates are complete.
-  - Route each issue to the package or packages it affects, including core `semblance` and any adapter packages under `packages/`.
+Prefer backward-compatible defaults; new strictness is opt-in.
 
-- **Current open enhancement issues**
-  - [#1 Native support for Bearer token auth in route definitions](https://github.com/eddiethedean/semblance/issues/1)
-  - [#2 JSON-only route limitation workaround via native binary body/response support](https://github.com/eddiethedean/semblance/issues/2)
-  - [#3 First-class conditional fixture resolution](https://github.com/eddiethedean/semblance/issues/3)
-  - [#4 Better fixture-miss behavior controls](https://github.com/eddiethedean/semblance/issues/4)
-  - [#5 Improved list/collection traversal in fixture selectors](https://github.com/eddiethedean/semblance/issues/5)
-  - [#6 Explicit query/path param validation helpers](https://github.com/eddiethedean/semblance/issues/6)
-  - [#7 Structured error helpers for status/body pairing](https://github.com/eddiethedean/semblance/issues/7)
-  - [#8 Better unsupported/invalid input simulation APIs](https://github.com/eddiethedean/semblance/issues/8)
-  - [#9 Deterministic pagination helpers](https://github.com/eddiethedean/semblance/issues/9)
-  - [#10 Built-in fixture matrix + stateful scenario support](https://github.com/eddiethedean/semblance/issues/10)
+### Already in tree
 
-- **Roll-up tasks**
-  - Stabilize implementation approach for each issue, avoiding partial fixes.
-  - Prefer backward-compatible APIs; add migration notes where behavior changes.
-  - Add/extend tests to lock in accepted behavior.
-  - Update docs (roadmap/usage guides/examples) for user-visible changes.
-  - Apply shared behavior changes consistently across `semblance`, `semblance-foundry`, and `semblance-databricks` when the issue impacts more than one package.
+- Pydantic input models already validate query, path, and body ([#6](https://github.com/eddiethedean/semblance/issues/6) is mostly this).
+- `WhenInput` for conditional field links; `FromHeader` / `FromCookie` for request binding.
+- `PageParams` / `PaginatedResponse` for offset/limit lists; adapters own opaque page tokens.
+- Route `error_rate` / `error_codes`; `stateful=True` + `StatefulStore` for CRUD-shaped mutation.
+- Adapter Bearer (`disabled` / `optional` / `strict`) and vendor error JSON — not core route auth.
 
-- **Acceptance criteria**
-  - Every linked issue has a linked implementation entry and a status.
-  - All linked issue implementations are verified in CI-equivalent local checks before phase completion.
-  - Roadmap and `CHANGELOG.md` are updated for any externally visible behavior changes.
+`FromJsonFixture` / `FromNestedFixture` named in the issues **do not exist** in semblance; Phase 12 adds fixture links rather than tightening types that are already shipped.
 
-Source of truth: [`enhancement` issues view](https://github.com/eddiethedean/semblance/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement)
+### Remaining work
+
+- **Route Bearer ([#1](https://github.com/eddiethedean/semblance/issues/1))** — Declare Bearer on the route (tokens + 401 when missing/invalid). Default stays open. Do not echo tokens. Adapters do not switch to this helper in this phase.
+- **Error maps ([#7](https://github.com/eddiethedean/semblance/issues/7), [#8](https://github.com/eddiethedean/semblance/issues/8))** — Declarative status + body (or fixture) keyed by input predicate (invalid combo, unsupported, unauthorized). Complements `error_rate`; does not replace adapter envelopes.
+- **Fixture links ([#3](https://github.com/eddiethedean/semblance/issues/3), [#4](https://github.com/eddiethedean/semblance/issues/4), [#5](https://github.com/eddiethedean/semblance/issues/5))** — JSON fixture links with input-aware variant selection, list index/filter selectors, and per-link `strict` miss (raise instead of silent empty). Default miss behavior stays non-strict.
+- **Pagination fixtures ([#9](https://github.com/eddiethedean/semblance/issues/9))** — First-class page sequence / page map on top of existing pagination helpers. Do not fold adapter `PageTokenCodec` into core.
+- **Scenario steps ([#10](https://github.com/eddiethedean/semblance/issues/10))** — Lightweight per-route response sequence (e.g. 503 then 200, token-expiry then success). Not a workflow engine; `StatefulStore` remains the CRUD store.
+- **Validation docs ([#6](https://github.com/eddiethedean/semblance/issues/6))** — Cookbook for required params, enums, and pattern constraints via Pydantic `Field`. Add a core helper only if a gap remains after docs.
+- **Adapter ranges** — Widen `semblance-foundry` / `semblance-databricks` to include 0.9.x; no new Foundry/Databricks operations in this phase.
+
+### Not this phase
+
+- [#2](https://github.com/eddiethedean/semblance/issues/2) binary/streaming bodies and content-type overrides.
+- Foundry apply/datasets/content, Databricks Unity Catalog / serving (still post–Phase 9 / 10).
+- Migrating adapter routers onto core Bearer, error maps, or fixture links.
+- Extracting `PageTokenCodec` into core.
+
+### Issue routing
+
+| Issue | Owner | Phase 12 |
+|---|---|---|
+| [#1](https://github.com/eddiethedean/semblance/issues/1) Bearer routes | core | yes |
+| [#2](https://github.com/eddiethedean/semblance/issues/2) binary bodies | core | later |
+| [#3](https://github.com/eddiethedean/semblance/issues/3) conditional fixtures | core | yes (new links) |
+| [#4](https://github.com/eddiethedean/semblance/issues/4) fixture-miss strict | core | yes |
+| [#5](https://github.com/eddiethedean/semblance/issues/5) collection selectors | core | yes |
+| [#6](https://github.com/eddiethedean/semblance/issues/6) param validation | core | docs first |
+| [#7](https://github.com/eddiethedean/semblance/issues/7) status/body errors | core | yes |
+| [#8](https://github.com/eddiethedean/semblance/issues/8) invalid-input errors | core | yes (with #7) |
+| [#9](https://github.com/eddiethedean/semblance/issues/9) pagination fixtures | core | yes |
+| [#10](https://github.com/eddiethedean/semblance/issues/10) scenario steps | core | yes (lightweight) |
+
+Mark a row done only when code, tests, and user-facing docs for that issue are in tree. Close the GitHub issue in the same change.
+
+### Release versions
+
+| Package | From | To | Tag |
+|---|---|---|---|
+| `semblance` | 0.8.0 | **0.9.0** | `v0.9.0` |
+| `semblance-foundry` | 0.1.2 | **0.1.3** | `foundry-v0.1.3` |
+| `semblance-databricks` | 0.1.1 | **0.1.2** | `databricks-v0.1.2` |
+
+Adapters depend on **`semblance>=0.8.0,<1.0`** so 0.9.x installs (today’s `<0.9` would block it). Publish order: **core `v0.9.0` first**, then adapter tags ([publishing](publishing.md)).
+
+### Acceptance
+
+- In-scope issues (#1, #3–#10) implemented or documented as specified; #2 still open and pointed at a later phase.
+- Defaults unchanged for existing apps; strict fixture-miss and Bearer are opt-in.
+- Adapters still build against core without using the new helpers internally.
+- CI slices stay green; changelogs dated for 0.9.0 / 0.1.3 / 0.1.2.
