@@ -9,7 +9,7 @@ callables) for the Polyfactory layer.
 
 import random
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any, Protocol, get_origin
 
 from pydantic import BaseModel
@@ -51,6 +51,8 @@ def _make_random_datetime_closure(
 def _get_nested_model(field_annotation: object) -> type[BaseModel] | None:
     """Extract BaseModel from field annotation (handles Optional[BaseModel])."""
     origin = get_origin(field_annotation)
+    if origin is list:
+        return None
     if origin is not None:
         args = getattr(field_annotation, "__args__", ())
         for arg in args:
@@ -135,7 +137,9 @@ def resolve_overrides(
                     end_val = input_data.get(inner.end)
                     if start_val is not None and end_val is not None:
                         start = _to_datetime(start_val)
-                        end = _to_datetime(end_val)
+                        end = _to_datetime(
+                            end_val, end_of_day=_end_of_day(start_val, end_val)
+                        )
                         if start is not None and end is not None:
                             overrides[name] = _make_random_datetime_closure(
                                 start, end, rng
@@ -146,7 +150,7 @@ def resolve_overrides(
             end_val = input_data.get(meta.end)
             if start_val is not None and end_val is not None:
                 start = _to_datetime(start_val)
-                end = _to_datetime(end_val)
+                end = _to_datetime(end_val, end_of_day=_end_of_day(start_val, end_val))
                 if start is not None and end is not None:
                     overrides[name] = _make_random_datetime_closure(start, end, rng)
 
@@ -161,14 +165,21 @@ def resolve_overrides(
     return overrides
 
 
-def _to_datetime(value: Any) -> datetime | None:
+def _end_of_day(start_val: Any, end_val: Any) -> bool:
+    start_is_date = isinstance(start_val, date) and not isinstance(start_val, datetime)
+    end_is_date = isinstance(end_val, date) and not isinstance(end_val, datetime)
+    return end_is_date and (not start_is_date or end_val > start_val)
+
+
+def _to_datetime(value: Any, *, end_of_day: bool = False) -> datetime | None:
     """Convert a value to datetime (handles date, datetime, or ISO string)."""
     if value is None:
         return None
     if isinstance(value, datetime):
         return value
     if isinstance(value, date) and not isinstance(value, datetime):
-        return datetime.combine(value, datetime.min.time())
+        clock = time(23, 59, 59) if end_of_day else datetime.min.time()
+        return datetime.combine(value, clock)
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00"))

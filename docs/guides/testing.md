@@ -8,7 +8,7 @@ Semblance is built for testing. Use the test client with pytest for fast, determ
 from semblance import SemblanceAPI, test_client
 
 api = SemblanceAPI()
-@api.get("/users", input=UserQuery, output=list[User])(lambda: None)
+api.get("/users", input=UserQuery, output=list[User])(lambda: None)
 app = api.as_fastapi()
 client = test_client(app)
 

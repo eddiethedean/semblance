@@ -35,3 +35,24 @@ def test_search_unsupported_filter(client: TestClient) -> None:
     )
     assert r.status_code == 400
     assert r.json()["errorName"] == "InvalidQuery"
+
+
+def test_search_page_token_does_not_reuse_across_filters(client: TestClient) -> None:
+    first = client.post(
+        "/api/v2/ontologies/acme/objects/Employee/search",
+        json={
+            "pageSize": 1,
+            "where": {"type": "eq", "field": "officeId", "value": "hq"},
+        },
+    )
+    token = first.json().get("nextPageToken")
+    assert token
+    reused = client.post(
+        "/api/v2/ontologies/acme/objects/Employee/search",
+        json={
+            "pageSize": 1,
+            "pageToken": token,
+            "where": {"type": "eq", "field": "officeId", "value": "other"},
+        },
+    )
+    assert reused.status_code == 400

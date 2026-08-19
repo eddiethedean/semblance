@@ -8,9 +8,14 @@ import sys
 from pathlib import Path
 
 from semblance_databricks.app import DatabricksMock
-from semblance_databricks.config import DatabricksMockConfig
-from semblance_databricks.fixtures.loaders import bundled_acme_path, load_fixture_file
+from semblance_databricks.config import DatabricksMockConfig, TokenGrant
+from semblance_databricks.fixtures.loaders import (
+    apply_fixture,
+    bundled_acme_path,
+    load_fixture_file,
+)
 from semblance_databricks.registry import registered_operations
+from semblance_databricks.state import DatabricksState
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
@@ -19,8 +24,11 @@ def cmd_serve(args: argparse.Namespace) -> None:
         if args.seed is not None
         else int(os.environ.get("SEMBLANCE_DATABRICKS_SEED", "42"))
     )
-    host = os.environ.get("SEMBLANCE_DATABRICKS_HOST", args.host)
-    config = DatabricksMockConfig(seed=seed, auth=args.auth)
+    host = args.host
+    tokens = tuple(TokenGrant(token) for token in (args.token or []))
+    if args.auth == "strict" and not tokens:
+        raise SystemExit("strict auth requires at least one --token")
+    config = DatabricksMockConfig(seed=seed, auth=args.auth, tokens=tokens)
     mock = DatabricksMock(config)
     mock.load_fixture(args.fixture or bundled_acme_path())
     app = mock.as_fastapi()
@@ -28,14 +36,15 @@ def cmd_serve(args: argparse.Namespace) -> None:
         import uvicorn
     except ImportError as exc:
         raise SystemExit(
-            "uvicorn not found. Install semblance (pulls uvicorn)."
+            "uvicorn not found. Install semblance-databricks (pulls uvicorn via semblance)."
         ) from exc
     uvicorn.run(app, host=host, port=args.port)
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
     try:
-        load_fixture_file(args.fixture)
+        doc = load_fixture_file(args.fixture)
+        apply_fixture(doc, DatabricksState(seed=42))
     except Exception as exc:
         raise SystemExit(f"Invalid fixture: {exc}") from exc
     print("OK")
@@ -76,13 +85,22 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="YAML or JSON fixture path (default: bundled acme example)",
     )
-    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument(
+        "--host",
+        default=os.environ.get("SEMBLANCE_DATABRICKS_HOST", "127.0.0.1"),
+    )
     serve.add_argument("--port", type=int, default=8766)
     serve.add_argument("--seed", type=int, default=None)
     serve.add_argument(
         "--auth",
         default="optional",
         choices=["disabled", "optional", "strict"],
+    )
+    serve.add_argument(
+        "--token",
+        action="append",
+        default=[],
+        help="Bearer token accepted in strict mode (repeatable)",
     )
     serve.set_defaults(func=cmd_serve)
 

@@ -77,3 +77,30 @@ def test_build_list_with_filter_by_on_generated_field():
     assert len(result) == 5
     for item in result:
         assert item.role == "admin"
+
+
+def test_nested_list_of_models_builds():
+    class Addr(BaseModel):
+        city: str = "x"
+
+    class WithAddrs(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        addresses: list[Addr] = []
+
+    query = UserQuery(name="nested-list")
+    result = build_one(WithAddrs, UserQuery, query, seed=42)
+    assert result.name == "nested-list"
+    assert isinstance(result.addresses, list)
+
+
+def test_computed_from_generated_sibling():
+    from semblance import ComputedFrom
+
+    class Out(BaseModel):
+        name: Annotated[str, FromInput("name")]
+        suffix: str
+        label: Annotated[str, ComputedFrom(("name", "suffix"), lambda a, b: f"{a}-{b}")]
+
+    query = UserQuery(name="ann")
+    result = build_one(Out, UserQuery, query, seed=7)
+    assert result.label == f"{result.name}-{result.suffix}"

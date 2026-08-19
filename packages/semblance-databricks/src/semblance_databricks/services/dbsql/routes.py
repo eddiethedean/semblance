@@ -17,7 +17,16 @@ from semblance_databricks.state import WarehouseRecord
 def _statement_payload(statement_id: str, rec: dict[str, Any]) -> dict[str, Any]:
     chunks: list[Any] = rec.get("chunks") or []
     index = int(rec.get("chunk_index", 0))
-    chunk = chunks[index] if index < len(chunks) else []
+    if index < 0:
+        raise DatabricksError(
+            400, "INVALID_PARAMETER_VALUE", "chunk_index must be >= 0"
+        )
+    if not chunks:
+        chunk: Any = []
+    elif index >= len(chunks):
+        raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Chunk not found")
+    else:
+        chunk = chunks[index]
     next_chunk = None
     if index + 1 < len(chunks):
         next_chunk = index + 1
@@ -115,6 +124,7 @@ def create_dbsql_router() -> APIRouter:
         if warehouse_id not in mock.state.warehouses:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Warehouse not found")
         del mock.state.warehouses[warehouse_id]
+        mock.state.permissions.pop(("warehouses", warehouse_id), None)
         mock.state.bump()
         return {}
 

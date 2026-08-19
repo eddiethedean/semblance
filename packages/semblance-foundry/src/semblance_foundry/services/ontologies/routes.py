@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any, cast
 
 from fastapi import APIRouter, Query, Request
@@ -301,11 +303,17 @@ def create_ontology_router() -> APIRouter:
             if _match_where(o.properties, body.where)
         ]
         default_ps, max_ps = _page_defaults(request)
+        where_blob = json.dumps(
+            {"where": body.where, "select": body.select},
+            sort_keys=True,
+            default=str,
+        )
+        where_digest = hashlib.sha256(where_blob.encode()).hexdigest()[:16]
         page, token = paginate(
             items,
             page_size=body.page_size,
             page_token=body.page_token,
-            resource=f"search:{ont.api_name}:{objectType}",
+            resource=f"search:{ont.api_name}:{objectType}:{where_digest}",
             codec=_codec(request),
             revision=state.revision,
             default_page_size=default_ps,

@@ -1,4 +1,4 @@
-packageVersion: "0.1.0"
+packageVersion: "0.1.1"
 documentedAt: "2026-08-19"
 source: "https://docs.databricks.com/api/workspace/"
 operations:
@@ -130,7 +130,7 @@ operations:
       - tests/contract/test_warehouses.py::test_list_warehouses
   - operationId: GetWarehouse
     method: GET
-    path: /api/2.0/sql/warehouses/{id}
+    path: /api/2.0/sql/warehouses/{warehouse_id}
     supportLevel: exact
     docsUrl: https://docs.databricks.com/api/workspace/warehouses/get
     tests:
@@ -144,7 +144,7 @@ operations:
       - tests/contract/test_warehouses.py::test_create_delete_warehouse
   - operationId: DeleteWarehouse
     method: DELETE
-    path: /api/2.0/sql/warehouses/{id}
+    path: /api/2.0/sql/warehouses/{warehouse_id}
     supportLevel: representative
     docsUrl: https://docs.databricks.com/api/workspace/warehouses/delete
     tests:

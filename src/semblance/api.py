@@ -15,7 +15,7 @@ from typing import Annotated, Any, get_origin
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from semblance.config import load_config
 from semblance.factory import build_response, validate_response
@@ -63,7 +63,7 @@ class EndpointSpec:
         input_model: type[BaseModel],
         output_annotation: type | None,
         handler: Callable[..., Any],
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -120,6 +120,7 @@ class SemblanceAPI:
         validate_links: bool = False,
         verbose_errors: bool = False,
         config_path: str | None = None,
+        list_count: int | None = None,
     ) -> None:
         self._specs: list[EndpointSpec] = []
         cfg = load_config(config_path) if config_path is not None else None
@@ -135,6 +136,12 @@ class SemblanceAPI:
         self._verbose_errors = verbose_errors or (
             getattr(cfg, "verbose_errors", False) if cfg else False
         )
+        if list_count is not None:
+            self._default_list_count = list_count
+        elif cfg is not None:
+            self._default_list_count = cfg.list_count
+        else:
+            self._default_list_count = 5
         self._middleware: list[tuple[type[Any], dict[str, Any]]] = []
 
     @classmethod
@@ -155,6 +162,7 @@ class SemblanceAPI:
             verbose_errors=kwargs.pop(
                 "verbose_errors", getattr(cfg, "verbose_errors", False)
             ),
+            list_count=kwargs.pop("list_count", cfg.list_count),
             **kwargs,
         )
 
@@ -180,7 +188,7 @@ class SemblanceAPI:
         *,
         input: type[BaseModel],
         output: type,
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -225,7 +233,7 @@ class SemblanceAPI:
         *,
         input: type[BaseModel],
         output: type,
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -270,7 +278,7 @@ class SemblanceAPI:
         *,
         input: type[BaseModel],
         output: type,
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -315,7 +323,7 @@ class SemblanceAPI:
         *,
         input: type[BaseModel],
         output: type,
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -399,7 +407,7 @@ class SemblanceAPI:
         method: str,
         input_model: type[BaseModel],
         output: type | None,
-        list_count: int | str = 5,
+        list_count: int | str | None = None,
         seed_from: str | None = None,
         error_rate: float = 0,
         error_codes: list[int] | None = None,
@@ -516,11 +524,13 @@ class SemblanceAPI:
             raise HTTPException(status_code=code, detail="Simulated error")
 
     def _resolve_list_count(
-        self, list_count: int | str, input_instance: BaseModel
+        self, list_count: int | str | None, input_instance: BaseModel
     ) -> int:
         """Resolve list_count to int; when str, use input field value."""
         if isinstance(list_count, int):
             return max(1, list_count)
+        if list_count is None:
+            return max(1, self._default_list_count)
         val = input_instance.model_dump().get(list_count, 5)
         try:
             n = int(val) if val is not None else 5
@@ -534,8 +544,16 @@ class SemblanceAPI:
         """Merge path params into validated input for build_response."""
         if not path_params:
             return data
-        merged = {**data.model_dump(), **path_params}
-        return input_model.model_validate(merged)
+        allowed = {
+            key: value
+            for key, value in path_params.items()
+            if key in input_model.model_fields
+        }
+        merged = {**data.model_dump(), **allowed}
+        try:
+            return input_model.model_validate(merged)
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()) from exc
 
     def _check_rate_limit(self, spec: EndpointSpec) -> None:
         """Raise HTTPException 429 if rate limit exceeded."""
@@ -557,6 +575,33 @@ class SemblanceAPI:
             for code in spec.error_codes:
                 responses[code] = {"description": "Simulated error"}
         return responses
+
+    def _route_kwargs(self, spec: EndpointSpec) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {}
+        extra = self._openapi_responses(spec)
+        if extra:
+            kwargs["responses"] = extra
+        path_params = [
+            {
+                "name": name,
+                "in": "path",
+                "required": True,
+                "schema": {"type": "string"},
+            }
+            for name in _parse_path_params(spec.path)
+        ]
+        if path_params:
+            extra_oa: dict[str, Any] = {"parameters": path_params}
+            if spec.methods == ["DELETE"] and spec.output_annotation is None:
+                extra_oa["responses"] = {"204": {"description": "No Content"}}
+            kwargs["openapi_extra"] = extra_oa
+        if spec.summary is not None:
+            kwargs["summary"] = spec.summary
+        if spec.description is not None:
+            kwargs["description"] = spec.description
+        if spec.tags is not None:
+            kwargs["tags"] = spec.tags
+        return kwargs
 
     def _register_get(self, app: FastAPI, spec: EndpointSpec) -> None:
         input_model = spec.input_model
@@ -586,6 +631,13 @@ class SemblanceAPI:
             response: BaseModel | list[BaseModel]
             if store is not None and get_origin(output_annotation) is list:
                 response = store.get_all(path)
+                if filter_by:
+                    target = merged.model_dump().get(filter_by)
+                    response = [
+                        item
+                        for item in response
+                        if getattr(item, filter_by, None) == target
+                    ]
                 if self._validate_responses:
                     validate_response(output_annotation, response)
                 return response
@@ -625,16 +677,10 @@ class SemblanceAPI:
                 validate_response(output_annotation, response)
             return response
 
-        kwargs: dict[str, Any] = {"response_model": output_annotation}
-        extra = self._openapi_responses(spec)
-        if extra:
-            kwargs["responses"] = extra
-        if spec.summary is not None:
-            kwargs["summary"] = spec.summary
-        if spec.description is not None:
-            kwargs["description"] = spec.description
-        if spec.tags is not None:
-            kwargs["tags"] = spec.tags
+        kwargs: dict[str, Any] = {
+            "response_model": output_annotation,
+            **self._route_kwargs(spec),
+        }
         app.get(spec.path, **kwargs)(handler)
 
     def _register_post(self, app: FastAPI, spec: EndpointSpec) -> None:
@@ -673,21 +719,28 @@ class SemblanceAPI:
                 request=request,
             )
             if store is not None and not isinstance(response, list):
-                response = store.add(path, response)
+                store_path = path
+                path_param_names = _parse_path_params(path)
+                if path_param_names:
+                    store_path = _collection_path(path)
+                    id_field = path_param_names[0]
+                    id_value = dict(request.path_params).get(id_field)
+                    if id_value is not None and (
+                        id_field in type(response).model_fields
+                        or "id" in type(response).model_fields
+                    ):
+                        dumped = response.model_dump()
+                        dumped[id_field] = id_value
+                        response = type(response).model_validate(dumped)
+                response = store.add(store_path, response)
             if self._validate_responses:
                 validate_response(output_annotation, response)
             return response
 
-        kwargs: dict[str, Any] = {"response_model": output_annotation}
-        extra = self._openapi_responses(spec)
-        if extra:
-            kwargs["responses"] = extra
-        if spec.summary is not None:
-            kwargs["summary"] = spec.summary
-        if spec.description is not None:
-            kwargs["description"] = spec.description
-        if spec.tags is not None:
-            kwargs["tags"] = spec.tags
+        kwargs: dict[str, Any] = {
+            "response_model": output_annotation,
+            **self._route_kwargs(spec),
+        }
         app.post(spec.path, **kwargs)(handler)
 
     def _register_put(self, app: FastAPI, spec: EndpointSpec) -> None:
@@ -761,16 +814,10 @@ class SemblanceAPI:
                 validate_response(output_annotation, response)
             return response
 
-        kwargs: dict[str, Any] = {"response_model": output_annotation}
-        extra = self._openapi_responses(spec)
-        if extra:
-            kwargs["responses"] = extra
-        if spec.summary is not None:
-            kwargs["summary"] = spec.summary
-        if spec.description is not None:
-            kwargs["description"] = spec.description
-        if spec.tags is not None:
-            kwargs["tags"] = spec.tags
+        kwargs: dict[str, Any] = {
+            "response_model": output_annotation,
+            **self._route_kwargs(spec),
+        }
         app.put(spec.path, **kwargs)(handler)
 
     def _register_patch(self, app: FastAPI, spec: EndpointSpec) -> None:
@@ -856,16 +903,10 @@ class SemblanceAPI:
                 validate_response(output_annotation, response)
             return response
 
-        kwargs: dict[str, Any] = {"response_model": output_annotation}
-        extra = self._openapi_responses(spec)
-        if extra:
-            kwargs["responses"] = extra
-        if spec.summary is not None:
-            kwargs["summary"] = spec.summary
-        if spec.description is not None:
-            kwargs["description"] = spec.description
-        if spec.tags is not None:
-            kwargs["tags"] = spec.tags
+        kwargs: dict[str, Any] = {
+            "response_model": output_annotation,
+            **self._route_kwargs(spec),
+        }
         app.patch(spec.path, **kwargs)(handler)
 
     def _register_delete(self, app: FastAPI, spec: EndpointSpec) -> None:
@@ -886,7 +927,15 @@ class SemblanceAPI:
             self._check_rate_limit(spec)
             path_params = dict(request.path_params)
             data: dict[str, Any] = body.model_dump() if body is not None else {}
-            merged = input_model.model_validate({**data, **path_params})
+            allowed = {
+                key: value
+                for key, value in path_params.items()
+                if key in input_model.model_fields
+            }
+            try:
+                merged = input_model.model_validate({**data, **allowed})
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail=exc.errors()) from exc
             seed = self._resolve_seed(seed_from, merged)
             self._maybe_raise_error(error_rate, error_codes, seed)
             await self._await_latency(latency_ms, jitter_ms)
@@ -923,16 +972,7 @@ class SemblanceAPI:
                 validate_response(output_annotation, response)
             return response
 
-        kwargs: dict[str, Any] = {}
+        kwargs: dict[str, Any] = {**self._route_kwargs(spec)}
         if output_annotation is not None:
             kwargs["response_model"] = output_annotation
-        extra = self._openapi_responses(spec)
-        if extra:
-            kwargs["responses"] = extra
-        if spec.summary is not None:
-            kwargs["summary"] = spec.summary
-        if spec.description is not None:
-            kwargs["description"] = spec.description
-        if spec.tags is not None:
-            kwargs["tags"] = spec.tags
         app.delete(spec.path, **kwargs)(handler)

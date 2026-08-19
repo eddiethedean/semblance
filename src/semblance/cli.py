@@ -90,12 +90,23 @@ def _load_app(path: str) -> Any:
 
 def cmd_run(args: argparse.Namespace) -> None:
     """Run a Semblance app with uvicorn."""
-    app = _load_app(args.app)
     try:
         import uvicorn
     except ImportError:
         raise SystemExit("uvicorn not found. Install with: pip install uvicorn")
-    uvicorn.run(app, host=args.host, port=args.port, reload=args.reload)
+    if args.reload:
+        resolved = _resolve_app_path(args.app)
+        target = _load_target(resolved)
+        if hasattr(target, "as_fastapi"):
+            raise SystemExit(
+                "uvicorn --reload requires a FastAPI instance on the module. "
+                "Export `app = api.as_fastapi()` and run e.g. "
+                "`semblance run module:app --reload`."
+            )
+        uvicorn.run(resolved, host=args.host, port=args.port, reload=True)
+        return
+    app = _load_app(args.app)
+    uvicorn.run(app, host=args.host, port=args.port, reload=False)
 
 
 def cmd_export_openapi(args: argparse.Namespace) -> None:

@@ -16,6 +16,39 @@ from semblance.pagination import PaginatedResponse
 from semblance.resolver import get_output_model_for_type, resolve_overrides
 
 
+def _split_computed(
+    overrides: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    rest: dict[str, Any] = {}
+    computed: dict[str, dict[str, Any]] = {}
+    for key, value in overrides.items():
+        if isinstance(value, dict) and "_computed" in value and "_fn" in value:
+            computed[key] = value
+        else:
+            rest[key] = value
+    return rest, computed
+
+
+def _build_with_computed(
+    output_model: type[BaseModel],
+    overrides: dict[str, Any],
+    seed: int | None,
+) -> BaseModel:
+    rest, computed = _split_computed(overrides)
+    resolved = _evaluate_overrides(rest, seed=seed)
+    factory_class = ModelFactory.create_factory(output_model)
+    if seed is not None:
+        factory_class.seed_random(seed)
+    instance = cast(BaseModel, factory_class.build(**resolved))
+    if not computed:
+        return instance
+    data = instance.model_dump()
+    data.update(resolved)
+    for key, spec in computed.items():
+        data[key] = spec["_fn"](*[data[f] for f in spec["_computed"]])
+    return output_model.model_validate(data)
+
+
 def _evaluate_overrides(
     overrides: dict[str, Any],
     seed: int | None = None,
@@ -60,11 +93,7 @@ def build_one(
     overrides = resolve_overrides(
         output_model, input_model, input_instance, seed=seed, request=request
     )
-    resolved = _evaluate_overrides(overrides, seed=seed)
-    factory_class = ModelFactory.create_factory(output_model)
-    if seed is not None:
-        factory_class.seed_random(seed)
-    return cast(BaseModel, factory_class.build(**resolved))
+    return _build_with_computed(output_model, overrides, seed)
 
 
 def build_list(
@@ -80,17 +109,13 @@ def build_list(
     overrides = resolve_overrides(
         output_model, input_model, input_instance, seed=seed, request=request
     )
-    factory_class = ModelFactory.create_factory(output_model)
-    if seed is not None:
-        factory_class.seed_random(seed)
 
     if filter_by:
         target_val = input_instance.model_dump().get(filter_by)
         oversample = count * 5
         result: list[BaseModel] = []
         for _ in range(oversample):
-            resolved = _evaluate_overrides(overrides, seed=seed)
-            item = factory_class.build(**resolved)
+            item = _build_with_computed(output_model, overrides, seed)
             item_val = getattr(item, filter_by, None)
             if item_val == target_val:
                 result.append(item)
@@ -98,11 +123,7 @@ def build_list(
                     break
         return result[:count]
 
-    result = []
-    for _ in range(count):
-        resolved = _evaluate_overrides(overrides, seed=seed)
-        result.append(factory_class.build(**resolved))
-    return result
+    return [_build_with_computed(output_model, overrides, seed) for _ in range(count)]
 
 
 def _get_paginated_inner(annotation: type) -> type[BaseModel] | None:

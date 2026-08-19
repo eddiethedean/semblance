@@ -19,6 +19,14 @@ def test_read_dbfs(client: TestClient) -> None:
     assert data == b"hello"
 
 
+def test_read_rejects_negative_offset(client: TestClient) -> None:
+    r = client.get(
+        "/api/2.0/dbfs/read",
+        params={"path": "/mnt/acme/readme.txt", "offset": -1},
+    )
+    assert r.status_code == 400
+
+
 def test_put_and_read_base64(client: TestClient) -> None:
     payload = base64.b64encode(b"world").decode()
     put = client.post(

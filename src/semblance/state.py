@@ -10,6 +10,13 @@ import uuid
 from pydantic import BaseModel
 
 
+def _ids_match(stored: object, requested: object) -> bool:
+    """Path params are strings; generated ids may be int/UUID."""
+    if stored is None or requested is None:
+        return False
+    return stored == requested or str(stored) == str(requested)
+
+
 class StatefulStore:
     """In-memory store for created instances, keyed by path."""
 
@@ -40,7 +47,7 @@ class StatefulStore:
         """Find item in collection whose id_field equals id_value. Return None if not found."""
         items = self._store.get(collection_path, [])
         for item in items:
-            if getattr(item, id_field, None) == id_value:
+            if _ids_match(getattr(item, id_field, None), id_value):
                 return item
         return None
 
@@ -56,7 +63,7 @@ class StatefulStore:
             return None
         items = self._store[collection_path]
         for i, item in enumerate(items):
-            if getattr(item, id_field, None) == id_value:
+            if _ids_match(getattr(item, id_field, None), id_value):
                 items[i] = instance
                 return instance
         return None
@@ -67,7 +74,7 @@ class StatefulStore:
             return False
         items = self._store[collection_path]
         for i, item in enumerate(items):
-            if getattr(item, id_field, None) == id_value:
+            if _ids_match(getattr(item, id_field, None), id_value):
                 items.pop(i)
                 return True
         return False

@@ -94,6 +94,7 @@ jobs:
           pip install -e "packages/semblance-databricks[dev]"
 
       - name: Run tests (${{ matrix.package }})
+        shell: bash
         run: pytest ${{ matrix.pytest-args }} -v --cov-report=xml -m "not sdk"
 
   security:

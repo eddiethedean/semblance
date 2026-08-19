@@ -71,6 +71,7 @@ You can mix links on different fields:
 ```python
 class Order(BaseModel):
     customer: Annotated[str, FromInput("customer_id")]
+    subtotal: float
     placed_at: Annotated[datetime, DateRangeFrom("start", "end")]
     total_display: Annotated[str, ComputedFrom(("subtotal",), lambda s: f"${s:.2f}")]
 ```

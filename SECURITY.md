@@ -6,6 +6,7 @@ We release patches for security vulnerabilities in the following versions:
 
 | Package | Version | Supported |
 |---|---|---|
+| semblance | 0.8.x | :white_check_mark: |
 | semblance | 0.7.x | :white_check_mark: |
 | semblance | 0.6.x | :white_check_mark: |
 | semblance | < 0.6 | :x: |

@@ -184,6 +184,31 @@ def apply_fixture(doc: FixtureDocument, state: FoundryState) -> None:
                 rid=make_rid("linkType", f"{ont.api_name}:{lt.api_name}", seed),
                 pairs=[(p.from_key, p.to_key) for p in lt.objects],
             )
+            if (ont.api_name, lt.from_object_type) not in state.object_types:
+                raise ValueError(
+                    f"Link type {lt.api_name!r} from-type {lt.from_object_type!r} "
+                    f"is not defined in ontology {ont.api_name!r}"
+                )
+            if (ont.api_name, lt.to_object_type) not in state.object_types:
+                raise ValueError(
+                    f"Link type {lt.api_name!r} to-type {lt.to_object_type!r} "
+                    f"is not defined in ontology {ont.api_name!r}"
+                )
+            for pair in lt.objects:
+                if (
+                    state.get_object(ont.api_name, lt.from_object_type, pair.from_key)
+                    is None
+                ):
+                    raise ValueError(
+                        f"Link type {lt.api_name!r} missing from-key {pair.from_key!r}"
+                    )
+                if (
+                    state.get_object(ont.api_name, lt.to_object_type, pair.to_key)
+                    is None
+                ):
+                    raise ValueError(
+                        f"Link type {lt.api_name!r} missing to-key {pair.to_key!r}"
+                    )
             key = (ont.api_name, lt.api_name)
             if key in state.link_types:
                 raise ValueError(

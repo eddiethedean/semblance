@@ -134,3 +134,15 @@ def test_clear_none_removes_all():
     store.clear(None)
     assert store.get_all("/a") == []
     assert store.get_all("/b") == []
+
+
+def test_get_by_id_matches_int_stored_against_str_path():
+    class Item(BaseModel):
+        id: int
+        name: str
+
+    store = StatefulStore()
+    store.add("/items", Item(id=2201, name="x"))
+    found = store.get_by_id("/items", "2201", "id")
+    assert found is not None
+    assert found.name == "x"

@@ -7,13 +7,21 @@ import sys
 from pathlib import Path
 
 from semblance_foundry.app import FoundryMock
-from semblance_foundry.config import FoundryMockConfig
-from semblance_foundry.fixtures.loaders import bundled_acme_path, load_fixture_file
+from semblance_foundry.config import FoundryMockConfig, TokenGrant
+from semblance_foundry.fixtures.loaders import (
+    apply_fixture,
+    bundled_acme_path,
+    load_fixture_file,
+)
 from semblance_foundry.registry import registered_operations
+from semblance_foundry.state import FoundryState
 
 
 def cmd_serve(args: argparse.Namespace) -> None:
-    config = FoundryMockConfig(seed=args.seed, auth=args.auth)
+    tokens = tuple(TokenGrant(token) for token in (args.token or []))
+    if args.auth == "strict" and not tokens:
+        raise SystemExit("strict auth requires at least one --token")
+    config = FoundryMockConfig(seed=args.seed, auth=args.auth, tokens=tokens)
     mock = FoundryMock(config)
     mock.load_fixture(args.fixture or bundled_acme_path())
     app = mock.as_fastapi()
@@ -21,14 +29,15 @@ def cmd_serve(args: argparse.Namespace) -> None:
         import uvicorn
     except ImportError as exc:
         raise SystemExit(
-            "uvicorn not found. Install semblance (pulls uvicorn)."
+            "uvicorn not found. Install semblance-foundry (pulls uvicorn via semblance)."
         ) from exc
     uvicorn.run(app, host=args.host, port=args.port)
 
 
 def cmd_validate(args: argparse.Namespace) -> None:
     try:
-        load_fixture_file(args.fixture)
+        doc = load_fixture_file(args.fixture)
+        apply_fixture(doc, FoundryState(seed=42))
     except Exception as exc:
         raise SystemExit(f"Invalid fixture: {exc}") from exc
     print("OK")
@@ -76,6 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--auth",
         default="optional",
         choices=["disabled", "optional", "strict"],
+    )
+    serve.add_argument(
+        "--token",
+        action="append",
+        default=[],
+        help="Bearer token accepted in strict mode (repeatable)",
     )
     serve.set_defaults(func=cmd_serve)
 

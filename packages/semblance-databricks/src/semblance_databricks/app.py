@@ -37,7 +37,7 @@ def _distribution_version() -> str:
     try:
         return pkg_version("semblance-databricks")
     except PackageNotFoundError:
-        return "0.1.0"
+        return "0.1.1"
 
 
 class DatabricksMock:

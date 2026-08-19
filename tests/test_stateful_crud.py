@@ -196,3 +196,26 @@ class TestOpenAPIResponses:
         responses = api.as_fastapi().openapi()["paths"]["/errors"]["get"]["responses"]
         assert "404" in responses
         assert "500" in responses
+
+
+def test_stateful_get_by_int_id():
+    class CreateItem(BaseModel):
+        name: str
+
+    class Item(BaseModel):
+        id: int = 0
+        name: Annotated[str, FromInput("name")]
+
+    class PathId(BaseModel):
+        id: str = ""
+
+    api = SemblanceAPI(stateful=True, seed=1)
+    api.post("/items", input=CreateItem, output=Item)(lambda: None)
+    api.get("/items/{id}", input=PathId, output=Item)(lambda: None)
+    client = make_client(api.as_fastapi())
+    created = client.post("/items", json={"name": "widget"})
+    assert created.status_code == 200
+    item_id = created.json()["id"]
+    got = client.get(f"/items/{item_id}")
+    assert got.status_code == 200
+    assert got.json()["name"] == "widget"

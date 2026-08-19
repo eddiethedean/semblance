@@ -87,6 +87,10 @@ def create_dbfs_router() -> APIRouter:
         node = mock.state.dbfs.get(_normalize(path))
         if node is None or node.is_dir:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "File not found")
+        if offset < 0 or length < 0:
+            raise DatabricksError(
+                400, "INVALID_PARAMETER_VALUE", "offset and length must be >= 0"
+            )
         data = node.data[offset : offset + length]
         return {
             "bytes_read": len(data),
@@ -105,7 +109,8 @@ def create_dbfs_router() -> APIRouter:
         path = _normalize(str(body.get("path", "")))
         if not path or path == "/":
             raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "path required")
-        if len(mock.state.dbfs) >= mock.config.dbfs_max_files:
+        replacing = path in mock.state.dbfs
+        if not replacing and len(mock.state.dbfs) >= mock.config.dbfs_max_files:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS file cap")
         raw = str(body.get("contents", ""))
         try:
@@ -114,7 +119,11 @@ def create_dbfs_router() -> APIRouter:
             raise DatabricksError(
                 400, "INVALID_PARAMETER_VALUE", "contents must be base64"
             ) from exc
-        total = sum(len(n.data) for n in mock.state.dbfs.values()) + len(content)
+        existing = mock.state.dbfs.get(path)
+        old_size = len(existing.data) if existing is not None else 0
+        total = (
+            sum(len(n.data) for n in mock.state.dbfs.values()) - old_size + len(content)
+        )
         if total > mock.config.dbfs_max_bytes:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS size cap")
         mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)

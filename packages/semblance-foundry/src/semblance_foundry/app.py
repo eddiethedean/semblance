@@ -31,7 +31,7 @@ def _distribution_version() -> str:
     try:
         return pkg_version("semblance-foundry")
     except PackageNotFoundError:
-        return "0.1.1"
+        return "0.1.2"
 
 
 class FoundryMock:
@@ -45,6 +45,9 @@ class FoundryMock:
         self.ontologies = OntologyMutations(self.state)
 
     def load_fixture(self, path: str | Path) -> FoundryMock:
+        callbacks = dict(self.state.query_callbacks)
+        self.state.clear()
+        self.state.query_callbacks.update(callbacks)
         doc = load_fixture_file(path)
         apply_fixture(doc, self.state)
         return self

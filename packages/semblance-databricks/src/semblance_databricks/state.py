@@ -126,7 +126,6 @@ class DatabricksState:
         self.workspace_objects.clear()
         self.permissions.clear()
         self.statements.clear()
-        self.statement_callbacks.clear()
         self.revision = 0
         self.seq = 0
 

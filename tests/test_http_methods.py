@@ -51,6 +51,15 @@ class TestPutPatchDelete:
         assert r.status_code == 200
         assert "name" in r.json()
 
+    def test_openapi_path_params_and_delete_204(self):
+        api = SemblanceAPI()
+        api.get("/users/{id}", input=DeletePathInput, output=User)(lambda: None)
+        api.delete("/users/{id}", input=DeletePathInput)(lambda: None)
+        spec = api.as_fastapi().openapi()
+        get_params = spec["paths"]["/users/{id}"]["get"]["parameters"]
+        assert any(p.get("in") == "path" and p.get("name") == "id" for p in get_params)
+        assert "204" in spec["paths"]["/users/{id}"]["delete"]["responses"]
+
 
 class TestRateLimit:
     def test_rate_limit_returns_429_when_exceeded(self):

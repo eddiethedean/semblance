@@ -112,6 +112,7 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
         if jid not in mock.state.jobs:
             raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Job not found")
         del mock.state.jobs[jid]
+        mock.state.permissions.pop(("jobs", jid), None)
         mock.state.bump()
         return {}
 
@@ -121,6 +122,8 @@ def _add_jobs_routes(router: APIRouter, prefix: str) -> None:
         body = await json_object(request)
         rid = mock.state.allocate_numeric_id(mock.state.runs, 2000)
         job_id = str(body["job_id"]) if body.get("job_id") is not None else None
+        if job_id is not None and job_id not in mock.state.jobs:
+            raise DatabricksError(404, "RESOURCE_DOES_NOT_EXIST", "Job not found")
         mock.state.runs[rid] = RunRecord(
             run_id=rid,
             job_id=job_id,
