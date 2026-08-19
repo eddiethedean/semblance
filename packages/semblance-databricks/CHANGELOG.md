@@ -7,7 +7,6 @@ All notable changes to `semblance-databricks` are documented in this file.
 ## [0.1.0] - 2026-08-19
 
 Workspace compute / jobs / artifacts / permissions / SQL-statement MVP (Phase 10 A–D).
-Not tagged or published yet.
 
 ### Added
 

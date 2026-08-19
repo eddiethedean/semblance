@@ -9,6 +9,7 @@ description = "Unofficial local HTTP simulation of selected Databricks workspace
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+license-files = ["LICENSE.md"]
 authors = [{name = "Semblance Contributors"}]
 keywords = ["databricks", "mock", "simulation", "testing", "fastapi"]
 classifiers = [

@@ -6,7 +6,7 @@
 - **Import package:** `semblance_databricks`
 - **Repository:** developed alongside `semblance` under `packages/semblance-databricks/`,
   independently versioned and publishable
-- **Status:** implemented as `semblance-databricks` 0.1.0 (Phase 10 A–D). Not tagged or published to PyPI yet.
+- **Status:** implemented as `semblance-databricks` 0.1.0 (Phase 10 A–D). Tag `databricks-v0.1.0` to publish.
 - **Roadmap mapping:** [Phase 10](roadmap.md#phase-10--external-api-mock-packages-databricks)
   is phases A–D (workspace compute, jobs, artifacts, permissions, SQL statements).
   Unity Catalog, Model Serving, and DLT are post–Phase 10.
