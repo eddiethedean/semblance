@@ -482,7 +482,14 @@ or contract tests.
 
 - Raw `httpx` tests distinguish wire-contract bugs from SDK behavior.
 - One pinned `foundry-platform-sdk` version is the compatibility acceptance test.
-  Keep it optional/non-blocking if the SDK cannot target localhost in CI.
+  The SDK supports local HTTP with `Config(scheme="http")`; configure its
+  hostname with the test server's loopback host and port. Start a real local
+  HTTP server for this test rather than passing the in-process `TestClient`.
+- Assert SDK-decoded fixture results for ontology listing, paginated object
+  listing, get-by-primary-key, linked-object listing, and configured query
+  execution. Do not catch arbitrary request/assertion failures and turn them
+  into skips. Skip only when the SDK extra is absent or the test environment
+  explicitly cannot bind a loopback port.
 - A scheduled job may later test the newest compatible SDK until support policy
   is established.
 
@@ -616,7 +623,7 @@ workspace paths from Phase 11; do not invent a second CI matrix in this package.
 | The public API changes frequently | Pin documentation verification dates, automate contract inventory checks where permitted, and publish per-operation support levels. |
 | “Mock Foundry” implies unrealistic completeness | Use precise endpoint-level claims and return explicit unsupported-operation errors in `strict` mode. |
 | Stateful behavior becomes a second platform implementation | Limit behaviors to observable test contracts and keep compute/query execution callback-based. |
-| SDKs enforce HTTPS or hostname assumptions | Prove local endpoint configuration in Milestone 0; keep SDK tests optional/non-blocking if they cannot target localhost. |
+| SDKs enforce HTTPS or hostname assumptions | Configure the pinned SDK with `Config(scheme="http")` and the loopback host/port; keep its integration test optional in default CI, but fail it on API/request mismatches when enabled. |
 | Fixture files become an arbitrary-code vector | Keep declarative fixtures data-only; require allow-listed Python for custom callbacks and never evaluate fixture expressions. |
 | Large files or object volumes exhaust memory | Stay in-memory for Phase 9; add a temporary-directory backend and configurable limits before dataset support is declared stable. |
 | Trademark or licensing confusion | Use an explicit unofficial/non-affiliation notice and avoid copying generated SDK code or proprietary schemas. |
@@ -627,8 +634,8 @@ These were open before Phase 9 refinement. They are now decided:
 
 1. **Consumers:** raw HTTP and `foundry-platform-sdk` against the same ASGI app.
    HTTP contract tests are required for MVP. One pinned SDK version is the
-   compatibility acceptance test (optional/non-blocking if the SDK cannot target
-   localhost in CI).
+   compatibility acceptance test, using a local HTTP server and explicit
+   `Config(scheme="http")`; the SDK extra remains optional in default CI.
 2. **Repo:** `packages/semblance-foundry/` in this repository, independently
    versioned, depending on `semblance` via a normal version range.
 3. **Auth default:** `optional`. Also document `disabled` and `strict`. Never echo

@@ -95,8 +95,9 @@ Ontology-read MVP for an unofficial `semblance-foundry` adapter. Detailed spec: 
   - `GET /api/v2/ontologies/{ontology}/queryTypes` and get-by-name
   - `POST /api/v2/ontologies/{ontology}/queries/{queryApiName}/execute` (static fixture or allow-listed Python callback; never eval fixture expressions)
 - **Auth, errors, pagination** ✓ — auth modes `disabled`, `optional` (default), and `strict`; Foundry-style error envelope; opaque checksummed page tokens owned by the adapter (`PageTokenCodec`); request-id header. Do not add Foundry-shaped helpers to core unless a second adapter immediately needs the same primitive.
-- **Testing surface** ✓ — `FoundryMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. HTTP contract tests are required; one pinned `foundry-platform-sdk` version is the compatibility acceptance test (optional/non-blocking if the SDK cannot target localhost in CI). No live Foundry; no network in unit/contract tests.
-- **Exit criterion** ✓ — HTTP client (and SDK if CI-feasible) lists fixture objects across two pages, gets by primary key, follows one link, and executes one configured query — all locally.
+- **Testing surface** ✓ for HTTP — `FoundryMock.as_fastapi()`, pytest context/fixtures, golden HTTP contracts. No live Foundry; no network in unit/contract tests.
+- **SDK compatibility acceptance — follow-up needed** — The optional `foundry-platform-sdk` smoke test does not currently prove compatibility: it doesn't use its in-process `client` fixture, configures neither the mock server's port nor HTTP scheme, and converts all request failures into skips. Replace it with an optional integration test that starts a local HTTP server, points the pinned SDK at its loopback host/port with `Config(scheme="http")`, and asserts returned fixture data. Connection/setup skips must be narrow; SDK request or response mismatches must fail.
+- **Exit criterion** ✓ for HTTP — HTTP client lists fixture objects across two pages, gets by primary key, follows one link, and executes one configured query — all locally. SDK acceptance remains open until the configured client passes the same scenario against the local server.
 
 ### Later (see Foundry plan)
 
