@@ -7,7 +7,7 @@
 - **Repository:** developed alongside `semblance` under `packages/semblance-databricks/`,
   independently versioned and publishable
 - **Status:** implemented as `semblance-databricks` 0.1.0 (Phase 10 A–D). Tag `databricks-v0.1.0` to publish.
-- **Roadmap mapping:** [Phase 10](roadmap.md#phase-10--external-api-mock-packages-databricks)
+- **Roadmap mapping:** [Phase 10](roadmap.md#phase-10-external-api-mock-packages-databricks)
   is phases A–D (workspace compute, jobs, artifacts, permissions, SQL statements).
   Unity Catalog, Model Serving, and DLT are post–Phase 10.
 - **Primary objective:** provide a deterministic, local HTTP simulation of selected
@@ -143,7 +143,7 @@ Logical layers:
 | io | `fixtures/` |
 
 Root `pythonpath`, ruff, and mypy already list `packages/semblance-databricks/src`
-([Phase 11](roadmap.md#phase-11--core-infrastructure-for-multi-package-development)).
+([Phase 11](roadmap.md#phase-11-core-infrastructure-for-multi-package-development)).
 Phase 10 plugs tests into those paths and extends CI the same way Foundry did
 (install `-e packages/semblance-databricks[dev]`, pytest that tree, `-m "not sdk"`).
 Do not invent a second CI matrix. Depend on `semblance>=0.7.0,<0.8`. Independent
@@ -490,7 +490,7 @@ Adapter `1.0.0` is not part of this DoD.
 
 ## References
 
-- [Roadmap Phase 10](roadmap.md#phase-10--external-api-mock-packages-databricks)
+- [Roadmap Phase 10](roadmap.md#phase-10-external-api-mock-packages-databricks)
 - [Databricks workspace REST](https://docs.databricks.com/api/workspace/)
 - [List clusters](https://docs.databricks.com/api/workspace/clusters/list)
 - [List jobs](https://docs.databricks.com/api/workspace/jobs/list)

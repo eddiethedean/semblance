@@ -14,6 +14,11 @@ from typing import Any
 
 def _resolve_app_path(path: str) -> str:
     """If path contains ':', return as-is. Else infer module:attr (single SemblanceAPI or FastAPI in module)."""
+    # Console entry points put their bin directory on sys.path, so include the
+    # working directory before resolving local app modules.
+    app_dir = str(Path.cwd())
+    if app_dir not in sys.path:
+        sys.path.insert(0, app_dir)
     if ":" in path:
         return path
     module_path = path
@@ -38,7 +43,7 @@ def _resolve_app_path(path: str) -> str:
         if name.startswith("_"):
             continue
         obj = getattr(module, name)
-        if hasattr(obj, "as_fastapi"):
+        if hasattr(obj, "as_fastapi") and not isinstance(obj, type):
             candidates.append(name)
         elif _FastAPI is not None and isinstance(obj, _FastAPI):
             candidates.append(name)

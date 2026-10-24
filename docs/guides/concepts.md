@@ -22,7 +22,7 @@ See [Input and Output Binding](input-output-binding.md).
 - **DateRangeFrom(start, end)** — Generate a `datetime` between the two date fields on input.
 - **WhenInput(cond_field, value, then_link)** — Apply the inner link only when the input field equals the given value.
 - **ComputedFrom(fields, fn)** — Compute from other output fields (e.g. `full = first + " " + last`).
-- **FromHeader(name)** / **FromCookie(name)** — Use the request header or cookie (Phase 7).
+- **FromHeader(name)** / **FromCookie(name)** — Use the request header or cookie.
 - **FromJsonFixture** / **FromNestedFixture** — Values from a JSON file (optional variants, list where/index, opt-in `strict`).
 
 Custom link types can be registered with the plugin system.
@@ -40,6 +40,10 @@ See [Simulation Options](simulation-options.md).
 
 - **seed** — `SemblanceAPI(seed=42)` makes random generation deterministic so the same inputs produce the same outputs (useful for tests).
 - **seed_from** — Per-request seed from an input field so you can vary determinism per call.
+
+The global seed takes precedence over a route's `seed_from`. Generation restarts from that seed on each request, so a seed can repeat generated identifiers as well as ordinary field values. It also repeats error selection on routes that explicitly enable `error_rate`. Use scenario steps when you need a particular sequence of statuses, and explicit input IDs when stored resources need distinct identities.
+
+Exact generated values depend on installed dependency versions. For semantic values such as names and companies, see [Realistic data with Capper](realistic-data.md).
 
 See [Input and Output Binding](input-output-binding.md), [Testing](testing.md).
 

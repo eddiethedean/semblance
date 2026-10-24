@@ -8,6 +8,7 @@ Bind an output field to an input field by name:
 
 ```python
 from typing import Annotated
+from pydantic import BaseModel
 from semblance import FromInput
 
 class User(BaseModel):
@@ -29,6 +30,7 @@ Generate a `datetime` within a range defined by two input date fields:
 ```python
 from datetime import datetime
 from typing import Annotated
+from pydantic import BaseModel
 from semblance import DateRangeFrom
 
 class User(BaseModel):
@@ -93,7 +95,7 @@ def patch_user():
 def delete_user():
     pass
 
-@api.delete("/users/{id}", input=DeleteUserInput, output=User)  # 200 with body
+@api.delete("/users/{id}/with-body", input=DeleteUserInput, output=User)  # 200 with body
 def delete_user_with_response():
     pass
 ```

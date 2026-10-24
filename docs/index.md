@@ -1,40 +1,35 @@
 # Semblance
 
-**Schema-driven REST API simulation** with FastAPI, Pydantic, and Polyfactory.
+**Build a REST API simulator from Pydantic models.**
 
-Semblance lets you define API behavior declaratively using schemas alone. Input models, output models, and relationships between them fully determine API responses — **no endpoint logic required**.
+Semblance turns request and response schemas into a running FastAPI app. Bind response fields to request data, generate realistic values, keep state across requests, and exercise a client's retry behavior without writing endpoint logic.
 
-> *A semblance is the appearance or form of something — not the thing itself.*  
-> Semblance creates APIs that look and behave real enough to test, prototype, and integrate against.
+[Get started](guides/getting-started.md){ .md-button .md-button--primary }
+[Explore the examples](examples/README.md){ .md-button }
 
-## Quick Start
+## A working API in one file
+
+Requires **Python 3.10+**. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
 
 ```bash
 pip install semblance
 ```
 
-Create `app.py`:
+Save this as `app.py`:
 
 ```python
-from datetime import date, datetime
 from typing import Annotated
 
 from pydantic import BaseModel
-from semblance import DateRangeFrom, FromInput, SemblanceAPI
+from semblance import FromInput, SemblanceAPI
 
 
 class UserQuery(BaseModel):
     name: str = "alice"
-    start_date: date = date(2020, 1, 1)
-    end_date: date = date(2025, 12, 31)
 
 
 class User(BaseModel):
     name: Annotated[str, FromInput("name")]
-    created_at: Annotated[
-        datetime,
-        DateRangeFrom("start_date", "end_date"),
-    ]
 
 
 api = SemblanceAPI(seed=42)
@@ -48,49 +43,56 @@ def users():
 app = api.as_fastapi()
 ```
 
-Run:
+Start the API:
 
 ```bash
 semblance run app:api --port 8000
-# or
-uvicorn app:app --reload
 ```
 
-Try:
+In another terminal, send a request:
 
 ```bash
-curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31"
+curl "http://127.0.0.1:8000/users?name=alice"
 ```
 
-Example output (with `SemblanceAPI(seed=42)` and `list_count=2`):
+The response is **`200 OK`**:
 
 ```json
-[
-  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
-  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
-]
+[{"name": "alice"}, {"name": "alice"}]
 ```
 
-## Features
+Open [localhost:8000/docs](http://127.0.0.1:8000/docs) to try the API interactively. FastAPI serves the generated schema at `/openapi.json`.
 
-- **Zero endpoint logic** — schemas drive behavior
-- **Schema-driven** — input/output models and links define responses
-- **Full HTTP methods** — GET, POST, PUT, PATCH, DELETE with input/output models
-- **Deterministic seeding** — reproducible responses for tests
-- **FastAPI-native** — full OpenAPI, validation, async
-- **Simulation options** — error rate, latency, rate limiting, filtering, optional response validation; OpenAPI documents 429 and simulated errors when configured
-- **Extensible** — custom link types via plugins
-- **Property-based testing** — Hypothesis strategies and test helpers in `semblance.property_testing`
+## How responses are built
 
-## Next Steps
+1. The **input model** validates query parameters, path parameters, or the JSON body.
+2. The **output model** defines the response shape. Polyfactory generates fields, and `Annotated` links supply values from requests, other output fields, or fixtures.
+3. **Route options** control list size, pagination, errors, timing, and authentication.
 
-- [Getting Started](guides/getting-started.md) — full walkthrough
-- [Concepts](guides/concepts.md) — input/output models, links, seeding, stateful store
-- [Input and Output Binding](guides/input-output-binding.md) — FromInput, DateRangeFrom, and more
-- [Simulation Options](guides/simulation-options.md) — error rate, latency, rate limiting, response validation
-- [Testing](guides/testing.md) — test_client, property-based testing with Hypothesis
-- [Foundry adapter](guides/foundry.md) — unofficial local Foundry API v2 ontology mock
-- [Databricks adapter](guides/databricks.md) — unofficial local Databricks workspace REST mock
-- [Examples](examples/README.md) — runnable examples
-- [API Reference](api/index.md) — module reference
-- [Roadmap](roadmap.md) — phases and status
+The decorated function registers the route. Its body is a placeholder; Semblance generates responses from the models and route options.
+
+## Choose your next step
+
+| You want to… | Start here |
+|---|---|
+| Build your first simulator | [Getting started](guides/getting-started.md) |
+| Generate names, emails, companies, and cities | [Realistic data with Capper](guides/realistic-data.md) |
+| Bind responses to inputs or other fields | [Input and output binding](guides/input-output-binding.md), [advanced links](guides/advanced-links.md) |
+| Keep created resources between requests | [Stateful mode](guides/stateful-mode.md) |
+| Test retries, errors, latency, or rate limits | [Simulation options](guides/simulation-options.md) |
+| Test a client without starting a server | [Testing](guides/testing.md) |
+| Browse working requests and responses | [Examples](examples/README.md) |
+| Look up an option | [API reference](api/index.md), [CLI](guides/cli.md) |
+
+## Adapter packages
+
+Install adapters separately when your client expects a particular external API. Each adapter documents its supported operations and limitations.
+
+| Package | Simulated API | Guide |
+|---|---|---|
+| `semblance-foundry` | Selected Foundry API v2 ontology operations | [Foundry adapter](guides/foundry.md) |
+| `semblance-databricks` | Selected Databricks workspace REST operations | [Databricks adapter](guides/databricks.md) |
+
+## Project resources
+
+[Source code](https://github.com/eddiethedean/semblance) · [Changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md) · [Contributing](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md) · [Report an issue](https://github.com/eddiethedean/semblance/issues)

@@ -4,7 +4,7 @@ This repository publishes independently versioned packages:
 
 | Package | `pyproject.toml` | Tag | PyPI |
 |---|---|---|---|
-| `semblance` | repo root | `v0.9.0` | https://pypi.org/project/semblance/ |
+| `semblance` | repo root | `v0.9.1` | https://pypi.org/project/semblance/ |
 | `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.3` | https://pypi.org/project/semblance-foundry/ |
 | `semblance-databricks` | `packages/semblance-databricks/` | `databricks-v0.1.2` | https://pypi.org/project/semblance-databricks/ |
 
@@ -40,8 +40,8 @@ For a project that does not exist yet, add a **pending** publisher with that pro
 
 ```bash
 # Core Semblance
-git tag v0.9.0
-git push origin v0.9.0
+git tag v0.9.1
+git push origin v0.9.1
 
 # Foundry adapter (separate tag, separate PyPI project)
 git tag foundry-v0.1.3

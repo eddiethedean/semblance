@@ -1,86 +1,128 @@
-# API Reference
+# API reference
 
-## Core
+The core public API is exported from `semblance`. Use the guides for complete runnable examples; this page summarizes signatures, defaults, and behavior.
 
-### SemblanceAPI
-
-`from semblance import SemblanceAPI`
-
-Main API builder. Register endpoints with input/output models.
+## SemblanceAPI
 
 ```python
-api = SemblanceAPI(seed=None, stateful=False, validate_responses=False)
-api.get(path, *, input, output, list_count=5, seed_from=..., error_rate=0, error_codes=..., latency_ms=0, jitter_ms=0, filter_by=..., rate_limit=..., bearer_tokens=..., errors=..., scenario=..., page_table=..., summary=..., description=..., tags=...)
-api.post(path, *, input, output, ...)   # same options as get
-api.put(path, *, input, output, ...)    # same options as post
-api.patch(path, *, input, output, ...)  # same options as post
-api.delete(path, *, input, output=None) # output=None → 204 No Content; else 200 with body
-app = api.as_fastapi()
+from semblance import SemblanceAPI
+
+api = SemblanceAPI(
+    seed=None,
+    stateful=False,
+    validate_responses=False,
+    validate_links=False,
+    verbose_errors=False,
+    config_path=None,
+    list_count=None,
+)
 ```
 
-- **validate_responses** — when `True`, validates every generated response against the output model (for dev/CI).
-- **rate_limit** — optional; max requests per second per endpoint (returns 429 when exceeded).
-- **bearer_tokens** — optional Bearer allow-list (401 when set and the header does not match).
-- **errors** — sequence of `ErrorCase` (predicate → status/detail).
-- **scenario** — sequence of `ScenarioStep` (holds last after the sequence).
-- **page_table** — `PageTable` for token-keyed pages (`PageSlice[Model]` or `list[Model]` only).
+| Constructor option | Default | Purpose |
+|---|---|---|
+| `seed` | `None` | Global generation seed; takes precedence over route `seed_from` |
+| `stateful` | `False` | Keep created resources in a process-local store |
+| `validate_responses` | `False` | Validate generated responses against output models |
+| `validate_links` | `False` | Check field links when building the FastAPI app |
+| `verbose_errors` | `False` | Include collection and ID details in stateful 404 responses |
+| `config_path` | `None` | Load defaults from a configuration file |
+| `list_count` | `None` | Default list size; falls back to configuration or 5 |
 
-### Links
+`SemblanceAPI.from_config(config_path=None, **kwargs)` discovers or loads configuration and applies explicit keyword overrides. See [CLI and configuration](../guides/cli.md#configuration).
 
-`from semblance import FromInput, DateRangeFrom, WhenInput, ComputedFrom, FromJsonFixture, FromNestedFixture`
+### Register a route
 
-- **FromInput(field)** — bind output field to input field by name
-- **DateRangeFrom(start, end)** — datetime in range defined by input date fields
-- **WhenInput(cond_field, cond_value, then_link)** — apply link when condition matches
-- **ComputedFrom(fields, fn)** — compute field from other output fields
-- **FromJsonFixture(path, pointer=..., variant_from=..., variants=..., strict=False)** — JSON file pointer
-- **FromNestedFixture(path, pointer, index=..., where=..., strict=False)** — list pick from JSON
+```python
+@api.get("/users", input=UserQuery, output=list[User], list_count=2)
+def users():
+    pass
+```
 
-### Pagination
+GET, POST, PUT, and PATCH require `input` and `output`. Their options are:
 
-`from semblance import PageParams, PaginatedResponse, PageTable, PageSlice`
+| Option | Default | Behavior |
+|---|---|---|
+| `input` | Required | Pydantic model for request validation |
+| `output` | Required | A model, `list[Model]`, `PaginatedResponse[Model]`, or `PageSlice[Model]` |
+| `list_count` | `None` | Fixed count or input field name; otherwise uses the API default |
+| `seed_from` | `None` | Input field containing a per-request seed |
+| `filter_by` | `None` | Filter generated list items to match the named input field |
+| `error_rate` | `0` | Probability of a configured simulated failure |
+| `error_codes` | `[404, 500]` | Status choices when error simulation fires |
+| `latency_ms`, `jitter_ms` | `0` | Delay and random variation in milliseconds |
+| `rate_limit` | `None` | Requests per second for this route and method |
+| `bearer_tokens` | `None` | Bearer token allow-list; rejects unmatched tokens with 401 |
+| `errors` | `None` | Ordered `ErrorCase` rules on validated input |
+| `scenario` | `None` | Ordered `ScenarioStep` statuses; holds the final step |
+| `page_table` | `None` | Declared token-to-page mapping |
+| `summary`, `description`, `tags` | `None` | OpenAPI documentation metadata |
 
-- **PageParams** — limit, offset query params
-- **PaginatedResponse[T]** — items, total, limit, offset
-- **PageTable** — incoming token → item dicts and next tokens
-- **PageSlice[T]** — items plus `next_page_token`
+DELETE supports `input`, optional `output`, `rate_limit`, `bearer_tokens`, `errors`, `scenario`, `page_table`, and OpenAPI metadata. It returns 204 when `output=None`, or 200 with a generated body when an output model is supplied. It does not accept the generation, random-error, or timing options listed for GET/POST/PUT/PATCH.
 
-### Errors and scenarios
+The decorated handler is a registration placeholder. Duplicate registrations for the same path and method raise an error when building the app.
 
-`from semblance import ErrorCase, ScenarioStep`
+### Build, inspect, and reset
 
-### Plugins
+| Method | Result |
+|---|---|
+| `api.as_fastapi()` | Build a FastAPI app, including `/docs` and `/openapi.json` |
+| `api.get_endpoint_specs()` | Return a copy of registered endpoint specifications |
+| `api.get_spec(path, method)` | Look up a specification, or return `None` |
+| `api.clear_store(path=None)` | Clear all stored collections or one collection |
 
-`from semblance import register_link, LinkProtocol`
+## Field links
 
-- **register_link(LinkClass)** — register custom link type
-- **LinkProtocol** — protocol for custom links (must implement `resolve(input_data, rng)`)
+Use links inside `typing.Annotated` on output model fields. Import these types from `semblance`.
 
-### Testing
+| Link | Value source | Guide |
+|---|---|---|
+| `FromInput(field)` | Named field on validated input | [Binding](../guides/input-output-binding.md#frominput) |
+| `DateRangeFrom(start, end)` | Random datetime in an input date range | [Binding](../guides/input-output-binding.md#daterangefrom) |
+| `WhenInput(cond_field, cond_value, then_link)` | Inner link when an input condition matches | [Advanced links](../guides/advanced-links.md#wheninput) |
+| `ComputedFrom(fields, fn)` | Function of other output fields | [Advanced links](../guides/advanced-links.md#computedfrom) |
+| `FromHeader(name)` | Request header | [Request links](../guides/request-links.md#fromheader) |
+| `FromCookie(name)` | Request cookie | [Request links](../guides/request-links.md#fromcookie) |
+| `FromJsonFixture(path, pointer=..., variant_from=..., variants=..., strict=False)` | Value at a JSON file pointer | [Fixture links](../guides/advanced-links.md#json-fixture-links) |
+| `FromNestedFixture(path, pointer, index=..., where=..., strict=False)` | Selected item from a JSON list | [Fixture links](../guides/advanced-links.md#json-fixture-links) |
 
-`from semblance import test_client`
+Unlinked fields are generated by Polyfactory. [Capper semantic types](../guides/realistic-data.md) make those values fit domains such as names, companies, and cities.
 
-- **test_client(app)** — httpx TestClient for FastAPI app
+## Pagination
 
-### Property-based Testing
+| Type | Purpose |
+|---|---|
+| `PageParams` | Input base model with `limit=10` and `offset=0` |
+| `PaginatedResponse[T]` | Response with `items`, `total`, `limit`, and `offset` |
+| `PageTable` | Declared pages and next tokens; `None` is the first page |
+| `PageSlice[T]` | Response with `items` and `next_page_token` |
 
-`from semblance.property_testing import strategy_for_input_model, test_endpoint`
+`page_table` supports `PageSlice[T]` and `list[T]`; it cannot be combined with `PaginatedResponse[T]`. Unknown tokens return 400. See [Pagination](../guides/pagination.md).
 
-- **strategy_for_input_model(model, path_template=None)** — Hypothesis strategy that generates instances of the input model (for GET query or POST/PUT/PATCH body).
-- **test_endpoint(client, method, path, input_strategy, output_model, path_params=..., validate_response=True, invariants=())** — runs a property-based test: draws input, calls endpoint, validates response; optional invariants (input, output) → bool.
+## Errors and scenarios
 
-Requires `hypothesis` (included in `[dev]`).
+```python
+from semblance import ErrorCase, ScenarioStep
+
+error = ErrorCase(when=lambda query: query.name == "nobody", status=404, detail="Not found")
+steps = (ScenarioStep(status=503, detail="Busy"), ScenarioStep(status=200))
+```
+
+`ErrorCase` uses the first matching predicate. A non-200 `ScenarioStep` raises an HTTP error; a 200 step continues normal response generation. These errors use FastAPI's `{"detail": ...}` envelope. See [Simulation options](../guides/simulation-options.md).
+
+## Custom links
+
+`register_link(LinkClass)` registers a type implementing `LinkProtocol.resolve(input_data, rng)`. Put an instance in `Annotated` metadata to use it. See [Custom links](../guides/plugins.md).
+
+## Testing helpers
+
+| Import | Purpose |
+|---|---|
+| `from semblance import test_client` | Wrap a FastAPI app in a test client; requires `httpx` |
+| `from semblance.property_testing import strategy_for_input_model` | Build a Hypothesis strategy from common input field types |
+| `from semblance.property_testing import test_endpoint` | Generate requests, check statuses, validate responses, and apply invariants |
+
+`test_endpoint(client, method, path, input_strategy, output_model, path_params=None, validate_response=True, invariants=())` runs the property test immediately. Each invariant receives `(input_model_instance, response_body)`. Property testing requires `hypothesis`. See [Testing](../guides/testing.md) for runnable pytest examples.
 
 ## Adapter packages
 
-`semblance-foundry` is an independently versioned unofficial Foundry API v2 ontology mock. Install with `pip install semblance-foundry`. See the [Foundry adapter guide](../guides/foundry.md).
-
-`semblance-databricks` is an independently versioned unofficial Databricks workspace REST mock. Install with `pip install semblance-databricks`. See the [Databricks adapter guide](../guides/databricks.md).
-
-## CLI
-
-```bash
-semblance run app:api [--host HOST] [--port PORT] [--reload]
-semblance export openapi app:api [-o FILE] [--examples]
-semblance export fixtures app:api [-o DIR]
-```
+The independently versioned `semblance-foundry` and `semblance-databricks` packages expose their own mock builders, fixtures, and compatibility manifests. See the [Foundry](../guides/foundry.md) and [Databricks](../guides/databricks.md) guides.

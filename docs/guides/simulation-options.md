@@ -2,6 +2,18 @@
 
 Semblance lets you simulate realistic API behavior: errors, latency, rate limiting, filtering, and optional response validation.
 
+The snippets below extend the models from [Getting started](getting-started.md). Register one version of a route at a time; registering the same method and path twice is an error.
+
+| Behavior to test | Option |
+|---|---|
+| Fail once, then recover | `scenario=(ScenarioStep(...), ...)` |
+| Fail for a particular validated input | `errors=(ErrorCase(...), ...)` |
+| Sample failures probabilistically | `error_rate` and `error_codes` |
+| Require a known test credential | `bearer_tokens` |
+| Delay responses or limit request frequency | `latency_ms`, `jitter_ms`, `rate_limit` |
+
+Normal routes use `error_rate=0`; seeds do not enable errors by themselves.
+
 ## Error Simulation
 
 Simulate random failures:
@@ -18,10 +30,12 @@ def users():
     pass
 ```
 
-- `error_rate=0.1` – 10% of requests raise an error.
+- `error_rate=0.1` gives each unseeded request a 10% chance of raising an error. A short run need not contain exactly 10% failures.
 - `error_codes=[404, 500]` – which status codes to return (default `[404, 500]`).
 - Use `error_rate=0` for normal behavior; use `error_rate=1.0` to always fail (useful for tests).
 - When `error_rate` and `error_codes` are set, the exported OpenAPI schema documents those simulated error responses.
+
+With a fixed global or request seed, error selection restarts from that seed on each request. The same seed therefore repeats the same success or failure status. To sample failures across repeated calls, leave the API unseeded and omit `seed_from`. For a predictable retry test, use [scenario steps](#scenario-steps).
 
 ## Bearer tokens
 
@@ -63,13 +77,19 @@ def users():
 
 `scenario` is a per-route sequence of statuses. After the last step, that step is held (useful for retries). Non-200 steps raise `HTTPException`. 200 continues to normal generation. This is not a replacement for `stateful=True`.
 
+Starting with the getting-started models, save this as `resilience.py`:
+
 ```python
-from semblance import ScenarioStep
+from app import User, UserQuery
+from semblance import ScenarioStep, SemblanceAPI
+
+api = SemblanceAPI(seed=42)
 
 @api.get(
     "/users",
     input=UserQuery,
     output=list[User],
+    list_count=2,
     scenario=(
         ScenarioStep(status=503, detail="busy"),
         ScenarioStep(status=200),
@@ -78,6 +98,29 @@ from semblance import ScenarioStep
 def users():
     pass
 ```
+
+Run `semblance run resilience:api --port 8001`. Send the same request twice:
+
+```bash
+curl "http://127.0.0.1:8001/users?name=alice"
+```
+
+**First output — `503 Service Unavailable`:**
+
+```json
+{"detail": "busy"}
+```
+
+**Second output — `200 OK`:**
+
+```json
+[
+  {"name": "alice", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "alice", "created_at": "2024-01-10T03:41:40.080943"}
+]
+```
+
+Later requests keep succeeding. Scenario progress belongs to the API instance and is shared across requests to that route and method; construct a fresh instance to restart it. Clearing the resource store does not reset a scenario.
 
 ## Latency and Jitter
 

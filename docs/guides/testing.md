@@ -1,108 +1,176 @@
 # Testing
 
-Semblance is built for testing. Use the test client with pytest for fast, deterministic API tests.
+Use Semblance's test client to send requests directly to a FastAPI app. No server process or listening port is needed. Start with the `app.py` from [Getting started](getting-started.md).
 
-## test_client
+## Install the test dependencies
+
+```bash
+pip install pytest httpx
+```
+
+## Test a response and invalid input
+
+Save this beside `app.py` as **`test_app.py`**:
 
 ```python
-from semblance import SemblanceAPI, test_client
+from datetime import datetime
+
+from app import app
+from semblance import test_client as make_test_client
+
+
+def test_users():
+    with make_test_client(app) as client:
+        response = client.get("/users", params={"name": "testuser"})
+
+    assert response.status_code == 200
+    users = response.json()
+    assert len(users) == 2
+    assert all(user["name"] == "testuser" for user in users)
+    assert all(
+        datetime(2024, 1, 1)
+        <= datetime.fromisoformat(user["created_at"])
+        < datetime(2025, 1, 1)
+        for user in users
+    )
+
+
+def test_invalid_date():
+    with make_test_client(app) as client:
+        response = client.get("/users", params={"start_date": "not-a-date"})
+
+    assert response.status_code == 422
+```
+
+Run:
+
+```bash
+pytest -q test_app.py
+```
+
+**Output:** `2 passed` (timing varies). The first request returns `200 OK`:
+
+```json
+[
+  {"name": "testuser", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "testuser", "created_at": "2024-01-10T03:41:40.080943"}
+]
+```
+
+The alias `make_test_client` keeps pytest from collecting the imported helper as a test. Using it as a context manager also runs FastAPI's lifespan hooks and closes the client.
+
+## Reuse a client with a fixture
+
+For a larger test suite, put this fixture in **`conftest.py`** beside `app.py`. Tests can then accept a `client` argument:
+
+```python
+import pytest
+
+from app import app
+from semblance import test_client as make_test_client
+
+
+@pytest.fixture
+def client():
+    with make_test_client(app) as client:
+        yield client
+```
+
+## Reproduce generated data
+
+Choose a seed based on what the test needs:
+
+| Configuration | Behavior |
+|---|---|
+| `SemblanceAPI(seed=42)` | Uses the same global seed for generated data on every request |
+| `SemblanceAPI()` with `seed_from="seed"` on a route | Reads the seed from that route's validated input |
+| No global or request seed | Generated values can vary between requests |
+
+A global seed takes precedence over `seed_from`. Exact generated values can change when Polyfactory, Faker, or semantic-type dependencies change; keep dependency versions fixed for snapshots. Assert on response shape and field relationships when exact text is unimportant.
+
+This complete example compares two requests with the same seed. Save it as **`seeded.py`** and run `python seeded.py`:
+
+```python
+from pydantic import BaseModel
+from semblance import SemblanceAPI, test_client as make_test_client
+
+
+class Query(BaseModel):
+    seed: int = 42
+
+
+class Result(BaseModel):
+    value: int
+
 
 api = SemblanceAPI()
-api.get("/users", input=UserQuery, output=list[User])(lambda: None)
-app = api.as_fastapi()
-client = test_client(app)
 
-r = client.get("/users?name=testuser")
-assert r.status_code == 200
-data = r.json()
-assert all(u["name"] == "testuser" for u in data)
-# data: [{"name": "testuser", "created_at": "2024-08-21T09:22:43.516168"}, ...]
-```
 
-`test_client` wraps your FastAPI app in Starlette's `TestClient`. No server process is started.
-
-## Deterministic Seeding
-
-Use a fixed seed for reproducible tests:
-
-```python
-api = SemblanceAPI(seed=42)
-```
-
-Or per-request via `seed_from`:
-
-```python
-class UserQueryWithSeed(BaseModel):
-    name: str = "alice"
-    seed: int | None = None
-
-@api.get("/users", input=UserQueryWithSeed, output=list[User], seed_from="seed")
-def users():
+@api.get("/result", input=Query, output=Result, seed_from="seed")
+def result():
     pass
 
-# Same seed → same responses
-r1 = client.get("/users?name=x&seed=99")
-r2 = client.get("/users?name=x&seed=99")
-assert r1.json()[0]["created_at"] == r2.json()[0]["created_at"]
+
+with make_test_client(api.as_fastapi()) as client:
+    first = client.get("/result?seed=42")
+    second = client.get("/result?seed=42")
+    assert first.status_code == second.status_code == 200
+    assert first.json() == second.json()
 ```
 
-## Pytest Fixture
+Successful execution exits with status 0 and no output.
+
+## Test many inputs with Hypothesis
+
+Install Hypothesis:
+
+```bash
+pip install hypothesis
+```
+
+Save this standalone test as **`test_properties.py`**:
 
 ```python
-# conftest.py
-import pytest
-from semblance import SemblanceAPI, test_client
+from typing import Annotated
 
-@pytest.fixture
-def api():
+from pydantic import BaseModel
+from semblance import FromInput, SemblanceAPI, test_client as make_test_client
+from semblance.property_testing import (
+    strategy_for_input_model,
+    test_endpoint as check_endpoint,
+)
+
+
+class EchoQuery(BaseModel):
+    name: str
+
+
+class EchoResponse(BaseModel):
+    name: Annotated[str, FromInput("name")]
+
+
+def test_many_names():
     api = SemblanceAPI(seed=42)
-    api.get("/users", input=UserQuery, output=list[User])(lambda: None)
-    return api
+    api.get("/user", input=EchoQuery, output=EchoResponse)(lambda: None)
 
-@pytest.fixture
-def client(api):
-    return test_client(api.as_fastapi())
-
-# test_users.py
-def test_users_return_list(client):
-    r = client.get("/users?name=alice")
-    assert r.status_code == 200
-    assert isinstance(r.json(), list)
+    with make_test_client(api.as_fastapi()) as client:
+        check_endpoint(
+            client,
+            "GET",
+            "/user",
+            strategy_for_input_model(EchoQuery),
+            EchoResponse,
+            invariants=(lambda request, body: body["name"] == request.name,),
+        )
 ```
 
-## Property-based Testing
+`pytest -q test_properties.py` reports `1 passed`. `check_endpoint` generates inputs, checks successful statuses, validates the response model, and checks each invariant. Assertion failures include a request you can use to reproduce the problem.
 
-For Schemathesis-style testing, use Hypothesis with Semblance's property-testing helpers (requires `hypothesis`, included in `[dev]`):
+`strategy_for_input_model` handles common field types. For models with constrained fields or relationships between inputs, provide your own Hypothesis strategy through `input_strategy`, for example `st.builds(YourModel, ...)`.
 
-```python
-from hypothesis import given
-from semblance import SemblanceAPI
-from semblance.property_testing import strategy_for_input_model
-from semblance.testing import test_client
+## Keep state and failure tests isolated
 
-api = SemblanceAPI(seed=42)
-api.get("/users", input=UserQuery, output=list[User], list_count=2)(lambda: None)
-app = api.as_fastapi()
-client = test_client(app)
-strategy = strategy_for_input_model(UserQuery)
-
-@given(strategy)
-def test_users_valid_response(inp):
-    r = client.get("/users", params=inp.model_dump())
-    assert r.status_code == 200
-    from pydantic import TypeAdapter
-    TypeAdapter(list[User]).validate_python(r.json())
-
-test_users_valid_response()
-```
-
-- **strategy_for_input_model(model, path_template=None)** — builds a Hypothesis strategy that generates instances of the input model (handles `Annotated`, optional fields, nested models).
-- **test_endpoint(client, method, path, input_strategy, output_model, ...)** — runs a `@given` test: draws input, calls the endpoint, asserts status and validates response; supports optional invariants.
-
-Use property-based tests to ensure many generated inputs produce valid responses and to catch schema drift.
-
-## Contract and Snapshot Testing
-
-- Assert response shape matches your output model.
-- Use deterministic seeds for snapshot-style checks.
-- Test validation: send invalid input and assert `422` responses.
+- Create a fresh `SemblanceAPI` for each test that advances a scenario or rate limit.
+- Use `api.clear_store()` or `api.clear_store("/users")` between stateful test cases.
+- Use [ScenarioStep](simulation-options.md#scenario-steps) for a known sequence such as 503 followed by 200. Fixed seeds also repeat random error selection when `error_rate` is enabled.
+- Assert `422` for malformed input and test configured `ErrorCase` responses separately.

@@ -1,51 +1,99 @@
 site_name: Semblance
-site_description: Schema-driven REST API simulation with FastAPI, Pydantic, and Polyfactory
+site_description: Build REST API simulators from Pydantic models
 site_url: https://semblance.readthedocs.io/
+repo_url: https://github.com/eddiethedean/semblance
+repo_name: eddiethedean/semblance
+edit_uri: edit/main/docs/
 
 theme:
   name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
 
 docs_dir: docs
 
 nav:
   - Home: index.md
   - Guides:
-    - Getting Started: guides/getting-started.md
+    - Overview: guides/README.md
+    - Getting started: guides/getting-started.md
     - Concepts: guides/concepts.md
-    - Input and Output Binding: guides/input-output-binding.md
+    - Realistic data with Capper: guides/realistic-data.md
+    - Input and output binding: guides/input-output-binding.md
+    - Advanced links: guides/advanced-links.md
     - Pagination: guides/pagination.md
-    - Advanced Links: guides/advanced-links.md
-    - Stateful Mode: guides/stateful-mode.md
-    - Simulation Options: guides/simulation-options.md
-    - CLI: guides/cli.md
-    - Plugins: guides/plugins.md
+    - Stateful mode: guides/stateful-mode.md
+    - Simulation options: guides/simulation-options.md
+    - Request links: guides/request-links.md
+    - Custom links: guides/plugins.md
     - Testing: guides/testing.md
-    - Request Links: guides/request-links.md
-    - Foundry adapter: guides/foundry.md
-    - Databricks adapter: guides/databricks.md
-    - Troubleshooting: guides/troubleshooting.md
     - Cookbook: guides/cookbook.md
+    - Troubleshooting: guides/troubleshooting.md
   - Examples:
     - Overview: examples/README.md
     - Basic: examples/basic.md
     - Pagination: examples/pagination.md
-    - Nested: examples/nested.md
-    - Stateful: examples/stateful.md
-    - Advanced: examples/advanced.md
-    - Error Simulation: examples/error_simulation.md
-    - Plugins: examples/plugins.md
-    - PUT / PATCH / DELETE: examples/put_patch_delete.md
+    - Nested models: examples/nested.md
+    - Advanced links: examples/advanced.md
+    - Stateful collections: examples/stateful.md
     - Stateful CRUD: examples/stateful_crud.md
-    - Request Links: examples/request_links.md
-  - Roadmap:
-    - Overview: roadmap.md
+    - PUT, PATCH, DELETE: examples/put_patch_delete.md
+    - Request links: examples/request_links.md
+    - Custom links: examples/plugins.md
+    - Error simulation: examples/error_simulation.md
+  - Adapters:
+    - Foundry: guides/foundry.md
+    - Databricks: guides/databricks.md
+  - Reference:
+    - API: api/index.md
+    - CLI: guides/cli.md
+  - Project:
+    - Roadmap: roadmap.md
     - Foundry package plan: semblance_foundry_plan.md
     - Databricks package plan: semblance_databricks_plan.md
-  - API Reference: api/index.md
+    - Publishing: publishing.md
+    - Original design: semblance_planning_and_roadmap.md
+
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    anchors: warn
+    unrecognized_links: warn
 
 markdown_extensions:
-  - pymdownx.highlight
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
   - pymdownx.superfences
+  - toc:
+      permalink: true
 
 plugins:
   - include-markdown

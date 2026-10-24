@@ -1,120 +1,155 @@
-# CLI
+# CLI and configuration
 
-Semblance provides a CLI for running apps, validating config, and exporting mocks for frontend integration.
+Use the `semblance` command to scaffold a simulator, validate route links, serve the app, and export its schema or sample responses. Run commands from a directory where the target Python module can be imported.
 
-## Init (scaffold app)
+## Command reference
 
-```bash
-semblance init [-c] [--force]
-```
+| Command | Result |
+|---|---|
+| `semblance init --with-config` | Create `app.py` and `semblance.yaml` in the current directory |
+| `semblance validate app:api` | Validate route bindings; print `OK` and exit 0 on success |
+| `semblance run app:api --port 8000` | Serve a `SemblanceAPI` using Uvicorn |
+| `semblance run app:app --reload` | Serve an exported FastAPI instance with automatic reload |
+| `semblance export openapi app:api -o openapi.json` | Write the OpenAPI schema |
+| `semblance export fixtures app:api -o fixtures` | Write successful sample responses and `openapi.json` |
 
-Creates a minimal `app.py` in the current directory. Use `-c` / `--with-config` to also write `semblance.yaml` with commented defaults. Use `--force` to overwrite existing `app.py`.
+Use `semblance --help` or a subcommand's `--help` for the complete argument list.
 
-**Example output:**
+## Scaffold an app
 
-```
-Wrote app.py
-Run: semblance run app:api --port 8000
-```
-
-## Validate (no server)
-
-```bash
-semblance validate <module>:<attr>
-```
-
-Validates routes and link bindings (e.g. `FromInput("typo")` on a missing field) without starting a server. Exit 0 if valid, 1 otherwise. Useful in CI or pre-commit. The target must be a SemblanceAPI (module:attr with `get_endpoint_specs`).
-
-**Example:**
+In a new directory:
 
 ```bash
-semblance validate examples.basic.app:api
-# OK
+semblance init --with-config
 ```
 
-## Run an App
+The command writes `app.py` and `semblance.yaml`, then prints a run command. `--with-config` has the short form `-c`. Use `--force` to overwrite existing scaffold files.
+
+The configuration file is optional. To load it, use `SemblanceAPI.from_config()` or an explicit `config_path` as described below.
+
+## Validate before serving
 
 ```bash
-semblance run <module>[:<attr>] [--host HOST] [--port PORT] [--reload]
+semblance validate app:api
 ```
 
-You can pass `module:attr` (e.g. `app:api`) or just `module` when there is a single candidate (e.g. one `SemblanceAPI` or FastAPI app in the module). If `attr` has an `as_fastapi()` method (e.g. a `SemblanceAPI` instance), it is called to get the FastAPI app.
+The target must be a `SemblanceAPI`. Successful validation prints `OK`; invalid routes or field links exit with status 1. This checks bindings such as `FromInput("name")` against the input model without starting a server.
 
-**Examples:**
+You can also enable startup checks with `SemblanceAPI(validate_links=True)`.
+
+## Run an app
 
 ```bash
-semblance run app:api --port 8000
-semblance run app --port 8000
-semblance run examples.basic.app:api --host 0.0.0.0 --port 8000
-semblance run examples.basic.app:app --reload
+semblance run app:api --host 127.0.0.1 --port 8000
 ```
 
-## Export OpenAPI Schema
+`app:api` means the `api` object in the importable `app` module. The CLI calls `as_fastapi()` when the target exposes it. You can pass only a module name when it contains exactly one public `SemblanceAPI` or FastAPI instance.
+
+For reload, export a FastAPI instance in your module:
+
+```python
+app = api.as_fastapi()
+```
+
+Then run:
 
 ```bash
-semblance export openapi <module>:<attr> [-o FILE] [--examples]
+semblance run app:app --port 8000 --reload
 ```
 
-- `-o FILE` – write to file (default: stdout)
-- `--examples` – call each endpoint (GET, POST, PUT, PATCH, DELETE) and populate response examples from live responses
+Reload requires the FastAPI instance target; `app:api --reload` is rejected. The [getting-started app](getting-started.md) already exports both objects.
 
-When your endpoints use `rate_limit`, the generated OpenAPI schema includes a 429 (rate limit exceeded) response description. When `error_rate` and `error_codes` are set, the schema documents those simulated error responses (e.g. 404, 500).
+## Export OpenAPI
 
-**Example output (truncated):**
+Exporting uses FastAPI's test-client support. Install `httpx` first:
 
 ```bash
-semblance export openapi examples.basic.app:api -o openapi.json
+pip install httpx
+semblance export openapi app:api -o openapi.json
 ```
 
-```json
-{
-  "openapi": "3.1.0",
-  "paths": {
-    "/users": {
-      "get": {
-        "summary": "List users",
-        "responses": {"200": {"description": "Successful response"}}
-      }
-    }
-  }
-}
-```
+**Output:** `Wrote openapi.json`. Omit `-o` to print the schema to stdout. The schema includes request and response models, route metadata, and configured error or rate-limit responses.
 
-## Export Fixtures
+Add successful live samples:
 
 ```bash
-semblance export fixtures <module>:<attr> [-o DIR]
+semblance export openapi app:api -o openapi.json --examples
 ```
 
-Calls each GET, POST, PUT, PATCH, and DELETE endpoint and saves the JSON response to `{output_dir}/{route_id}_{METHOD}.json`. For DELETE responses with status 204, a minimal `{"status": 204}` fixture is written. Also writes `openapi.json`.
+The exporter sends minimal requests: empty JSON for POST/PUT/PATCH, default query values, and `1` for path parameters. Routes that require additional input or authentication may not produce a successful sample. For stateful routes or scenarios, sampling can change the in-memory state used during that export.
 
-**Example:**
+## Export fixtures
+
+Using `app.py` from [Getting started](getting-started.md):
 
 ```bash
-semblance export fixtures examples.basic.app:api -o fixtures
-# Creates e.g. fixtures/users_GET.json, fixtures/users_POST.json, fixtures/openapi.json (and PUT/PATCH/DELETE when defined)
+semblance export fixtures app:api -o fixtures
 ```
 
-**Example `fixtures/users_GET.json`** (with `examples.basic.app:api`, which uses `seed=42` and `list_count=2`):
+**Output:** `Wrote fixtures to fixtures`. This app produces:
+
+```text
+fixtures/
+├── openapi.json
+└── users_GET.json
+```
+
+The contents of `users_GET.json` are:
 
 ```json
 [
-  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
-  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
+  {"name": "alice", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "alice", "created_at": "2024-01-10T03:41:40.080943"}
 ]
 ```
 
-Without a fixed seed, output varies per run.
+Files use `{route_id}_{METHOD}.json`; for example, `/users/{id}` becomes `users_id_GET.json`. The same minimal-request rules apply as for OpenAPI examples. DELETE routes without a sampled body get a `{"status":204}` fixture marker; inspect the route behavior when you need an exact error fixture.
 
-## Invalid Paths
+## Configuration
 
-If the path is malformed or the module/attribute not found, the CLI exits with an error:
+Use YAML defaults in **`semblance.yaml`**:
 
-```bash
-$ semblance export openapi missing:api
-Invalid path 'missing:api'. Use module:attr (e.g. app:api or app:app)
-# or
-Module 'missing' not found
-# or
-Attribute 'api' not found in module 'missing'
+```yaml
+seed: 42
+list_count: 2
+stateful: false
+validate_links: true
+validate_responses: true
+verbose_errors: false
 ```
+
+YAML loading requires `pip install pyyaml`. Load the file explicitly:
+
+```python
+from semblance import SemblanceAPI
+
+api = SemblanceAPI(config_path="semblance.yaml")
+```
+
+Or use discovery, with optional keyword overrides:
+
+```python
+from semblance import SemblanceAPI
+
+api = SemblanceAPI.from_config(list_count=3)
+```
+
+Discovery looks in the current directory, then its parent, for `semblance.yaml`, `semblance.yml`, or a `[tool.semblance]` section in `pyproject.toml`. At each location YAML is checked first. A plain `SemblanceAPI()` uses constructor defaults and does not discover files.
+
+The TOML equivalent is:
+
+```toml
+[tool.semblance]
+seed = 42
+list_count = 2
+stateful = false
+validate_links = true
+validate_responses = true
+verbose_errors = false
+```
+
+Python 3.10 needs `pip install tomli` for TOML loading; Python 3.11+ includes `tomllib`.
+
+## Troubleshooting imports
+
+If the CLI reports a missing module, run it from the directory containing that module or install the package containing it. Use an explicit target such as `app:api` when a module exports multiple app objects. See [Troubleshooting](troubleshooting.md#module-attr-not-found).

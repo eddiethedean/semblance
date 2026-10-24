@@ -63,6 +63,15 @@ mkdocs serve
 
 Open http://127.0.0.1:8000 to preview. Read the Docs builds from `.readthedocs.yaml` on each push.
 
+Check the site before submitting documentation changes:
+
+```bash
+mkdocs build --strict
+pytest tests/test_doc_examples.py -q
+```
+
+The strict build checks navigation, page targets, and section links. CI runs it on every push and pull request. Keep sample responses aligned with the actual requests and installed dependency versions; use separate JSON blocks for separate responses.
+
 ## Submitting Changes
 
 1. Create a branch from `main` for your changes

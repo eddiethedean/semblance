@@ -1,12 +1,16 @@
-# Stateful Example
+# Stateful collections example
 
-POST creates and stores items; GET list and GET-by-id return stored data; PUT, PATCH, and DELETE operate on stored items by id when the path includes a path parameter (e.g. `/users/{id}`).
+POST creates and stores users; GET returns the stored collection. For by-ID lookups, updates, and deletion, see the stateful CRUD example.
+
+[Python source](https://github.com/eddiethedean/semblance/blob/main/examples/stateful/app.py)
 
 ## Code
 
 ```python
 """
 Stateful example - POST stores items, GET returns stored list.
+
+Run: semblance run examples.stateful.app:api --port 8000
 """
 
 from typing import Annotated
@@ -42,46 +46,53 @@ def list_users():
 
 
 app = api.as_fastapi()
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 ```
 
 ## Run
+
+From the repository root, with Semblance installed:
 
 ```bash
 semblance run examples.stateful.app:api --port 8000
 ```
 
-## Try
+## Requests and responses
+
+Run against a fresh server, in the order shown. Generated IDs can vary; the same ID appears in the stored list.
+
+**Input 1:**
 
 ```bash
-# Create users
-curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -d '{"name":"alice"}'
-curl -X POST "http://127.0.0.1:8000/users" -H "Content-Type: application/json" -d '{"name":"bob"}'
-
-# List stored users
-curl "http://127.0.0.1:8000/users?name=x"
+curl -sS -X POST http://127.0.0.1:8000/users -H 'Content-Type: application/json' -d '{"name": "alice"}'
 ```
 
-Example responses (IDs vary per run; sample from a live run):
+**Output — `200 OK`:**
 
 ```json
-// POST alice
-{"id": "zPqoqmcltaxGXYLWBYlx", "name": "alice"}
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+```
 
-// POST bob
-{"id": "pNcTHUpJcNfPvDzMlRpP", "name": "bob"}
+**Input 2:**
 
-// GET /users
+```bash
+curl -sS http://127.0.0.1:8000/users
+```
+
+**Output — `200 OK`:**
+
+```json
 [
-  {"id": "zPqoqmcltaxGXYLWBYlx", "name": "alice"},
-  {"id": "pNcTHUpJcNfPvDzMlRpP", "name": "bob"}
+  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
 ]
 ```
 
-## Concepts
+Exact generated values can change with dependency versions.
 
-- **stateful=True** – SemblanceAPI stores POST responses; GET list and GET-by-id return stored data
-- **GET list** – returns stored instances, not newly generated
-- **GET /users/{id}** – returns the stored item whose id matches the path param, or 404
-- **PUT/PATCH/DELETE** – when the path has `{id}`, upsert, update, or remove the stored item by id (404 if not found for PATCH/DELETE)
-- **id** – auto-generated for models with id field
-- State is process-local (in-memory)
+## Further reading
+
+See the [guide](../../docs/guides/stateful-mode.md) for the behavior and available options.

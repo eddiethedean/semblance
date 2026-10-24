@@ -1,6 +1,6 @@
 # Pagination
 
-Semblance provides helpers for offset/limit pagination.
+Semblance supports generated offset/limit responses and declared cursor pages. The snippets below extend an app with a `User` output model; see the [runnable pagination example](../examples/pagination.md) for a complete file.
 
 ## PageParams
 
@@ -8,6 +8,7 @@ Use `PageParams` as a base for your input model to get `limit` and `offset`:
 
 ```python
 from semblance import PageParams, PaginatedResponse
+from pydantic import BaseModel
 
 class UserListQuery(PageParams, BaseModel):
     name: str = "alice"
@@ -45,7 +46,7 @@ Responses include `items`, `total`, `limit`, and `offset`:
 ## Example Request
 
 ```bash
-curl "http://127.0.0.1:8000/users?name=alice&limit=5&offset=10"
+curl "http://127.0.0.1:8000/users?name=alice&limit=3&offset=0"
 ```
 
 ## Notes
@@ -59,6 +60,7 @@ For a declared token → page map (not adapter page-token codecs), pass `page_ta
 
 ```python
 from semblance import PageSlice, PageTable
+from pydantic import BaseModel
 
 class TokenQuery(BaseModel):
     page_token: str | None = None

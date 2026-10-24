@@ -2,12 +2,15 @@
 
 This guide covers conditional dependencies, cross-field constraints, and nested model linking.
 
+These snippets show output model definitions to use in an existing app. See the [advanced example](../examples/advanced.md) for complete input models, routes, and requests.
+
 ## WhenInput
 
 Apply a link only when an input condition is met:
 
 ```python
 from typing import Annotated
+from pydantic import BaseModel
 from semblance import FromInput, WhenInput
 
 class UserWithStatus(BaseModel):
@@ -29,6 +32,7 @@ Compute an output field from other output fields in the same model:
 
 ```python
 from typing import Annotated
+from pydantic import BaseModel
 from semblance import ComputedFrom, FromInput
 
 class UserWithFullName(BaseModel):
@@ -82,6 +86,7 @@ Load values from a JSON file. Pointers are slash paths (`items/0/name`). `varian
 
 ```python
 from typing import Annotated
+from pydantic import BaseModel
 from semblance import FromJsonFixture, FromNestedFixture
 
 class FileRow(BaseModel):

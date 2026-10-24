@@ -13,7 +13,7 @@ Semblance turns request and response schemas into a running FastAPI app. Use fie
 
 Build against a mock while the backend takes shape, exercise a client's retry behavior, or run integration tests with repeatable data. FastAPI handles request validation and OpenAPI; Polyfactory generates the response data.
 
-[Documentation](https://semblance.readthedocs.io/en/latest/) · [Examples](https://semblance.readthedocs.io/en/latest/examples/) · [Changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md) · [Contributing](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md)
+[Documentation](https://semblance.readthedocs.io/en/latest/) · [Capper example](#generate-realistic-data-with-capper) · [Inputs and outputs](#examples) · [Changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md) · [Contributing](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md)
 
 ## Quick start
 
@@ -61,13 +61,13 @@ Start the simulator:
 semblance run app:api --port 8000
 ```
 
-Then, in another terminal:
+**Input — in another terminal:**
 
 ```bash
 curl "http://127.0.0.1:8000/users?name=alice"
 ```
 
-Example response:
+**Output — `200 OK`:**
 
 ```json
 [
@@ -87,6 +87,69 @@ Change `name`, `start_date`, or `end_date` in the query to change the response. 
 In the quick start, `FromInput("name")` copies the requested name and `DateRangeFrom(...)` generates timestamps within the requested range. The function body is a registration placeholder; Semblance ignores it and generates the response from the models.
 
 Register GET, POST, PUT, PATCH, and DELETE routes with the same pattern. Return a model, `list[Model]`, or a pagination wrapper; DELETE with `output=None` returns 204 No Content.
+
+## Generate realistic data with Capper
+
+[Capper](https://github.com/eddiethedean/capper) adds semantic types such as `Name`, `Email`, `Company`, and `City`. Use them in your output model and Semblance's Polyfactory integration automatically generates values with the corresponding Faker providers.
+
+Install the optional dependency:
+
+```bash
+pip install "capper[pydantic]"
+```
+
+Save this as **`realistic.py`**:
+
+```python
+from typing import Annotated
+
+from capper import City, Company, Email, Name
+from pydantic import BaseModel
+from semblance import FromInput, SemblanceAPI
+
+
+class CustomerQuery(BaseModel):
+    segment: str = "trial"
+    seed: int = 42
+
+
+class Customer(BaseModel):
+    name: Name
+    email: Email
+    company: Company
+    city: City
+    segment: Annotated[str, FromInput("segment")]
+
+
+api = SemblanceAPI()
+
+
+@api.get("/customer", input=CustomerQuery, output=Customer, seed_from="seed")
+def customer():
+    pass
+```
+
+Run `semblance run realistic:api --port 8002`.
+
+**Input:**
+
+```bash
+curl "http://127.0.0.1:8002/customer?segment=enterprise&seed=42"
+```
+
+**Output — `200 OK`:**
+
+```json
+{
+  "name": "Allison Hill",
+  "email": "donaldgarcia@example.net",
+  "company": "Miller, Henderson and Johnson",
+  "city": "East William",
+  "segment": "enterprise"
+}
+```
+
+The query supplies `segment`; Capper generates the other fields. Change `seed` to generate another customer, or repeat it for the same result with the same dependency versions. This response was captured with Capper 1.1.1, Faker 40.43.0, and Polyfactory 3.5.0. Capper fields are generated independently; use `ComputedFrom` or custom links when fields need to depend on one another.
 
 ## Test without a server
 
@@ -121,7 +184,16 @@ def test_users():
     )
 ```
 
-Run `pytest test_app.py`. The test client calls the app in process. Use `seed_from="seed"` on a route to take a per-request seed from an input field, or add Hypothesis for [property-based tests](https://semblance.readthedocs.io/en/latest/guides/testing/).
+The input is `GET /users?name=testuser`. The test client calls the app in process and receives **`200 OK`** with:
+
+```json
+[
+  {"name": "testuser", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "testuser", "created_at": "2024-01-10T03:41:40.080943"}
+]
+```
+
+Run `pytest -q test_app.py`. The result is `1 passed` (timing varies). Use `seed_from="seed"` on a route to take a per-request seed from an input field, or add Hypothesis for [property-based tests](https://semblance.readthedocs.io/en/latest/guides/testing/).
 
 ## Simulate failure and recovery
 
@@ -148,7 +220,36 @@ def users():
     pass
 ```
 
-Run `semblance run resilience:api --port 8001`. The first request returns 503; subsequent requests return generated users. Each route holds its final scenario step until the simulator is restarted.
+Run `semblance run resilience:api --port 8001`.
+
+**First input:**
+
+```bash
+curl "http://127.0.0.1:8001/users?name=alice"
+```
+
+**Output — `503 Service Unavailable`:**
+
+```json
+{"detail": "Temporarily unavailable"}
+```
+
+**Second input — repeat the same request:**
+
+```bash
+curl "http://127.0.0.1:8001/users?name=alice"
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"name": "alice", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "alice", "created_at": "2024-01-10T03:41:40.080943"}
+]
+```
+
+Subsequent requests also return generated users. Each route holds its final scenario step until the simulator is restarted.
 
 For other failure modes, use `ErrorCase` to match validated input, `error_rate` and `error_codes` for random failures, or `latency_ms`, `jitter_ms`, and `rate_limit` to exercise slow requests and throttling. See [simulation options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/).
 
@@ -191,6 +292,14 @@ semblance export openapi app:api --examples -o openapi.json
 semblance export fixtures app:api -o fixtures
 ```
 
+| Command | Output or result |
+| --- | --- |
+| `semblance init --with-config` | Writes `app.py` and `semblance.yaml`, printing their absolute paths and a run command |
+| `semblance validate app:api` | Prints `OK` and exits with status 0 when the routes and links are valid |
+| `semblance run app:api --port 8000 --reload` | Starts the simulator at `http://127.0.0.1:8000`; `/docs` shows the registered routes |
+| `semblance export openapi app:api --examples -o openapi.json` | Prints `Wrote openapi.json`; the file contains the `/users` schema and example responses |
+| `semblance export fixtures app:api -o fixtures` | Prints `Wrote fixtures to fixtures`; the directory contains OpenAPI and JSON response fixtures |
+
 See the [CLI guide](https://semblance.readthedocs.io/en/latest/guides/cli/) for all options and the [concepts guide](https://semblance.readthedocs.io/en/latest/guides/concepts/) for configuration defaults.
 
 ## Examples
@@ -212,9 +321,423 @@ Replace `basic` with any module below:
 | [stateful](https://semblance.readthedocs.io/en/latest/examples/stateful/) | Store created items and list them |
 | [stateful_crud](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/) | Full CRUD with an in-memory store |
 | [put_patch_delete](https://semblance.readthedocs.io/en/latest/examples/put_patch_delete/) | Generated PUT, PATCH, and DELETE responses |
-| [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | Simulated errors and latency |
+| [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | Seeded success, 404, and 503 responses |
 | [request_links](https://semblance.readthedocs.io/en/latest/examples/request_links/) | Header and cookie bindings |
 | [plugins](https://semblance.readthedocs.io/en/latest/examples/plugins/) | Custom link types |
+
+Expand an example below for its inputs and captured outputs. Start one example server at a time on port 8000. Generated values can change with dependency versions; use the IDs returned by your running server when following a stateful sequence.
+
+<details>
+<summary>basic — input bindings and date ranges</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/basic/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/basic/)
+
+**Input:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31'
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"name": "alice", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "alice", "created_at": "2024-01-10T03:41:40.080943"}
+]
+```
+
+</details>
+
+<details>
+<summary>pagination — limit, offset, and total</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/pagination/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/pagination/)
+
+This example generates a pool of `limit` items, so `limit=3` and `offset=0` return three items with `total=3`.
+
+**Input:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?limit=3&offset=0&name=alice'
+```
+
+**Output — `200 OK`:**
+
+```json
+{
+  "items": [
+    {
+      "name": "alice"
+    },
+    {
+      "name": "alice"
+    },
+    {
+      "name": "alice"
+    }
+  ],
+  "total": 3,
+  "limit": 3,
+  "offset": 0
+}
+```
+
+</details>
+
+<details>
+<summary>nested — request data inside a nested response</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/nested/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/nested/)
+
+The city is bound to the request. This module uses plain `str` fields for street and ZIP; the Capper example above demonstrates how semantic types improve generated data.
+
+**Input:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user?name=foo&city=Boston'
+```
+
+**Output — `200 OK`:**
+
+```json
+{
+  "name": "foo",
+  "address": {
+    "street": "HbolMJUevblAbkHClEQa",
+    "city": "Boston",
+    "zip": "PKriXrefSFPLBYtCRGSE"
+  }
+}
+```
+
+</details>
+
+<details>
+<summary>advanced — conditional, computed, and filtered fields</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/advanced/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/advanced/)
+
+**Input 1:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user/status?name=alice&include_status=true&status=active'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"name": "alice", "status": "active"}
+```
+
+**Input 2:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user/fullname?first=Jane&last=Smith'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"first": "Jane", "last": "Smith", "full": "Jane Smith"}
+```
+
+**Input 3:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=x&status=active&include_status=true'
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"},
+  {"name": "x", "status": "active"}
+]
+```
+
+</details>
+
+<details>
+<summary>stateful — create an item, then list stored items</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/stateful/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/stateful/)
+
+Run against a fresh server, in the order shown. Generated IDs can vary; the same ID appears in the stored list.
+
+**Input 1:**
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/users -H 'Content-Type: application/json' -d '{"name": "alice"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+```
+
+**Input 2:**
+
+```bash
+curl -sS http://127.0.0.1:8000/users
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+]
+```
+
+</details>
+
+<details>
+<summary>stateful_crud — create, read, replace, patch, list, and delete</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/stateful_crud/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/)
+
+Run against a fresh server, in the order shown. Use the ID returned by POST in subsequent paths; the sample below uses `HbolMJUevblAbkHClEQa`.
+
+**Input 1:**
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/users -H 'Content-Type: application/json' -d '{"name": "alice"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+```
+
+**Input 2:**
+
+```bash
+curl -sS http://127.0.0.1:8000/users/HbolMJUevblAbkHClEQa
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
+```
+
+**Input 3:**
+
+```bash
+curl -sS -X PUT http://127.0.0.1:8000/users/HbolMJUevblAbkHClEQa -H 'Content-Type: application/json' -d '{"name": "alice-replaced"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice-replaced"}
+```
+
+**Input 4:**
+
+```bash
+curl -sS -X PATCH http://127.0.0.1:8000/users/HbolMJUevblAbkHClEQa -H 'Content-Type: application/json' -d '{"name": "alice-updated"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "alice-updated"}
+```
+
+**Input 5:**
+
+```bash
+curl -sS http://127.0.0.1:8000/users
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"id": "HbolMJUevblAbkHClEQa", "name": "alice-updated"}
+]
+```
+
+**Input 6:**
+
+```bash
+curl -sS -X DELETE http://127.0.0.1:8000/users/HbolMJUevblAbkHClEQa
+```
+
+**Output — `204 No Content`:**
+
+No response body.
+
+**Input 7:**
+
+```bash
+curl -sS http://127.0.0.1:8000/users/HbolMJUevblAbkHClEQa
+```
+
+**Output — `404 Not Found`:**
+
+```json
+{"detail": "Not found"}
+```
+
+</details>
+
+<details>
+<summary>put_patch_delete — generated responses for write methods</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/put_patch_delete/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/put_patch_delete/)
+
+These routes generate responses without storing them. The output `id` is a generated string, so it does not echo the path ID.
+
+**Input 1:**
+
+```bash
+curl -sS -X PUT http://127.0.0.1:8000/users/abc -H 'Content-Type: application/json' -d '{"name": "put-user"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "put-user"}
+```
+
+**Input 2:**
+
+```bash
+curl -sS -X PATCH http://127.0.0.1:8000/users/xyz -H 'Content-Type: application/json' -d '{"name": "patch-user"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "patch-user"}
+```
+
+**Input 3:**
+
+```bash
+curl -sS -X DELETE http://127.0.0.1:8000/users/123
+```
+
+**Output — `204 No Content`:**
+
+No response body.
+
+**Input 4:**
+
+```bash
+curl -sS -X DELETE http://127.0.0.1:8000/users/123/with-body
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": "HbolMJUevblAbkHClEQa", "name": "PKriXrefSFPLBYtCRGSE"}
+```
+
+</details>
+
+<details>
+<summary>error_simulation — successful and failing responses</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/error_simulation/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/error_simulation/)
+
+With the bundled `SemblanceAPI(seed=99)`, this request consistently succeeds. The other fixed seeds below reproduce the configured failure responses. To sample failures across repeated requests, use `SemblanceAPI()` without a fixed seed.
+
+**Input 1:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
+```
+
+**Output — `200 OK`:**
+
+```json
+[
+  {"name": "alice"},
+  {"name": "alice"}
+]
+```
+
+For this input, restart the example after changing its constructor to `SemblanceAPI(seed=1)`.
+
+**Input 2:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
+```
+
+**Output — `404 Not Found`:**
+
+```json
+{"detail": "Simulated error"}
+```
+
+For this input, restart the example after changing its constructor to `SemblanceAPI(seed=8)`.
+
+**Input 3:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
+```
+
+**Output — `503 Service Unavailable`:**
+
+```json
+{"detail": "Simulated error"}
+```
+
+</details>
+
+<details>
+<summary>request_links — query, header, and cookie inputs</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/request_links/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/request_links/)
+
+**Input:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user?name=alice' -H 'X-Request-Id: id-1' -H 'Cookie: session_id=sess-1'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"name": "alice", "request_id": "id-1", "session": "sess-1"}
+```
+
+</details>
+
+<details>
+<summary>plugins — environment data and a custom link</summary>
+
+[Source](https://github.com/eddiethedean/semblance/blob/main/examples/plugins/app.py) · [Guide](https://semblance.readthedocs.io/en/latest/examples/plugins/)
+
+Start this module with its environment input set:
+
+```bash
+USER_NAME=DocBot semblance run examples.plugins.app:api --port 8000
+```
+
+**Input:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user?role=admin'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"name": "DocBot", "role": "admin"}
+```
+
+</details>
 
 ## Optional API adapters
 

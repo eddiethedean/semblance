@@ -2,6 +2,18 @@
 
 Common issues and how to fix them.
 
+## Every seeded request returns the same error
+
+**Cause:** The route explicitly enables `error_rate`, and a global seed or `seed_from` makes error selection repeat. The same seed produces the same success or failure status on each call. Seeding alone does not enable errors.
+
+**Fix:** Use `error_rate=0` for a successful route, omit seeds when you want probabilistic failures across repeated calls, or use [scenario steps](simulation-options.md#scenario-steps) for a specified sequence such as 503 followed by 200.
+
+## Generated strings do not look like names or emails
+
+**Cause:** A plain `str` describes a string without describing its meaning.
+
+**Fix:** Use [Capper semantic types](realistic-data.md), link the value from an input or fixture, or compute it from other output fields.
+
 ## 404 on stateful GET / PATCH / DELETE by id
 
 **Symptom:** Request to e.g. `GET /users/abc` returns 404 when you expected a stored item.

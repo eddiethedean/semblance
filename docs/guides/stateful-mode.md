@@ -1,85 +1,165 @@
-# Stateful Mode
+# Stateful mode
 
-With `SemblanceAPI(stateful=True)`, POST endpoints store created instances and GET list endpoints return stored data.
+Enable `SemblanceAPI(stateful=True)` to keep resources between requests in the same process. POST stores generated responses, and GET list routes return the stored collection.
 
-## Enabling Stateful Mode
+## Behavior by method
 
-```python
-api = SemblanceAPI(stateful=True)
-```
+| Method | Stateful behavior |
+|---|---|
+| POST `/users` | Generates a response and adds it to `/users` |
+| GET `/users` | Returns the stored collection, initially empty |
+| GET `/users/{id}` | Returns the first matching item, or 404 |
+| PUT `/users/{id}` | Replaces an existing item or adds a new one, using the path ID |
+| PATCH `/users/{id}` | Replaces an existing item with a generated response, using the path ID; returns 404 when missing |
+| DELETE `/users/{id}` | Removes the item and returns 204, or 404 when missing |
 
-## Behavior
+PATCH builds a new response from the supplied model. Model defaults and generated fields can replace existing values; it does not merge arbitrary omitted fields into the previous record.
 
-- **POST** – Builds the response as usual, stores it in memory, and returns it.
-- **GET list** – Returns stored instances for that path instead of generating new ones.
-- **GET single (by id)** – For routes with a path parameter (e.g. `/users/{id}`), returns the stored item whose id matches the path param, or 404 if not found. The store key is the *collection path* (e.g. `/users`), derived by stripping the last `/{param}` segment.
-- **PUT** – When stateful and the path has a path param (e.g. `/users/{id}`): if an item with that id exists, it is replaced with the built response (id set from path); otherwise the response is added. Returns the upserted instance.
-- **PATCH** – When stateful and the path has a path param: looks up the item by id; if not found, returns 404. Otherwise replaces it with the built response (id set from path) and returns the updated instance.
-- **DELETE** – When stateful and the path has a path param: removes the item with that id from the store. Returns 204 if found, 404 if not found.
+## A complete CRUD API
 
-State is keyed by *collection path* (e.g. `/users`). Paths like `/users/{id}` map to the collection `/users`; the path param name (e.g. `id`) is used as the field for lookups. It is process-local and not shared across workers.
-
-## Example
+This example takes IDs from the request so each created user has an explicit identity. Save it as **`stateful.py`**:
 
 ```python
 from typing import Annotated
+
+from pydantic import BaseModel
 from semblance import FromInput, SemblanceAPI
 
-class CreateUser(BaseModel):
+
+class EmptyQuery(BaseModel):
+    pass
+
+
+class UserInput(BaseModel):
+    id: int = 0
     name: str
 
-class UserWithId(BaseModel):
-    id: str = ""
+
+class PathId(BaseModel):
+    id: int = 0
+
+
+class User(BaseModel):
+    id: Annotated[int, FromInput("id")]
     name: Annotated[str, FromInput("name")]
 
-api = SemblanceAPI(stateful=True)
-api.post("/users", input=CreateUser, output=UserWithId)(lambda: None)
-api.get("/users", input=CreateUser, output=list[UserWithId])(lambda: None)
-app = api.as_fastapi()
+
+api = SemblanceAPI(stateful=True, seed=42)
+
+
+@api.post("/users", input=UserInput, output=User)
+def create_user():
+    pass
+
+
+@api.get("/users", input=EmptyQuery, output=list[User])
+def list_users():
+    pass
+
+
+@api.get("/users/{id}", input=PathId, output=User)
+def get_user():
+    pass
+
+
+@api.put("/users/{id}", input=UserInput, output=User)
+def replace_user():
+    pass
+
+
+@api.patch("/users/{id}", input=UserInput, output=User)
+def update_user():
+    pass
+
+
+@api.delete("/users/{id}", input=PathId)
+def delete_user():
+    pass
 ```
 
-```bash
-# Create users
-curl -X POST http://127.0.0.1:8000/users -H "Content-Type: application/json" -d '{"name":"alice"}'
-curl -X POST http://127.0.0.1:8000/users -H "Content-Type: application/json" -d '{"name":"bob"}'
+Run it:
 
-# List returns stored users
+```bash
+semblance run stateful:api --port 8000
+```
+
+## Create and read
+
+**Input:**
+
+```bash
+curl -X POST http://127.0.0.1:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"id":101,"name":"alice"}'
+```
+
+**Output — `200 OK`:**
+
+```json
+{"id": 101, "name": "alice"}
+```
+
+**Input:**
+
+```bash
 curl http://127.0.0.1:8000/users
 ```
 
-Example responses (IDs are auto-generated UUIDs):
+**Output — `200 OK`:**
 
 ```json
-// POST alice
-{"id": "HbolMJUevblAbkHClEQa", "name": "alice"}
-
-// POST bob
-{"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
-
-// GET /users
-[
-  {"id": "HbolMJUevblAbkHClEQa", "name": "alice"},
-  {"id": "PKriXrefSFPLBYtCRGSE", "name": "bob"}
-]
+[{"id": 101, "name": "alice"}]
 ```
 
-## ID Generation
+**Input:**
 
-If the output model has an `id` field and it is empty or missing, Semblance assigns a UUID before storing.
+```bash
+curl http://127.0.0.1:8000/users/101
+```
 
-## Clearing State
+**Output — `200 OK`:**
 
-Use `clear_store()` for tests or resets:
+```json
+{"id": 101, "name": "alice"}
+```
+
+## Replace, update, and delete
+
+Run these requests against the same server, after creating user 101:
+
+| Input | JSON body | Output |
+|---|---|---|
+| PUT `/users/101` | `{"name":"bob"}` | `200` with `{"id":101,"name":"bob"}` |
+| PATCH `/users/101` | `{"name":"robert"}` | `200` with `{"id":101,"name":"robert"}` |
+| DELETE `/users/101` | No body | `204 No Content`, empty body |
+| GET `/users/101` | No body | `404` with `{"detail":"Not found"}` |
+| GET `/users` | No body | `200` with `[]` |
+
+For example, the PATCH request is:
+
+```bash
+curl -X PATCH http://127.0.0.1:8000/users/101 \
+  -H "Content-Type: application/json" \
+  -d '{"name":"robert"}'
+```
+
+## IDs and collection paths
+
+The store groups routes by collection path. `/users/{id}` maps to `/users`, and the first path parameter's name supplies the field used for lookup. Give path fields a default in the input model so validation can run before the path value is merged.
+
+If a generated response has a missing or empty `id`, the store assigns a UUID. A plain `id: str` can already have a generated string, so IDs are not always UUIDs. Fixed seeds can repeat those generated IDs; when distinct identities matter, bind an explicit ID from the request as this guide does, or create resources through PUT with distinct path IDs.
+
+## Reset and inspect state
+
+Clear all collections or just one:
 
 ```python
-api.clear_store()        # Clear all paths
-api.clear_store("/users")  # Clear only /users
+api.clear_store()
+api.clear_store("/users")
 ```
 
-## Limitations
+Enable `SemblanceAPI(stateful=True, verbose_errors=True)` to include collection and ID information in stateful 404 details.
 
-- State lives in process memory; it is lost on restart.
-- Not suitable for multi-worker deployments; each worker has its own store.
-- For stateful by-id behavior, use a single path parameter (e.g. `{id}`); the first path param is used as the id field for store lookups.
+State lives in process memory and is lost on restart. Each worker has its own store. Use a single path parameter for by-ID routes.
 
-`scenario=` on a route is a status sequence (for example 503 then 200). It does not store resources. Use `stateful=True` for CRUD-shaped memory, and `scenario` for retry/lifecycle simulation.
+A [scenario](simulation-options.md#scenario-steps) advances a sequence of statuses; it does not store resources. Use stateful mode for resource data and scenarios for failure and recovery behavior.

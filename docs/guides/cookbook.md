@@ -2,6 +2,8 @@
 
 Short recipes for common tasks. Each links to the full guide or example.
 
+These snippets extend an existing app and its models. For a complete first app, follow [Getting started](getting-started.md); for semantic names and emails, use [Capper](realistic-data.md).
+
 ## Pagination
 
 Use `PageParams` in your input model and `PaginatedResponse[Model]` as the output type:
@@ -66,11 +68,16 @@ See [Simulation Options](simulation-options.md).
 Use Hypothesis with Semblance’s helpers to generate inputs and assert on responses:
 
 ```python
-from semblance.property_testing import strategy_for_input_model, test_endpoint
+from semblance.property_testing import strategy_for_input_model, test_endpoint as check_endpoint
 
-@given(data=st.data())
-def test_users(data):
-    test_endpoint(data, client, "GET", "/users", UserQuery, list[User])
+def test_users():
+    check_endpoint(
+        client,
+        "GET",
+        "/users",
+        strategy_for_input_model(UserQuery),
+        list[User],
+    )
 ```
 
 See [Testing](testing.md).

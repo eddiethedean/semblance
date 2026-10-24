@@ -4,10 +4,14 @@ Testing utilities for Semblance APIs.
 Provides test_client for FastAPI apps built with SemblanceAPI.as_fastapi().
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
 
 
 def test_client(app: FastAPI, **kwargs: Any) -> TestClient:
@@ -24,4 +28,6 @@ def test_client(app: FastAPI, **kwargs: Any) -> TestClient:
         assert r.status_code == 200
         data = r.json()
     """
+    from fastapi.testclient import TestClient
+
     return TestClient(app, **kwargs)

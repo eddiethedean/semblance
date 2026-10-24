@@ -1,4 +1,4 @@
-# Request Links (Phase 7)
+# Request links
 
 Bind output fields to the current request: headers and cookies. Use `FromHeader(name)` and `FromCookie(name)` so responses reflect the incoming request.
 

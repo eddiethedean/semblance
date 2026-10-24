@@ -1,12 +1,16 @@
-# Error Simulation Example
+# Error simulation example
 
-Simulate random API failures with `error_rate` and `error_codes`.
+Configure opt-in failures with `error_rate` and `error_codes`. A fixed seed makes the selected outcome reproducible.
+
+[Python source](https://github.com/eddiethedean/semblance/blob/main/examples/error_simulation/app.py)
 
 ## Code
 
 ```python
 """
 Error simulation example - error_rate, error_codes.
+
+Run: semblance run examples.error_simulation.app:api --port 8000
 """
 
 from typing import Annotated
@@ -33,36 +37,40 @@ api = SemblanceAPI(seed=99)
     list_count=2,
     error_rate=0.3,
     error_codes=[404, 503],
-    summary="List users (may fail randomly)",
+    summary="List users with configured error simulation",
 )
 def users():
-    """30% of requests return 404 or 503. Use error_rate=0 for tests."""
+    """Unseeded requests have a 30% failure chance; a fixed seed repeats the result."""
     pass
 
 
 app = api.as_fastapi()
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 ```
 
 ## Run
+
+From the repository root, with Semblance installed:
 
 ```bash
 semblance run examples.error_simulation.app:api --port 8000
 ```
 
-Or with uvicorn (from project root with `PYTHONPATH=.` or `pip install -e .`):
+## Requests and responses
+
+With the bundled `SemblanceAPI(seed=99)`, this request consistently succeeds. The other fixed seeds below reproduce the configured failure responses. To sample failures across repeated requests, use `SemblanceAPI()` without a fixed seed.
+
+**Input 1:**
 
 ```bash
-uvicorn examples.error_simulation.app:app --reload
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
 ```
 
-## Try
-
-```bash
-# ~70% succeed, ~30% return 404 or 503 (seed=99)
-curl "http://127.0.0.1:8000/users?name=alice"
-```
-
-Success response (when no error is raised):
+**Output — `200 OK`:**
 
 ```json
 [
@@ -71,16 +79,36 @@ Success response (when no error is raised):
 ]
 ```
 
-Failure response (when error_rate triggers):
+For this input, restart the example after changing its constructor to `SemblanceAPI(seed=1)`.
+
+**Input 2:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
+```
+
+**Output — `404 Not Found`:**
 
 ```json
 {"detail": "Simulated error"}
 ```
-(Status: 404 or 503)
 
-## Concepts
+For this input, restart the example after changing its constructor to `SemblanceAPI(seed=8)`.
 
-- **error_rate** – fraction of requests that fail (0.0–1.0)
-- **error_codes** – list of status codes to return on failure
-- **seed** – use for deterministic testing (same seed → same pattern)
-- Use `error_rate=0` in tests for predictable success
+**Input 3:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=alice'
+```
+
+**Output — `503 Service Unavailable`:**
+
+```json
+{"detail": "Simulated error"}
+```
+
+Exact generated values can change with dependency versions.
+
+## Further reading
+
+See the [guide](../../docs/guides/simulation-options.md) for the behavior and available options.

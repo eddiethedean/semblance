@@ -2,11 +2,15 @@
 
 WhenInput, ComputedFrom, and filter_by.
 
+[Python source](https://github.com/eddiethedean/semblance/blob/main/examples/advanced/app.py)
+
 ## Code
 
 ```python
 """
 Advanced example - WhenInput, ComputedFrom, filter_by.
+
+Run: semblance run examples.advanced.app:api --port 8000
 """
 
 from typing import Annotated
@@ -76,37 +80,56 @@ def users_filtered():
 
 
 app = api.as_fastapi()
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 ```
 
 ## Run
+
+From the repository root, with Semblance installed:
 
 ```bash
 semblance run examples.advanced.app:api --port 8000
 ```
 
-## Try
+## Requests and responses
+
+**Input 1:**
 
 ```bash
-# WhenInput - status applied only when include_status=true
-curl "http://127.0.0.1:8000/user/status?name=alice&include_status=true&status=active"
-
-# ComputedFrom - full name computed from first + last
-curl "http://127.0.0.1:8000/user/fullname?first=Jane&last=Smith"
-
-# filter_by - all list items match status (include_status=true so status comes from input)
-curl "http://127.0.0.1:8000/users?name=x&status=active&include_status=true"
+curl -sS 'http://127.0.0.1:8000/user/status?name=alice&include_status=true&status=active'
 ```
 
-Example responses:
+**Output — `200 OK`:**
 
 ```json
-// GET /user/status?name=alice&include_status=true&status=active
 {"name": "alice", "status": "active"}
+```
 
-// GET /user/fullname?first=Jane&last=Smith
+**Input 2:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/user/fullname?first=Jane&last=Smith'
+```
+
+**Output — `200 OK`:**
+
+```json
 {"first": "Jane", "last": "Smith", "full": "Jane Smith"}
+```
 
-// GET /users?name=x&status=active&include_status=true (filter_by)
+**Input 3:**
+
+```bash
+curl -sS 'http://127.0.0.1:8000/users?name=x&status=active&include_status=true'
+```
+
+**Output — `200 OK`:**
+
+```json
 [
   {"name": "x", "status": "active"},
   {"name": "x", "status": "active"},
@@ -114,8 +137,8 @@ Example responses:
 ]
 ```
 
-## Concepts
+Exact generated values can change with dependency versions.
 
-- **WhenInput(cond, val, link)** – apply link only when cond matches
-- **ComputedFrom(fields, fn)** – compute field from other output fields
-- **filter_by** – filter list items to those matching input field value
+## Further reading
+
+See the [guide](../../docs/guides/advanced-links.md) for the behavior and available options.

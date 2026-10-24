@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-24
+
+### Changed
+
+- Reworked documentation navigation, quick starts, testing and stateful guides, CLI reference, and example inputs and outputs.
+- Added a realistic-data walkthrough using optional Capper semantic types and a strict documentation build in CI.
+
+### Fixed
+
+- The CLI resolves local app modules from the working directory when invoked through the installed `semblance` command, and module-only targets ignore imported API classes when choosing an app instance.
+- Importing Semblance and running the CLI no longer require optional HTTP test-client dependencies; those are imported only when `test_client` is used.
+
 ## [0.9.0] - 2026-08-19
 
 ### Added
@@ -209,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/eddiethedean/semblance/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/eddiethedean/semblance/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/eddiethedean/semblance/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/eddiethedean/semblance/compare/v0.6.1...v0.7.0

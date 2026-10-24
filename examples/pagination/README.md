@@ -2,11 +2,15 @@
 
 List endpoint with `PageParams` and `PaginatedResponse`.
 
+[Python source](https://github.com/eddiethedean/semblance/blob/main/examples/pagination/app.py)
+
 ## Code
 
 ```python
 """
 Pagination example - PageParams and PaginatedResponse.
+
+Run: semblance run examples.pagination.app:api --port 8000
 """
 
 from typing import Annotated
@@ -41,29 +45,45 @@ def users():
 
 
 app = api.as_fastapi()
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="127.0.0.1", port=8000)
 ```
 
 ## Run
+
+From the repository root, with Semblance installed:
 
 ```bash
 semblance run examples.pagination.app:api --port 8000
 ```
 
-## Try
+## Requests and responses
+
+This example generates a pool of `limit` items, so `limit=3` and `offset=0` return three items with `total=3`.
+
+**Input:**
 
 ```bash
-curl "http://127.0.0.1:8000/users?limit=5&offset=0&name=alice"
-curl "http://127.0.0.1:8000/users?limit=3&offset=10"
+curl -sS 'http://127.0.0.1:8000/users?limit=3&offset=0&name=alice'
 ```
 
-Example response (`limit=3&offset=0`):
+**Output — `200 OK`:**
 
 ```json
 {
   "items": [
-    {"name": "alice"},
-    {"name": "alice"},
-    {"name": "alice"}
+    {
+      "name": "alice"
+    },
+    {
+      "name": "alice"
+    },
+    {
+      "name": "alice"
+    }
   ],
   "total": 3,
   "limit": 3,
@@ -71,22 +91,8 @@ Example response (`limit=3&offset=0`):
 }
 ```
 
-With offset (`limit=3&offset=10`), the simulated pool has 13 items; the page returns 3:
+Exact generated values can change with dependency versions.
 
-```json
-{
-  "items": [
-    {"name": "alice"},
-    {"name": "alice"},
-    {"name": "alice"}
-  ],
-  "total": 13,
-  "limit": 3,
-  "offset": 10
-}
-```
+## Further reading
 
-## Concepts
-
-- **PageParams** – `limit` and `offset` query params
-- **PaginatedResponse[T]** – `items`, `total`, `limit`, `offset`
+See the [guide](../../docs/guides/pagination.md) for the behavior and available options.

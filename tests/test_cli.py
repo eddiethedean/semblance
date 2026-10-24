@@ -4,6 +4,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
@@ -25,6 +26,56 @@ from tests.example_models import User, UserQuery
 
 
 class TestLoadApp:
+    def test_help_without_optional_http_clients(self, tmp_path):
+        script = textwrap.dedent(
+            """\
+            import importlib.abc
+            import sys
+
+            class WithoutHTTPClients(importlib.abc.MetaPathFinder):
+                def find_spec(self, fullname, path=None, target=None):
+                    if fullname.split('.')[0] in {'httpx', 'httpx2'}:
+                        raise ModuleNotFoundError(fullname)
+
+            sys.meta_path.insert(0, WithoutHTTPClients())
+            from semblance.cli import main
+            main()
+            """
+        )
+        result = subprocess.run(
+            [sys.executable, "-I", "-c", script, "--help"],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "usage:" in result.stdout
+
+    @pytest.mark.parametrize("target", ["app:api", "app"])
+    def test_validate_imports_app_from_working_directory(self, tmp_path, target):
+        (tmp_path / "app.py").write_text(
+            "from semblance import SemblanceAPI\napi = SemblanceAPI()\n"
+        )
+        # Isolated mode omits cwd from Python's import path, as a console
+        # entry point does, while keeping the installed package available.
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-I",
+                "-c",
+                "from semblance.cli import main; main()",
+                "validate",
+                target,
+            ],
+            cwd=tmp_path,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "OK" in result.stderr
+
     def test_load_semblance_api(self):
         app = _load_app("tests.sample_app:api")
 

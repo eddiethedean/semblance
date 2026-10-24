@@ -7,7 +7,7 @@
 - **Repository:** developed alongside `semblance` under `packages/semblance-foundry/`,
   independently versioned and publishable
 - **Status:** milestones 0–1 implemented (ontology-read MVP). Milestones 2–5 are post–Phase 9.
-- **Roadmap mapping:** [Phase 9](roadmap.md#phase-9--external-api-mock-packages-foundry)
+- **Roadmap mapping:** [Phase 9](roadmap.md#phase-9-external-api-mock-packages-foundry)
   is milestones 0–1 (ontology-read MVP). Milestones 2–5 are post–Phase 9.
 - **Primary objective:** provide a deterministic, local HTTP simulation of the
   public Palantir Foundry REST API for client development, automated tests, demos,
@@ -677,7 +677,7 @@ Foundry `1.0.0` criteria remain under Milestone 5 and are not part of this DoD.
 
 ## References
 
-- [Roadmap Phase 9](roadmap.md#phase-9--external-api-mock-packages-foundry)
+- [Roadmap Phase 9](roadmap.md#phase-9-external-api-mock-packages-foundry)
 - [Palantir Foundry API introduction](https://www.palantir.com/docs/foundry/api/general/overview/introduction)
 - [Palantir Foundry API v2 reference](https://www.palantir.com/docs/foundry/api/v2)
 - [Palantir Foundry API authentication](https://www.palantir.com/docs/foundry/api/v2/general/overview/authentication)

@@ -28,10 +28,10 @@ api = SemblanceAPI(seed=99)
     list_count=2,
     error_rate=0.3,
     error_codes=[404, 503],
-    summary="List users (may fail randomly)",
+    summary="List users with configured error simulation",
 )
 def users():
-    """30% of requests return 404 or 503. Use error_rate=0 for tests."""
+    """Unseeded requests have a 30% failure chance; a fixed seed repeats the result."""
     pass
 
 
