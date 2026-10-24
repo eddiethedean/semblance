@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked documentation navigation, quick starts, testing and stateful guides, CLI reference, and example inputs and outputs.
 - Added a realistic-data walkthrough using optional Capper semantic types and a strict documentation build in CI.
 - Updated core and adapter development extras and test setup instructions to use `httpx2` with Starlette's test client.
-- Raised the FastAPI and Starlette minimum versions so supported test-client and export installs can use `httpx2`.
-- Aligned both adapter development extras with those FastAPI and Starlette minimums.
+- Kept the runtime FastAPI minimum compatible with older supported applications, and limited newer FastAPI and Starlette requirements to development extras using `httpx2`.
+- Aligned both adapter development extras with the `httpx2`-compatible FastAPI and Starlette minimums.
 
 ### Fixed
 

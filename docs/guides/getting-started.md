@@ -113,7 +113,7 @@ With the same seed, date range, and dependency versions, the generated timestamp
 - Install the optional HTTP client used to sample endpoint responses:
 
   ```bash
-  pip install httpx2
+  pip install httpx2 "fastapi>=0.133.0" "starlette>=1.3.1"
   ```
 
 - Export it with `semblance export openapi app:api -o openapi.json`.

@@ -61,10 +61,10 @@ Reload requires the FastAPI instance target; `app:api --reload` is rejected. The
 
 ## Export OpenAPI
 
-Exporting uses FastAPI's test-client support. Install `httpx2` first:
+Export commands use FastAPI's test-client support, including when exporting live examples. Install the `httpx2`-compatible FastAPI and Starlette versions:
 
 ```bash
-pip install httpx2
+pip install httpx2 "fastapi>=0.133.0" "starlette>=1.3.1"
 semblance export openapi app:api -o openapi.json
 ```
 

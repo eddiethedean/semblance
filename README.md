@@ -156,7 +156,7 @@ The query supplies `segment`; Capper generates the other fields. Change `seed` t
 Install the test dependencies:
 
 ```bash
-pip install pytest httpx2
+pip install pytest httpx2 "fastapi>=0.133.0" "starlette>=1.3.1"
 ```
 
 Save this beside `app.py` as **`test_app.py`**:
