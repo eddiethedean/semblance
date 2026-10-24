@@ -1,50 +1,29 @@
 # Semblance
 
-[![PyPI](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
-[![Read the Docs](https://readthedocs.org/projects/semblance/badge/?version=latest)](https://semblance.readthedocs.io/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/eddiethedean/semblance/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/eddiethedean/semblance/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
+[![Documentation status](https://img.shields.io/readthedocs/semblance/latest.svg)](https://semblance.readthedocs.io/en/latest/)
+[![Python versions](https://img.shields.io/pypi/pyversions/semblance.svg)](https://pypi.org/project/semblance/)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/eddiethedean/semblance/blob/main/LICENSE.md)
 
-**Schema-driven REST API simulation** with FastAPI, Pydantic, and Polyfactory.
+**Build a REST API simulator from Pydantic models.**
 
-Define API behavior declaratively using schemas and dependency metadata—no endpoint logic required. Semblance is built for **contract testing**, **prototyping**, **frontend development**, and **integration testing** against realistic API simulators.
+Semblance turns request and response schemas into a running FastAPI app. Use field metadata to bind responses to request data, generate values within constraints, and simulate failures—without writing endpoint logic.
 
-## Features
+Build against a mock while the backend takes shape, exercise a client's retry behavior, or run integration tests with repeatable data. FastAPI handles request validation and OpenAPI; Polyfactory generates the response data.
 
-- **Zero endpoint logic** — Schemas and link metadata define responses
-- **FastAPI-native** — Full OpenAPI, validation, async
-- **Deterministic** — Seeded generation for reproducible tests
-- **Extensible** — Custom link types via plugins
-- **Production-ready** — Error simulation, latency, rate limiting, pagination, stateful mode, optional response validation
+[Documentation](https://semblance.readthedocs.io/en/latest/) · [Examples](https://semblance.readthedocs.io/en/latest/examples/) · [Changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md) · [Contributing](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md)
 
-## Requirements
+## Quick start
 
-- Python 3.10+
-- FastAPI, Pydantic, Polyfactory, Uvicorn (installed with semblance)
-
-## Installation
+Requires **Python 3.10+**. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
 
 ```bash
 pip install semblance
 ```
 
-Optional unofficial adapters (separate packages):
-
-```bash
-pip install semblance-foundry
-pip install semblance-databricks
-```
-
-From source (development):
-
-```bash
-git clone https://github.com/eddiethedean/semblance.git
-cd semblance
-pip install -e ".[dev]"
-```
-
-## Quick Start
+Save this as **`app.py`**:
 
 ```python
 from datetime import date, datetime
@@ -56,16 +35,13 @@ from semblance import DateRangeFrom, FromInput, SemblanceAPI
 
 class UserQuery(BaseModel):
     name: str = "alice"
-    start_date: date = date(2020, 1, 1)
-    end_date: date = date(2025, 12, 31)
+    start_date: date = date(2024, 1, 1)
+    end_date: date = date(2024, 12, 31)
 
 
 class User(BaseModel):
     name: Annotated[str, FromInput("name")]
-    created_at: Annotated[
-        datetime,
-        DateRangeFrom("start_date", "end_date"),
-    ]
+    created_at: Annotated[datetime, DateRangeFrom("start_date", "end_date")]
 
 
 api = SemblanceAPI(seed=42)
@@ -79,210 +55,208 @@ def users():
 app = api.as_fastapi()
 ```
 
-You can register PUT, PATCH, and DELETE endpoints the same way (`@api.put(...)`, `@api.patch(...)`, `@api.delete(..., output=None)` for 204).
-
-Run:
+Start the simulator:
 
 ```bash
 semblance run app:api --port 8000
-# or
-uvicorn app:app --reload
 ```
 
-Try:
+Then, in another terminal:
 
 ```bash
-curl "http://127.0.0.1:8000/users?name=alice&start_date=2024-01-01&end_date=2024-12-31"
+curl "http://127.0.0.1:8000/users?name=alice"
 ```
 
-Example output (with `SemblanceAPI(seed=42)` and `list_count=2` for reproducibility):
+Example response:
 
 ```json
 [
-  {"name": "alice", "created_at": "2024-08-21T09:22:43.516168"},
-  {"name": "alice", "created_at": "2024-01-10T03:05:39.176702"}
+  {"name": "alice", "created_at": "2024-08-22T00:43:29.352128"},
+  {"name": "alice", "created_at": "2024-01-10T03:41:40.080943"}
 ]
 ```
 
-Responses are generated from your output model: `name` comes from the query, `created_at` is in the date range.
+Change `name`, `start_date`, or `end_date` in the query to change the response. Explore the interactive API docs at [localhost:8000/docs](http://127.0.0.1:8000/docs) or fetch the schema at `/openapi.json`. You can also serve the exported app with `uvicorn app:app --reload`.
 
-## Use Cases
+## How it works
 
-| Use Case | Description |
-|----------|-------------|
-| **Contract testing** | Validate client behavior against a schema-accurate mock |
-| **Frontend development** | Run a mock API for UI work without a backend |
-| **Prototyping** | Ship realistic API shapes before implementation |
-| **Integration tests** | Deterministic, isolated API simulators in CI |
+1. **Describe the request.** An input model defines query, path, or body fields and their Pydantic validation rules.
+2. **Describe the response.** An output model defines the response shape. Polyfactory generates fields; `Annotated` links supply values from inputs, other fields, headers, cookies, or JSON fixtures.
+3. **Choose the behavior.** Route options control list size, pagination, errors, timing, and authentication. A fixed seed makes generated data repeatable.
+
+In the quick start, `FromInput("name")` copies the requested name and `DateRangeFrom(...)` generates timestamps within the requested range. The function body is a registration placeholder; Semblance ignores it and generates the response from the models.
+
+Register GET, POST, PUT, PATCH, and DELETE routes with the same pattern. Return a model, `list[Model]`, or a pagination wrapper; DELETE with `output=None` returns 204 No Content.
+
+## Test without a server
+
+Install the test dependencies:
+
+```bash
+pip install pytest httpx
+```
+
+Save this beside `app.py` as **`test_app.py`**:
+
+```python
+from datetime import datetime
+
+from app import app
+from semblance import test_client as make_test_client
+
+
+def test_users():
+    with make_test_client(app) as client:
+        response = client.get("/users", params={"name": "testuser"})
+
+    assert response.status_code == 200
+    users = response.json()
+    assert len(users) == 2
+    assert all(user["name"] == "testuser" for user in users)
+    assert all(
+        datetime(2024, 1, 1)
+        <= datetime.fromisoformat(user["created_at"])
+        < datetime(2025, 1, 1)
+        for user in users
+    )
+```
+
+Run `pytest test_app.py`. The test client calls the app in process. Use `seed_from="seed"` on a route to take a per-request seed from an input field, or add Hypothesis for [property-based tests](https://semblance.readthedocs.io/en/latest/guides/testing/).
+
+## Simulate failure and recovery
+
+Test a client that should recover after a temporary outage. Save this as **`resilience.py`**, reusing the models from `app.py`:
+
+```python
+from app import User, UserQuery
+from semblance import ScenarioStep, SemblanceAPI
+
+api = SemblanceAPI(seed=42)
+
+
+@api.get(
+    "/users",
+    input=UserQuery,
+    output=list[User],
+    list_count=2,
+    scenario=(
+        ScenarioStep(status=503, detail="Temporarily unavailable"),
+        ScenarioStep(status=200),
+    ),
+)
+def users():
+    pass
+```
+
+Run `semblance run resilience:api --port 8001`. The first request returns 503; subsequent requests return generated users. Each route holds its final scenario step until the simulator is restarted.
+
+For other failure modes, use `ErrorCase` to match validated input, `error_rate` and `error_codes` for random failures, or `latency_ms`, `jitter_ms`, and `rate_limit` to exercise slow requests and throttling. See [simulation options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/).
+
+## Capabilities
+
+| Need | Semblance provides |
+| --- | --- |
+| Bind responses to requests | `FromInput`, `FromHeader`, and `FromCookie` |
+| Express field relationships | `DateRangeFrom`, `WhenInput`, and `ComputedFrom`, including nested models |
+| Reuse fixture data | `FromJsonFixture` and `FromNestedFixture`, with variants and optional strict matching |
+| Generate repeatable data | Global `seed` or per-request `seed_from`; fixed or input-driven `list_count` |
+| Page through results | `PageParams` / `PaginatedResponse[T]` for offset pagination; `PageTable` / `PageSlice[T]` for token-keyed pages |
+| Keep state across requests | `SemblanceAPI(stateful=True)` stores POST results for list, lookup, PUT, PATCH, and DELETE routes |
+| Exercise failure handling | `ErrorCase`, `ScenarioStep`, random errors, latency, jitter, and rate limits |
+| Simulate protected routes | A per-route `bearer_tokens` allow-list; invalid or missing tokens return 401 |
+| Validate contracts | Pydantic request validation, optional `validate_responses=True` and `validate_links=True`, and OpenAPI export |
+| Integrate with existing apps | `as_fastapi()`, `mount_into(...)`, and middleware support |
+| Extend generation and testing | Custom links via `register_link`, pytest fixtures, and Hypothesis helpers |
+
+State and rate limits live in memory within a process. Use stateful mode for local workflows and tests; restarting the simulator clears its store. See the [stateful CRUD example](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/) for a complete create, read, update, and delete flow.
 
 ## CLI
 
+Use the CLI to scaffold, validate, serve, and export a simulator:
+
 ```bash
-# Scaffold a minimal app (app.py and optional semblance.yaml)
-semblance init [-c] [--force]
+# Create app.py and semblance.yaml in a new project directory
+semblance init --with-config
 
-# Validate routes and link bindings without starting a server (CI-friendly)
-semblance validate module:attr
+# Check route definitions and field links without starting a server
+semblance validate app:api
 
-# Run a Semblance app (module:attr or just module when unambiguous)
-semblance run app:api [--host HOST] [--port PORT] [--reload]
+# Serve with automatic reload during development
+semblance run app:api --port 8000 --reload
 
-# Export OpenAPI schema (optionally with response examples)
-semblance export openapi app:api [-o FILE] [--examples]
+# Export OpenAPI, including generated response examples
+semblance export openapi app:api --examples -o openapi.json
 
-# Export OpenAPI + JSON fixtures per endpoint (GET, POST, PUT, PATCH, DELETE)
-semblance export fixtures app:api [-o DIR]
+# Export OpenAPI and JSON response fixtures
+semblance export fixtures app:api -o fixtures
 ```
+
+See the [CLI guide](https://semblance.readthedocs.io/en/latest/guides/cli/) for all options and the [concepts guide](https://semblance.readthedocs.io/en/latest/guides/concepts/) for configuration defaults.
 
 ## Examples
 
-Runnable examples in [examples/](https://semblance.readthedocs.io/en/latest/examples/):
+From a clone of this repository, run an example with:
 
 ```bash
 semblance run examples.basic.app:api --port 8000
-semblance run examples.pagination.app:api --port 8000
-semblance run examples.nested.app:api --port 8000
-semblance run examples.stateful.app:api --port 8000
-semblance run examples.advanced.app:api --port 8000
-semblance run examples.error_simulation.app:api --port 8000
-semblance run examples.plugins.app:api --port 8000
-semblance run examples.put_patch_delete.app:api --port 8000
-semblance run examples.stateful_crud.app:api --port 8000
-semblance run examples.request_links.app:api --port 8000
 ```
 
-| Example | Description |
-|---------|-------------|
-| [basic](https://semblance.readthedocs.io/en/latest/examples/basic/) | Minimal GET list with FromInput, DateRangeFrom |
-| [pagination](https://semblance.readthedocs.io/en/latest/examples/pagination/) | PageParams, PaginatedResponse |
-| [nested](https://semblance.readthedocs.io/en/latest/examples/nested/) | Nested model linking |
-| [stateful](https://semblance.readthedocs.io/en/latest/examples/stateful/) | POST stores items, GET returns stored list |
-| [advanced](https://semblance.readthedocs.io/en/latest/examples/advanced/) | WhenInput, ComputedFrom, filter_by |
-| [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | error_rate, error_codes |
-| [plugins](https://semblance.readthedocs.io/en/latest/examples/plugins/) | Custom link (FromEnv) |
-| [put_patch_delete](https://semblance.readthedocs.io/en/latest/examples/put_patch_delete/) | PUT, PATCH, DELETE (non-stateful) |
-| [stateful_crud](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/) | Full stateful CRUD: GET by id, PUT, PATCH, DELETE |
-| [request_links](https://semblance.readthedocs.io/en/latest/examples/request_links/) | FromHeader, FromCookie |
+Replace `basic` with any module below:
 
-## Testing
+| Module | Demonstrates |
+| --- | --- |
+| [basic](https://semblance.readthedocs.io/en/latest/examples/basic/) | Input bindings and generated date ranges |
+| [pagination](https://semblance.readthedocs.io/en/latest/examples/pagination/) | Paginated response models |
+| [nested](https://semblance.readthedocs.io/en/latest/examples/nested/) | Links in nested models |
+| [advanced](https://semblance.readthedocs.io/en/latest/examples/advanced/) | Conditional links, computed fields, and filtering |
+| [stateful](https://semblance.readthedocs.io/en/latest/examples/stateful/) | Store created items and list them |
+| [stateful_crud](https://semblance.readthedocs.io/en/latest/examples/stateful_crud/) | Full CRUD with an in-memory store |
+| [put_patch_delete](https://semblance.readthedocs.io/en/latest/examples/put_patch_delete/) | Generated PUT, PATCH, and DELETE responses |
+| [error_simulation](https://semblance.readthedocs.io/en/latest/examples/error_simulation/) | Simulated errors and latency |
+| [request_links](https://semblance.readthedocs.io/en/latest/examples/request_links/) | Header and cookie bindings |
+| [plugins](https://semblance.readthedocs.io/en/latest/examples/plugins/) | Custom link types |
 
-Use the same `api` from Quick Start (with `app = api.as_fastapi()`). With the test client you get deterministic responses without starting a server:
+## Optional API adapters
 
-```python
-from semblance import SemblanceAPI, test_client
+Separate packages simulate selected operations of external APIs using bundled or custom fixtures:
 
-# api and app from Quick Start above
-client = test_client(app)
+| Package | Coverage | Install |
+| --- | --- | --- |
+| [semblance-foundry](https://github.com/eddiethedean/semblance/blob/main/packages/semblance-foundry/README.md) | Selected Foundry API v2 ontology-read operations | `pip install semblance-foundry` |
+| [semblance-databricks](https://github.com/eddiethedean/semblance/blob/main/packages/semblance-databricks/README.md) | Selected Databricks workspace REST operations | `pip install semblance-databricks` |
 
-r = client.get("/users?name=testuser")
-assert r.status_code == 200
-data = r.json()
-assert all(u["name"] == "testuser" for u in data)
-# data is a list of User dicts, e.g. [{"name": "testuser", "created_at": "..."}, ...]
-```
-
-Deterministic seeding for reproducible tests:
-
-```python
-api = SemblanceAPI(seed=42)
-# or per-endpoint: seed_from="seed" with a query param
-```
-
-## Plugins
-
-Register custom link types:
-
-```python
-from semblance import register_link, SemblanceAPI
-from typing import Annotated
-
-class FromEnv:
-    def __init__(self, env_var: str):
-        self.env_var = env_var
-    def resolve(self, input_data, rng):
-        import os
-        return os.environ.get(self.env_var)
-
-register_link(FromEnv)
-
-class User(BaseModel):
-    name: Annotated[str, FromEnv("USER_NAME")]
-```
-
-## API Overview
-
-| Feature | Description |
-|---------|-------------|
-| **SemblanceAPI** | GET, POST, PUT, PATCH, DELETE endpoints with input/output models |
-| **Links** | FromInput, DateRangeFrom, WhenInput, ComputedFrom |
-| **Pagination** | PageParams, PaginatedResponse[T] |
-| **Seeding** | `SemblanceAPI(seed=42)` or `seed_from="seed"` |
-| **Error simulation** | `error_rate`, `error_codes` |
-| **Latency** | `latency_ms`, `jitter_ms` |
-| **Rate limiting** | `rate_limit=N` — 429 when exceeded (per endpoint, sliding window) |
-| **Filtering** | `filter_by` for list endpoints |
-| **Stateful mode** | `SemblanceAPI(stateful=True)` — POST stores; GET (list + by-id), PUT/PATCH/DELETE by id use store |
-| **Response validation** | `SemblanceAPI(validate_responses=True)` — verify output conforms to model |
-| **OpenAPI** | summary, description, tags on endpoints |
-| **Property-based testing** | `semblance.property_testing`: `strategy_for_input_model()`, `test_endpoint()` (Hypothesis) |
-
-## Competitors & Alternatives
-
-| Feature | [Semblance](https://pypi.org/project/semblance/) | [fastapi-mock](https://pypi.org/project/fastapi-mock/) | [Prism](https://stoplight.io/open-source/prism) | [json-server](https://github.com/typicode/json-server) | [Schemathesis](https://schemathesis.readthedocs.io/) | [Mockoon](https://mockoon.com/) |
-|---------|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Mock API server** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| **Python / FastAPI native** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| **Zero endpoint logic** | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| **Realistic example generation** | ✅ | <span title="Uses predefined Pydantic examples or Field defaults, not auto-generated faker-style data">🟡</span> | ✅ | ❌ | ❌ | <span title="Faker templating in rules, but not schema-driven auto-generation">🟡</span> |
-| **Input→output binding** | ✅ | ❌ | ❌ | ❌ | ❌ | <span title="Rules can reference request data via templating, but not schema-driven link metadata">🟡</span> |
-| **Deterministic seeding** | ✅ | ❌ | ✅ | ❌ | ✅ | <span title="Some dynamic values; true deterministic seeding not primary focus">🟡</span> |
-| **Pagination helpers** | ✅ | ❌ | <span title="May derive pagination from OpenAPI examples; no dedicated helpers">🟡</span> | ✅ | ❌ | <span title="Can configure response rules, no built-in pagination helpers">🟡</span> |
-| **Error simulation** | ✅ | ❌ | <span title="Can return error responses defined in OpenAPI spec">🟡</span> | ❌ | ❌ | <span title="Rules can return different status codes per condition">🟡</span> |
-| **Stateful mode** | ✅ | ❌ | ❌ | ✅ | ❌ | <span title="Rules can simulate state; not true POST-store/GET-return">🟡</span> |
-| **Extensible (plugins)** | ✅ | <span title="Middleware-based; custom behavior via decorators or wrappers">🟡</span> | ❌ | ❌ | ✅ | <span title="Templates and response rules provide extensibility">🟡</span> |
-| **OpenAPI schema** | ✅ | ✅ | ✅ | ❌ | ✅ | <span title="Can import/export OpenAPI; design is GUI-first, not schema-first">🟡</span> |
-| **CI / pytest integration** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Property-based testing** | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
-
-🟡 = partial or configurable
+Both adapters are unofficial, independently versioned test doubles. Their package READMEs document supported operations, authentication modes, and compatibility limits.
 
 ## Documentation
 
-Full documentation: **[semblance.readthedocs.io](https://semblance.readthedocs.io/)**
+Start with [Getting started](https://semblance.readthedocs.io/en/latest/guides/getting-started/) or choose a guide:
 
-- [Getting Started](https://semblance.readthedocs.io/en/latest/guides/getting-started/)
-- [Concepts](https://semblance.readthedocs.io/en/latest/guides/concepts/)
-- [Input and Output Binding](https://semblance.readthedocs.io/en/latest/guides/input-output-binding/)
-- [Advanced Links](https://semblance.readthedocs.io/en/latest/guides/advanced-links/)
-- [Pagination](https://semblance.readthedocs.io/en/latest/guides/pagination/)
-- [Simulation Options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/)
-- [Stateful Mode](https://semblance.readthedocs.io/en/latest/guides/stateful-mode/)
-- [CLI](https://semblance.readthedocs.io/en/latest/guides/cli/)
-- [Plugins](https://semblance.readthedocs.io/en/latest/guides/plugins/)
-- [Request Links](https://semblance.readthedocs.io/en/latest/guides/request-links/)
-- [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/)
-- [Troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/)
-- [Cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/)
-- [Foundry adapter](https://semblance.readthedocs.io/en/latest/guides/foundry/)
-- [Databricks adapter](https://semblance.readthedocs.io/en/latest/guides/databricks/)
-- [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/)
-- [API Reference](https://semblance.readthedocs.io/en/latest/api/)
+- **Models and links:** [Input and output binding](https://semblance.readthedocs.io/en/latest/guides/input-output-binding/), [advanced links](https://semblance.readthedocs.io/en/latest/guides/advanced-links/), [request links](https://semblance.readthedocs.io/en/latest/guides/request-links/), and [plugins](https://semblance.readthedocs.io/en/latest/guides/plugins/).
+- **Behavior:** [Pagination](https://semblance.readthedocs.io/en/latest/guides/pagination/), [stateful mode](https://semblance.readthedocs.io/en/latest/guides/stateful-mode/), and [simulation options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/).
+- **Testing and reference:** [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/), [cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/), [troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/), and [API reference](https://semblance.readthedocs.io/en/latest/api/).
+- **Project direction:** [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/) and [changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md).
 
 ## Development
 
-See [CONTRIBUTING.md](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md) for setup and contribution guidelines.
+Set up all three packages from a clean clone:
 
 ```bash
 git clone https://github.com/eddiethedean/semblance.git
 cd semblance
+python -m venv .venv
+source .venv/bin/activate
+# Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-pip install -e packages/semblance-foundry[dev]
-pip install -e packages/semblance-databricks[dev]
+pip install -e "packages/semblance-foundry[dev]"
+pip install -e "packages/semblance-databricks[dev]"
+
 pytest tests/ -v -m "not sdk"
 pytest packages/semblance-foundry/tests -v -m "not sdk"
 pytest packages/semblance-databricks/tests -v -m "not sdk"
 ```
 
+See [CONTRIBUTING.md](https://github.com/eddiethedean/semblance/blob/main/CONTRIBUTING.md) for lint, type, security, and documentation checks. Report vulnerabilities through the process in [SECURITY.md](https://github.com/eddiethedean/semblance/blob/main/SECURITY.md).
+
 ## License
 
-MIT License.
+[MIT](https://github.com/eddiethedean/semblance/blob/main/LICENSE.md).

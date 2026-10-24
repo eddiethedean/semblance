@@ -43,7 +43,7 @@ def _load_toml_section(path: Path) -> dict | None:
 def _toml_load(f: object) -> dict[str, object]:
     """Load TOML; use tomllib (3.11+) or tomli."""
     try:
-        import tomllib  # type: ignore[import-not-found]
+        import tomllib  # type: ignore[import-not-found, import-untyped]
 
         return cast(dict[str, object], tomllib.load(f))
     except ImportError:

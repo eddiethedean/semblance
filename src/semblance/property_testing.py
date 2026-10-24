@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
-from typing import Annotated, Any, Protocol, get_args, get_origin
+from typing import Annotated, Any, Protocol, cast, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -82,7 +82,7 @@ def strategy_for_input_model(
     for name, field in model.model_fields.items():
         ann = field.annotation
         if ann is not None:
-            strategies[name] = _strategy_for_annotation(ann)
+            strategies[name] = _strategy_for_annotation(cast(type, ann))
         else:
             strategies[name] = st.none()
     return st.builds(model, **strategies)
