@@ -5,7 +5,7 @@ Use Semblance's test client to send requests directly to a FastAPI app. No serve
 ## Install the test dependencies
 
 ```bash
-pip install pytest httpx
+pip install pytest httpx2
 ```
 
 ## Test a response and invalid input

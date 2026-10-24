@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 def test_client(app: FastAPI, **kwargs: Any) -> TestClient:
     """
-    Return an httpx TestClient for the given FastAPI app.
+    Return a FastAPI test client (backed by Starlette and httpx2).
 
     Use with SemblanceAPI.as_fastapi() for integration tests:
 

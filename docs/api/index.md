@@ -117,7 +117,7 @@ steps = (ScenarioStep(status=503, detail="Busy"), ScenarioStep(status=200))
 
 | Import | Purpose |
 |---|---|
-| `from semblance import test_client` | Wrap a FastAPI app in a test client; requires `httpx` |
+| `from semblance import test_client` | Wrap a FastAPI app in a test client; requires `httpx2` |
 | `from semblance.property_testing import strategy_for_input_model` | Build a Hypothesis strategy from common input field types |
 | `from semblance.property_testing import test_endpoint` | Generate requests, check statuses, validate responses, and apply invariants |
 

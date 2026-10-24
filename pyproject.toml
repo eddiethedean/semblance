@@ -38,7 +38,7 @@ semblance = "semblance.pytest_plugin"
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "httpx>=0.25.0",
+    "httpx2>=2.13",
     "hypothesis>=6.0.0",
     "ruff==0.16.3",
     "mypy>=1.0.0",

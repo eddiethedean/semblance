@@ -113,7 +113,7 @@ With the same seed, date range, and dependency versions, the generated timestamp
 - Install the optional HTTP client used to sample endpoint responses:
 
   ```bash
-  pip install httpx
+  pip install httpx2
   ```
 
 - Export it with `semblance export openapi app:api -o openapi.json`.
