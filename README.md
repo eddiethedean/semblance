@@ -283,7 +283,7 @@ semblance init --with-config
 semblance validate app:api
 
 # Serve with automatic reload during development
-semblance run app:api --port 8000 --reload
+semblance run app:app --port 8000 --reload
 
 # Export OpenAPI, including generated response examples
 semblance export openapi app:api --examples -o openapi.json
@@ -296,7 +296,7 @@ semblance export fixtures app:api -o fixtures
 | --- | --- |
 | `semblance init --with-config` | Writes `app.py` and `semblance.yaml`, printing their absolute paths and a run command |
 | `semblance validate app:api` | Prints `OK` and exits with status 0 when the routes and links are valid |
-| `semblance run app:api --port 8000 --reload` | Starts the simulator at `http://127.0.0.1:8000`; `/docs` shows the registered routes |
+| `semblance run app:app --port 8000 --reload` | Starts the simulator at `http://127.0.0.1:8000`; `/docs` shows the registered routes |
 | `semblance export openapi app:api --examples -o openapi.json` | Prints `Wrote openapi.json`; the file contains the `/users` schema and example responses |
 | `semblance export fixtures app:api -o fixtures` | Prints `Wrote fixtures to fixtures`; the directory contains OpenAPI and JSON response fixtures |
 

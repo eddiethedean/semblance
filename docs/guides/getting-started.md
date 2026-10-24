@@ -110,6 +110,12 @@ With the same seed, date range, and dependency versions, the generated timestamp
 
 - Open [localhost:8000/docs](http://127.0.0.1:8000/docs) for the interactive API explorer.
 - Fetch `/openapi.json` for the generated schema.
+- Install the optional HTTP client used to sample endpoint responses:
+
+  ```bash
+  pip install httpx
+  ```
+
 - Export it with `semblance export openapi app:api -o openapi.json`.
 
 ## Next steps
