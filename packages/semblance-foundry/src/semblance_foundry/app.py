@@ -50,7 +50,7 @@ class FoundryMock:
         staged_state.query_callbacks.update(self.state.query_callbacks)
         apply_fixture(doc, staged_state)
         self.state = staged_state
-        self.ontologies = OntologyMutations(staged_state)
+        self.ontologies._state = staged_state
         return self
 
     def load_bundled_fixture(self, name: str = "acme") -> FoundryMock:

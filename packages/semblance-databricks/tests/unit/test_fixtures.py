@@ -102,3 +102,18 @@ jobs:
     assert mock.state is old_state
     assert mock.state.jobs
     assert "duplicate" not in mock.state.jobs
+
+
+def test_successful_reload_preserves_custom_user() -> None:
+    from fastapi.testclient import TestClient
+
+    from semblance_databricks import DatabricksMock
+
+    mock = DatabricksMock().load_bundled_fixture()
+    mock.state.user["userName"] = "custom@example.com"
+    client = TestClient(mock.as_fastapi())
+
+    mock.load_bundled_fixture()
+
+    response = client.get("/api/2.0/preview/scim/v2/Me")
+    assert response.json()["userName"] == "custom@example.com"

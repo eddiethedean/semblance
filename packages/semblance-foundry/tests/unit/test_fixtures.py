@@ -109,3 +109,21 @@ ontologies:
         "acme", "Employee", [{"employeeId": "added", "name": "Added"}]
     )
     assert foundry.state.get_object("acme", "Employee", "added") is not None
+
+
+def test_successful_reload_keeps_retained_mutation_facade_live() -> None:
+    from fastapi.testclient import TestClient
+
+    from semblance_foundry import FoundryMock
+
+    foundry = FoundryMock().load_bundled_fixture()
+    mutations = foundry.ontologies
+    client = TestClient(foundry.as_fastapi())
+
+    foundry.load_bundled_fixture()
+    mutations.add_objects(
+        "acme", "Employee", [{"employeeId": "after-reload", "name": "Live"}]
+    )
+
+    response = client.get("/api/v2/ontologies/acme/objects/Employee/after-reload")
+    assert response.status_code == 200

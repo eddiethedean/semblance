@@ -53,6 +53,7 @@ class DatabricksMock:
         doc = load_fixture_file(path)
         staged_state = DatabricksState(seed=self.config.seed)
         staged_state.statement_callbacks.update(self.state.statement_callbacks)
+        staged_state.user = dict(self.state.user)
         apply_fixture(doc, staged_state)
         self.state = staged_state
         return self
