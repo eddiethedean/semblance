@@ -56,3 +56,49 @@ def test_json_fixture(tmp_path: Path) -> None:
     path.write_text('{"version": 1, "clusters": []}', encoding="utf-8")
     doc = load_fixture_file(path)
     assert doc.version == 1
+
+
+def test_failed_reload_preserves_state_and_callbacks(tmp_path: Path) -> None:
+    from semblance_databricks import DatabricksMock
+
+    mock = DatabricksMock().load_bundled_fixture()
+
+    def callback(*_: object) -> dict[str, list[list[str]]]:
+        return {"data_array": [["ok"]]}
+
+    mock.register_statement("select 1", callback)
+    old_state = mock.state
+
+    with pytest.raises(FileNotFoundError):
+        mock.load_fixture(tmp_path / "missing.yaml")
+
+    assert mock.state is old_state
+    assert mock.state.jobs
+    assert mock.state.statement_callbacks["select 1"] is callback
+
+    invalid = tmp_path / "invalid.yaml"
+    invalid.write_text("version: 1\njobs: [invalid]\n", encoding="utf-8")
+    with pytest.raises(Exception):
+        mock.load_fixture(invalid)
+
+    assert mock.state is old_state
+    assert mock.state.jobs
+
+    partially_applied = tmp_path / "duplicate-jobs.yaml"
+    partially_applied.write_text(
+        """
+version: 1
+jobs:
+  - job_id: duplicate
+    name: first
+  - job_id: duplicate
+    name: second
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="Duplicate job_id"):
+        mock.load_fixture(partially_applied)
+
+    assert mock.state is old_state
+    assert mock.state.jobs
+    assert "duplicate" not in mock.state.jobs

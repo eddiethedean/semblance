@@ -52,3 +52,60 @@ def test_load_bundled_fixture() -> None:
     assert "acme" in foundry.state.ontologies
     with pytest.raises(ValueError, match="unknown bundled fixture"):
         foundry.load_bundled_fixture("nope")
+
+
+def test_failed_reload_preserves_state_callbacks_and_mutation_facade(
+    tmp_path: Path,
+) -> None:
+    from semblance_foundry import FoundryMock
+
+    foundry = FoundryMock().load_bundled_fixture()
+
+    def callback(*_: object) -> dict[str, int]:
+        return {"value": 1}
+
+    foundry.register_query("query", callback)
+    old_state = foundry.state
+    old_ontologies = foundry.ontologies
+
+    with pytest.raises(FileNotFoundError):
+        foundry.load_fixture(tmp_path / "missing.yaml")
+
+    assert foundry.state is old_state
+    assert foundry.ontologies is old_ontologies
+    assert foundry.state.ontologies
+    assert foundry.state.query_callbacks["query"] is callback
+
+    invalid = tmp_path / "invalid.yaml"
+    invalid.write_text("version: 1\nontologies: [invalid]\n", encoding="utf-8")
+    with pytest.raises(Exception):
+        foundry.load_fixture(invalid)
+
+    assert foundry.state is old_state
+    assert foundry.ontologies is old_ontologies
+    assert foundry.state.ontologies
+
+    invalid_link = tmp_path / "invalid-link.yaml"
+    invalid_link.write_text(
+        """
+version: 1
+ontologies:
+  - apiName: partial
+    linkTypes:
+      - apiName: broken
+        from: Missing
+        to: AlsoMissing
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="not defined"):
+        foundry.load_fixture(invalid_link)
+
+    assert foundry.state is old_state
+    assert foundry.ontologies is old_ontologies
+    assert "partial" not in foundry.state.ontologies
+
+    foundry.ontologies.add_objects(
+        "acme", "Employee", [{"employeeId": "added", "name": "Added"}]
+    )
+    assert foundry.state.get_object("acme", "Employee", "added") is not None
