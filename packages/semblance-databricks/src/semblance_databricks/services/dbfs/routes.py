@@ -67,10 +67,11 @@ def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
         if temp_file is None or temp_path is None:
             raise FileExistsError("Unable to create a temporary DBFS file")
 
+        new_file_mode = stat.S_IMODE(os.fstat(temp_file.fileno()).st_mode)
+        os.chmod(temp_path, 0o600)
         with temp_file:
             temp_file.write(data)
-        if dest_mode is not None:
-            os.chmod(temp_path, dest_mode)
+        os.chmod(temp_path, dest_mode if dest_mode is not None else new_file_mode)
         os.replace(temp_path, dest)
         temp_path = None
     finally:
