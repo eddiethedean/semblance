@@ -60,6 +60,50 @@ def test_dbfs_temp_dir_stays_sandboxed(tmp_path) -> None:
     assert any(p.name == "safe.txt" for p in written)
 
 
+def test_dbfs_temp_dir_supports_long_filenames(tmp_path) -> None:
+    dbfs_root = tmp_path / "dbfs"
+    mock = DatabricksMock(DatabricksMockConfig(dbfs_temp_dir=str(dbfs_root)))
+    client = TestClient(mock.as_fastapi())
+    filename = "x" * 250
+
+    put = client.post(
+        "/api/2.0/dbfs/put",
+        json={"path": f"/{filename}", "contents": base64.b64encode(b"ok").decode()},
+    )
+
+    assert put.status_code == 200
+    assert (dbfs_root / filename).read_bytes() == b"ok"
+
+
+def test_dbfs_overwrite_preserves_file_permissions(tmp_path) -> None:
+    dbfs_root = tmp_path / "dbfs"
+    mock = DatabricksMock(DatabricksMockConfig(dbfs_temp_dir=str(dbfs_root)))
+    client = TestClient(mock.as_fastapi())
+    disk_path = dbfs_root / "existing.txt"
+
+    initial_put = client.post(
+        "/api/2.0/dbfs/put",
+        json={
+            "path": "/existing.txt",
+            "contents": base64.b64encode(b"before").decode(),
+        },
+    )
+    assert initial_put.status_code == 200
+    disk_path.chmod(0o640)
+
+    overwrite = client.post(
+        "/api/2.0/dbfs/put",
+        json={
+            "path": "/existing.txt",
+            "contents": base64.b64encode(b"after").decode(),
+        },
+    )
+
+    assert overwrite.status_code == 200
+    assert disk_path.read_bytes() == b"after"
+    assert disk_path.stat().st_mode & 0o777 == 0o640
+
+
 def test_dbfs_failed_disk_write_does_not_commit_memory(tmp_path) -> None:
     dbfs_root = tmp_path / "dbfs"
     dbfs_root.mkdir()
@@ -118,4 +162,4 @@ def test_dbfs_failed_disk_replace_preserves_existing_file(tmp_path, monkeypatch)
     assert mock.state.dbfs[path].data == old_contents
     assert mock.state.revision == revision
     assert disk_path.read_bytes() == old_contents
-    assert list(dbfs_root.glob(".existing.txt.*")) == []
+    assert list(dbfs_root.glob(".dbfs-*.tmp")) == []

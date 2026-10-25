@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import base64
 import os
-import tempfile
+import secrets
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -49,11 +50,27 @@ def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
     temp_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(
-            dir=dest.parent, prefix=f".{dest.name}.", delete=False
-        ) as temp_file:
-            temp_path = Path(temp_file.name)
+        try:
+            dest_mode = stat.S_IMODE(dest.stat().st_mode)
+        except FileNotFoundError:
+            dest_mode = None
+
+        temp_file = None
+        for _ in range(100):
+            candidate = dest.parent / f".dbfs-{secrets.token_hex(8)}.tmp"
+            try:
+                temp_file = candidate.open("xb")
+            except FileExistsError:
+                continue
+            temp_path = candidate
+            break
+        if temp_file is None or temp_path is None:
+            raise FileExistsError("Unable to create a temporary DBFS file")
+
+        with temp_file:
             temp_file.write(data)
+        if dest_mode is not None:
+            os.chmod(temp_path, dest_mode)
         os.replace(temp_path, dest)
         temp_path = None
     finally:
