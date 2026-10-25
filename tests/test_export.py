@@ -6,7 +6,9 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI
+from fastapi.responses import Response
 from pydantic import BaseModel
+from starlette.testclient import TestClient
 
 from semblance import FromInput, SemblanceAPI
 from semblance.export import (
@@ -14,7 +16,6 @@ from semblance.export import (
     export_fixtures,
     export_openapi,
 )
-from semblance.testing import test_client as make_client
 
 
 def test_get_routes_returns_path_method_route_id():
@@ -115,24 +116,39 @@ def test_export_openapi_skips_example_when_endpoint_returns_422():
     assert "example" not in content.get("application/json", {})
 
 
-def test_export_fixtures_stateful_delete_204(tmp_path):
-    class Item(BaseModel):
-        id: str = ""
-        name: str = ""
+def test_export_fixtures_delete_204(tmp_path):
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
-    class PathId(BaseModel):
-        id: str = ""
-
-    api = SemblanceAPI(stateful=True)
-    api.post("/items", input=Item, output=Item)(lambda: None)
-    api.delete("/items/{id}", input=PathId)(lambda: None)
-    app = api.as_fastapi()
-    client = make_client(app)
-    created = client.post("/items", json={"name": "x"}).json()
-    client.delete(f"/items/{created['id']}")
+    @app.delete("/items/{id}", status_code=204)
+    def delete_item(id: int):
+        return Response(status_code=204)
 
     export_fixtures(app, tmp_path)
     delete_files = list(tmp_path.glob("*DELETE.json"))
     assert delete_files
     payload = json.loads(delete_files[0].read_text())
     assert payload.get("status") == 204
+
+
+def test_export_does_not_fabricate_204_for_failed_delete(tmp_path):
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.delete("/protected/{id}")
+    def delete_protected(id: int):
+        status_code = {1: 401, 2: 404, 3: 500}[id]
+        return Response(status_code=status_code)
+
+    client = TestClient(app)
+    assert [client.delete(f"/protected/{id}").status_code for id in (1, 2, 3)] == [
+        401,
+        404,
+        500,
+    ]
+
+    export_fixtures(app, tmp_path)
+
+    assert not (tmp_path / "protected_id_DELETE.json").exists()
+    responses = export_openapi(app, include_examples=True)["paths"]["/protected/{id}"][
+        "delete"
+    ]["responses"]
+    assert "204" not in responses
