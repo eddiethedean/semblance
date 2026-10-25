@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import base64
+import os
+import secrets
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +48,45 @@ def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
     except ValueError as exc:
         raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid path") from exc
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(data)
+    temp_path: Path | None = None
+    temp_fd: int | None = None
+    try:
+        try:
+            dest_mode = stat.S_IMODE(dest.stat().st_mode)
+        except FileNotFoundError:
+            dest_mode = None
+
+        for _ in range(100):
+            candidate = dest.parent / f".dbfs-{secrets.token_hex(8)}.tmp"
+            try:
+                temp_fd = os.open(
+                    candidate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+                )
+            except FileExistsError:
+                continue
+            temp_path = candidate
+            break
+        if temp_fd is None or temp_path is None:
+            raise FileExistsError("Unable to create a temporary DBFS file")
+
+        try:
+            temp_file = os.fdopen(temp_fd, "wb")
+        except Exception:
+            os.close(temp_fd)
+            temp_fd = None
+            raise
+        temp_fd = None
+        with temp_file:
+            temp_file.write(data)
+        if dest_mode is not None:
+            os.chmod(temp_path, dest_mode)
+        os.replace(temp_path, dest)
+        temp_path = None
+    finally:
+        if temp_fd is not None:
+            os.close(temp_fd)
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def create_dbfs_router() -> APIRouter:
@@ -126,9 +167,9 @@ def create_dbfs_router() -> APIRouter:
         )
         if total > mock.config.dbfs_max_bytes:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS size cap")
-        mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)
         if mock.config.dbfs_temp_dir:
             _write_temp(mock.config.dbfs_temp_dir, path, content)
+        mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)
         mock.state.bump()
         return {}
 
