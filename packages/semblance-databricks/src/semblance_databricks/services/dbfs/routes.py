@@ -49,32 +49,42 @@ def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
         raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid path") from exc
     dest.parent.mkdir(parents=True, exist_ok=True)
     temp_path: Path | None = None
+    temp_fd: int | None = None
     try:
         try:
             dest_mode = stat.S_IMODE(dest.stat().st_mode)
         except FileNotFoundError:
             dest_mode = None
 
-        temp_file = None
         for _ in range(100):
             candidate = dest.parent / f".dbfs-{secrets.token_hex(8)}.tmp"
             try:
-                temp_file = candidate.open("xb")
+                temp_fd = os.open(
+                    candidate, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
+                )
             except FileExistsError:
                 continue
             temp_path = candidate
             break
-        if temp_file is None or temp_path is None:
+        if temp_fd is None or temp_path is None:
             raise FileExistsError("Unable to create a temporary DBFS file")
 
-        new_file_mode = stat.S_IMODE(os.fstat(temp_file.fileno()).st_mode)
-        os.chmod(temp_path, 0o600)
+        try:
+            temp_file = os.fdopen(temp_fd, "wb")
+        except Exception:
+            os.close(temp_fd)
+            temp_fd = None
+            raise
+        temp_fd = None
         with temp_file:
             temp_file.write(data)
-        os.chmod(temp_path, dest_mode if dest_mode is not None else new_file_mode)
+        if dest_mode is not None:
+            os.chmod(temp_path, dest_mode)
         os.replace(temp_path, dest)
         temp_path = None
     finally:
+        if temp_fd is not None:
+            os.close(temp_fd)
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
 
