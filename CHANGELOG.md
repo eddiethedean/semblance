@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-10-24
+
+### Fixed
+
+- Fixture reloads apply transactionally, preserving adapter state when a new fixture fails to load.
+- DBFS writes update in-memory state only after disk writes succeed.
+- Fixture exports no longer report failed DELETE requests as successful 204 responses, and remove stale DELETE fixtures on re-export.
+
 ## [0.9.1] - 2026-10-24 ([GitHub release](https://github.com/eddiethedean/semblance/releases/tag/v0.9.1))
 
 ### Changed
@@ -224,7 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.2...HEAD
+[0.9.2]: https://github.com/eddiethedean/semblance/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/eddiethedean/semblance/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/eddiethedean/semblance/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/eddiethedean/semblance/compare/v0.7.0...v0.8.0
