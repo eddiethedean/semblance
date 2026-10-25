@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import os
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +47,18 @@ def _write_temp(root: str, dbfs_path: str, data: bytes) -> None:
     except ValueError as exc:
         raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid path") from exc
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(data)
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=dest.parent, prefix=f".{dest.name}.", delete=False
+        ) as temp_file:
+            temp_path = Path(temp_file.name)
+            temp_file.write(data)
+        os.replace(temp_path, dest)
+        temp_path = None
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def create_dbfs_router() -> APIRouter:
@@ -126,9 +139,9 @@ def create_dbfs_router() -> APIRouter:
         )
         if total > mock.config.dbfs_max_bytes:
             raise DatabricksError(400, "MAX_BLOCK_SIZE_EXCEEDED", "DBFS size cap")
-        mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)
         if mock.config.dbfs_temp_dir:
             _write_temp(mock.config.dbfs_temp_dir, path, content)
+        mock.state.dbfs[path] = DbfsNode(path=path, is_dir=False, data=content)
         mock.state.bump()
         return {}
 
