@@ -50,9 +50,12 @@ class DatabricksMock:
         self._rng = random.Random(self.config.seed)
 
     def load_fixture(self, path: str | Path) -> DatabricksMock:
-        self.state.clear()
         doc = load_fixture_file(path)
-        apply_fixture(doc, self.state)
+        staged_state = DatabricksState(seed=self.config.seed)
+        staged_state.statement_callbacks.update(self.state.statement_callbacks)
+        staged_state.user = dict(self.state.user)
+        apply_fixture(doc, staged_state)
+        self.state = staged_state
         return self
 
     def load_bundled_fixture(self, name: str = "acme") -> DatabricksMock:
