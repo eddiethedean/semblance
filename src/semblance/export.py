@@ -148,5 +148,7 @@ def export_fixtures(app: FastAPI, output_path: str | Path) -> None:
                     (output_dir / filename).write_text(
                         json.dumps({"status": 204}, indent=2)
                     )
+                elif method.upper() == "DELETE":
+                    (output_dir / filename).unlink(missing_ok=True)
 
     (output_dir / "openapi.json").write_text(json.dumps(schema, indent=2))

@@ -103,7 +103,7 @@ The contents of `users_GET.json` are:
 ]
 ```
 
-Files use `{route_id}_{METHOD}.json`; for example, `/users/{id}` becomes `users_id_GET.json`. The same minimal-request rules apply as for OpenAPI examples. DELETE routes without a sampled body get a `{"status":204}` fixture marker; inspect the route behavior when you need an exact error fixture.
+Files use `{route_id}_{METHOD}.json`; for example, `/users/{id}` becomes `users_id_GET.json`. The same minimal-request rules apply as for OpenAPI examples. DELETE routes sampled with HTTP 204 get a `{"status":204}` fixture marker. Failed DELETE samples are skipped, and any stale DELETE fixture from an earlier export is removed.
 
 ## Configuration
 

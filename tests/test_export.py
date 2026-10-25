@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Annotated
 
+import pytest
 from fastapi import FastAPI
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -130,20 +131,16 @@ def test_export_fixtures_delete_204(tmp_path):
     assert payload.get("status") == 204
 
 
-def test_export_does_not_fabricate_204_for_failed_delete(tmp_path):
+@pytest.mark.parametrize("status_code", [401, 404, 500])
+def test_export_does_not_fabricate_204_for_failed_delete(tmp_path, status_code):
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
     @app.delete("/protected/{id}")
     def delete_protected(id: int):
-        status_code = {1: 401, 2: 404, 3: 500}[id]
         return Response(status_code=status_code)
 
     client = TestClient(app)
-    assert [client.delete(f"/protected/{id}").status_code for id in (1, 2, 3)] == [
-        401,
-        404,
-        500,
-    ]
+    assert client.delete("/protected/1").status_code == status_code
 
     export_fixtures(app, tmp_path)
 
@@ -152,3 +149,21 @@ def test_export_does_not_fabricate_204_for_failed_delete(tmp_path):
         "delete"
     ]["responses"]
     assert "204" not in responses
+
+
+def test_export_removes_stale_delete_fixture_when_sample_fails(tmp_path):
+    app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    status_codes = [204]
+
+    @app.delete("/items/{id}")
+    def delete_item(id: int):
+        return Response(status_code=status_codes[0])
+
+    fixture_path = tmp_path / "items_id_DELETE.json"
+    export_fixtures(app, tmp_path)
+    assert json.loads(fixture_path.read_text()) == {"status": 204}
+
+    status_codes[0] = 401
+    export_fixtures(app, tmp_path)
+
+    assert not fixture_path.exists()
