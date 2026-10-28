@@ -63,13 +63,7 @@ def _evaluate_overrides(
         elif isinstance(value, dict) and "_nested" in value and "_overrides" in value:
             nested_model = value["_nested"]
             nested_overrides = value["_overrides"]
-            nested_resolved = _evaluate_overrides(nested_overrides, seed=seed)
-            factory_class: type[ModelFactory[Any]] = ModelFactory.create_factory(
-                nested_model
-            )
-            if seed is not None:
-                factory_class.seed_random(seed)
-            result[key] = factory_class.build(**nested_resolved)
+            result[key] = _build_with_computed(nested_model, nested_overrides, seed)
         elif callable(value) and not isinstance(value, type):
             result[key] = value()
         else:

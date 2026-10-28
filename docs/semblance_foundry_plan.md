@@ -502,7 +502,8 @@ or contract tests.
 
 ### Quality gates
 
-- Python 3.10, 3.11, and 3.12
+- Historical plan baseline: Python 3.10, 3.11, and 3.12. The current supported
+  range begins at Python 3.11; see the [0.10.0 migration plan](python_311_migration_plan.md).
 - Ruff, mypy, pytest, and coverage thresholds consistent with the parent project
 - no network access in unit and contract suites
 - deterministic test results regardless of test order

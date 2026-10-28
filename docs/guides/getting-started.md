@@ -4,7 +4,7 @@ Build a simulator that returns users whose names and creation dates come from th
 
 ## Install
 
-Use **Python 3.10+**:
+Use **Python 3.11+**. Python 3.10 users can install `semblance<0.10`:
 
 ```bash
 pip install semblance

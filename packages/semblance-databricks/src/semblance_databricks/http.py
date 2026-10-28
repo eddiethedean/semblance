@@ -16,7 +16,7 @@ async def json_object(request: Request) -> dict[str, Any]:
         return {}
     try:
         body = json.loads(raw)
-    except json.JSONDecodeError as exc:
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "Invalid JSON") from exc
     if not isinstance(body, dict):
         raise DatabricksError(400, "INVALID_PARAMETER_VALUE", "JSON object required")

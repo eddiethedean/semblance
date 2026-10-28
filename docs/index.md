@@ -9,7 +9,7 @@ Semblance turns request and response schemas into a running FastAPI app. Bind re
 
 ## A working API in one file
 
-Requires **Python 3.10+**. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
+Requires **Python 3.11+**. Semblance 0.10.0 is the first release that drops Python 3.10; use `semblance<0.10` on Python 3.10. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
 
 ```bash
 pip install semblance

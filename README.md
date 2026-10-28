@@ -3,7 +3,7 @@
 [![CI](https://github.com/eddiethedean/semblance/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/eddiethedean/semblance/actions/workflows/ci.yml)
 [![PyPI version](https://img.shields.io/pypi/v/semblance.svg)](https://pypi.org/project/semblance/)
 [![Documentation status](https://img.shields.io/readthedocs/semblance/latest.svg)](https://semblance.readthedocs.io/en/latest/)
-[![Python versions](https://img.shields.io/pypi/pyversions/semblance.svg)](https://pypi.org/project/semblance/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://github.com/eddiethedean/semblance/blob/main/pyproject.toml)
 [![Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://docs.astral.sh/ruff/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/eddiethedean/semblance/blob/main/LICENSE.md)
 
@@ -17,7 +17,7 @@ Build against a mock while the backend takes shape, exercise a client's retry be
 
 ## Quick start
 
-Requires **Python 3.10+**. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
+Requires **Python 3.11+**. Semblance 0.10.0 is the first release that drops Python 3.10; use `semblance<0.10` on Python 3.10. FastAPI, Pydantic, Polyfactory, and Uvicorn are installed with Semblance.
 
 ```bash
 pip install semblance
@@ -743,12 +743,12 @@ curl -sS 'http://127.0.0.1:8000/user?role=admin'
 
 Separate packages simulate selected operations of external APIs using bundled or custom fixtures:
 
-| Package | Coverage | Install |
-| --- | --- | --- |
-| [semblance-foundry](https://github.com/eddiethedean/semblance/blob/main/packages/semblance-foundry/README.md) | Selected Foundry API v2 ontology-read operations | `pip install semblance-foundry` |
-| [semblance-databricks](https://github.com/eddiethedean/semblance/blob/main/packages/semblance-databricks/README.md) | Selected Databricks workspace REST operations | `pip install semblance-databricks` |
+| Package | Release | Coverage | Install |
+| --- | --- | --- | --- |
+| [semblance-foundry](https://pypi.org/project/semblance-foundry/) | `0.2.0` | Selected Foundry API v2 ontology-read operations | `pip install semblance-foundry` |
+| [semblance-databricks](https://pypi.org/project/semblance-databricks/) | `0.2.0` | Selected Databricks workspace REST operations | `pip install semblance-databricks` |
 
-Both adapters are unofficial, independently versioned test doubles. Their package READMEs document supported operations, authentication modes, and compatibility limits.
+Both adapters are unofficial, independently versioned test doubles. Their package READMEs document supported operations, authentication modes, and compatibility limits. For the in-process test clients shown in those READMEs, install the `test` extra (for example, `pip install "semblance-foundry[test]"`); the standard install supports the adapter and its CLI.
 
 ## Documentation
 
@@ -757,7 +757,7 @@ Start with [Getting started](https://semblance.readthedocs.io/en/latest/guides/g
 - **Models and links:** [Input and output binding](https://semblance.readthedocs.io/en/latest/guides/input-output-binding/), [advanced links](https://semblance.readthedocs.io/en/latest/guides/advanced-links/), [request links](https://semblance.readthedocs.io/en/latest/guides/request-links/), and [plugins](https://semblance.readthedocs.io/en/latest/guides/plugins/).
 - **Behavior:** [Pagination](https://semblance.readthedocs.io/en/latest/guides/pagination/), [stateful mode](https://semblance.readthedocs.io/en/latest/guides/stateful-mode/), and [simulation options](https://semblance.readthedocs.io/en/latest/guides/simulation-options/).
 - **Testing and reference:** [Testing](https://semblance.readthedocs.io/en/latest/guides/testing/), [cookbook](https://semblance.readthedocs.io/en/latest/guides/cookbook/), [troubleshooting](https://semblance.readthedocs.io/en/latest/guides/troubleshooting/), and [API reference](https://semblance.readthedocs.io/en/latest/api/).
-- **Project direction:** [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/) and [changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md).
+- **Project direction:** [Roadmap](https://semblance.readthedocs.io/en/latest/roadmap/), [Python 3.11 migration plan](https://github.com/eddiethedean/semblance/blob/main/docs/python_311_migration_plan.md), and [changelog](https://github.com/eddiethedean/semblance/blob/main/CHANGELOG.md).
 
 ## Development
 

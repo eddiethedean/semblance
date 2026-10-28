@@ -126,6 +126,10 @@ from semblance import SemblanceAPI
 api = SemblanceAPI(config_path="semblance.yaml")
 ```
 
+Constructor options override the file even when explicitly set to `False`;
+for example, `SemblanceAPI(config_path="semblance.yaml", validate_links=False)`
+disables link validation. Omitted boolean options (or `None`) inherit the file's values.
+
 Or use discovery, with optional keyword overrides:
 
 ```python
@@ -148,7 +152,7 @@ validate_responses = true
 verbose_errors = false
 ```
 
-Python 3.10 needs `pip install tomli` for TOML loading; Python 3.11+ includes `tomllib`.
+Python 3.11+ includes the standard-library `tomllib` parser used by Semblance.
 
 ## Troubleshooting imports
 

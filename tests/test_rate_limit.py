@@ -1,10 +1,32 @@
 """Unit tests for semblance.rate_limit - RateLimiter and get_limiter."""
 
 import time
+from types import SimpleNamespace
 
 import pytest
 
 from semblance.rate_limit import RateLimiter, get_limiter
+
+
+def test_separate_apis_have_independent_rate_limits(monkeypatch):
+    from semblance import SemblanceAPI
+    from semblance.testing import test_client as make_client
+    from tests.example_models import User, UserQuery
+
+    monkeypatch.setattr(
+        "semblance.rate_limit.time", SimpleNamespace(monotonic=lambda: 100.0)
+    )
+    first = SemblanceAPI()
+    second = SemblanceAPI()
+    for api in (first, second):
+        api.get("/users", input=UserQuery, output=User, rate_limit=1)(lambda: None)
+
+    with make_client(first.as_fastapi()) as first_client:
+        with make_client(second.as_fastapi()) as second_client:
+            assert first_client.get("/users").status_code == 200
+            assert first_client.get("/users").status_code == 429
+            assert second_client.get("/users").status_code == 200
+            assert second_client.get("/users").status_code == 429
 
 
 class TestRateLimiter:

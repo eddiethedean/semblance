@@ -4,6 +4,18 @@ All notable changes to `semblance-databricks` are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+### Changed
+
+- Require Python 3.11+ and Semblance `>=0.10.0,<1.0`. Python 3.10 users can
+  continue using adapter 0.1.x with Semblance 0.9.x.
+- Add a `[test]` extra for the public in-process test-client helpers.
+- Annotate fixture-loading methods with `typing.Self` so subclasses retain their
+  type through fluent calls.
+- Return a Databricks-style 400 error for request bodies containing invalid
+  Unicode encoding.
+
 ## [0.1.2] - 2026-08-19
 
 ### Changed
@@ -47,7 +59,8 @@ Workspace compute / jobs / artifacts / permissions / SQL-statement MVP (Phase 10
 - Invalid JSON bodies return 400 instead of empty-object creates
 - DBFS put stores base64 contents and refuses path traversal in the temp-dir backend
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.2...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/databricks-v0.2.0...HEAD
+[0.2.0]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.2...databricks-v0.2.0
 [0.1.2]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.1...databricks-v0.1.2
 [0.1.1]: https://github.com/eddiethedean/semblance/compare/databricks-v0.1.0...databricks-v0.1.1
 [0.1.0]: https://github.com/eddiethedean/semblance/releases/tag/databricks-v0.1.0

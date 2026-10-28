@@ -2,11 +2,16 @@
 
 This repository publishes independently versioned packages:
 
-| Package | `pyproject.toml` | Tag | PyPI |
+| Package | Prepared source version | Planned tag | PyPI |
 |---|---|---|---|
-| `semblance` | repo root | `v0.9.2` | https://pypi.org/project/semblance/ |
-| `semblance-foundry` | `packages/semblance-foundry/` | `foundry-v0.1.3` | https://pypi.org/project/semblance-foundry/ |
-| `semblance-databricks` | `packages/semblance-databricks/` | `databricks-v0.1.2` | https://pypi.org/project/semblance-databricks/ |
+| `semblance` | 0.10.0 | `v0.10.0` | https://pypi.org/project/semblance/ |
+| `semblance-foundry` | 0.2.0 | `foundry-v0.2.0` | https://pypi.org/project/semblance-foundry/ |
+| `semblance-databricks` | 0.2.0 | `databricks-v0.2.0` | https://pypi.org/project/semblance-databricks/ |
+
+These source versions are prepared for release; the versions currently published
+on PyPI are still Semblance 0.9.2, Foundry 0.1.3, and Databricks 0.1.2. Release
+0.10.0 and both 0.2.0 adapters together to adopt the Python 3.11 minimum. Full
+support migration details are in the [Python 3.11 migration plan](python_311_migration_plan.md).
 
 Tagging is the release. Pushing a matching tag runs [.github/workflows/release.yml](https://github.com/eddiethedean/semblance/blob/main/.github/workflows/release.yml): lint, typecheck, tests, security, then build and upload **only** the package that matches the tag. The workflow refuses to publish if the tag version does not equal the version in that package's `pyproject.toml`.
 
@@ -40,16 +45,16 @@ For a project that does not exist yet, add a **pending** publisher with that pro
 
 ```bash
 # Core Semblance
-git tag v0.9.2
-git push origin v0.9.2
+git tag v0.10.0
+git push origin v0.10.0
 
 # Foundry adapter (separate tag, separate PyPI project)
-git tag foundry-v0.1.3
-git push origin foundry-v0.1.3
+git tag foundry-v0.2.0
+git push origin foundry-v0.2.0
 
 # Databricks adapter (separate tag, separate PyPI project)
-git tag databricks-v0.1.2
-git push origin databricks-v0.1.2
+git tag databricks-v0.2.0
+git push origin databricks-v0.2.0
 ```
 
 You cannot reuse a version number once it has been published.

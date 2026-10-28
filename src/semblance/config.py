@@ -7,9 +7,21 @@ Used when constructing SemblanceAPI with config_path= or from_config().
 
 from __future__ import annotations
 
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, BinaryIO, NotRequired, TypedDict, cast
+
+
+class _ConfigSection(TypedDict):
+    """Unvalidated configuration values loaded from TOML or YAML."""
+
+    seed: NotRequired[Any]
+    stateful: NotRequired[Any]
+    validate_responses: NotRequired[Any]
+    validate_links: NotRequired[Any]
+    verbose_errors: NotRequired[Any]
+    list_count: NotRequired[Any]
 
 
 @dataclass
@@ -24,10 +36,7 @@ class SemblanceConfig:
     list_count: int = 5
 
 
-_DEFAULT = SemblanceConfig()
-
-
-def _load_toml_section(path: Path) -> dict | None:
+def _load_toml_section(path: Path) -> _ConfigSection | None:
     """Load [tool.semblance] from a TOML file. Returns None if not found or on error."""
     try:
         with open(path, "rb") as f:
@@ -37,22 +46,16 @@ def _load_toml_section(path: Path) -> dict | None:
     tool = data.get("tool")
     if not isinstance(tool, dict):
         return None
-    return tool.get("semblance") if isinstance(tool.get("semblance"), dict) else None
+    section = tool.get("semblance")
+    return cast(_ConfigSection, section) if isinstance(section, dict) else None
 
 
-def _toml_load(f: object) -> dict[str, object]:
-    """Load TOML; use tomllib (3.11+) or tomli."""
-    try:
-        import tomllib  # type: ignore[import-not-found, import-untyped]
-
-        return cast(dict[str, object], tomllib.load(f))
-    except ImportError:
-        import tomli
-
-        return cast(dict[str, object], tomli.load(f))  # type: ignore[arg-type]
+def _toml_load(f: BinaryIO) -> dict[str, object]:
+    """Load TOML using Python 3.11's standard-library parser."""
+    return cast(dict[str, object], tomllib.load(f))
 
 
-def _load_yaml(path: Path) -> dict | None:
+def _load_yaml(path: Path) -> _ConfigSection | None:
     """Load YAML file. Returns None if pyyaml not installed or on error."""
     try:
         import yaml  # type: ignore[import-untyped]
@@ -63,23 +66,24 @@ def _load_yaml(path: Path) -> dict | None:
             data = yaml.safe_load(f)
     except Exception:
         return None
-    return data if isinstance(data, dict) else None
+    return cast(_ConfigSection, data) if isinstance(data, dict) else None
 
 
-def _merge_config(config_dict: dict | None) -> SemblanceConfig:
+def _merge_config(config_dict: _ConfigSection | None) -> SemblanceConfig:
     """Build SemblanceConfig from a dict; missing keys use defaults."""
+    defaults = SemblanceConfig()
     if not config_dict:
-        return _DEFAULT
+        return defaults
     seed = config_dict.get("seed")
     return SemblanceConfig(
-        seed=seed if seed is not None else _DEFAULT.seed,
-        stateful=config_dict.get("stateful", _DEFAULT.stateful),
+        seed=seed if seed is not None else defaults.seed,
+        stateful=config_dict.get("stateful", defaults.stateful),
         validate_responses=config_dict.get(
-            "validate_responses", _DEFAULT.validate_responses
+            "validate_responses", defaults.validate_responses
         ),
-        validate_links=config_dict.get("validate_links", _DEFAULT.validate_links),
-        verbose_errors=config_dict.get("verbose_errors", _DEFAULT.verbose_errors),
-        list_count=config_dict.get("list_count", _DEFAULT.list_count),
+        validate_links=config_dict.get("validate_links", defaults.validate_links),
+        verbose_errors=config_dict.get("verbose_errors", defaults.verbose_errors),
+        list_count=config_dict.get("list_count", defaults.list_count),
     )
 
 
@@ -96,14 +100,14 @@ def load_config(config_path: str | Path | None = None) -> SemblanceConfig:
     if config_path is not None:
         path = Path(config_path)
         if not path.exists():
-            return _DEFAULT
+            return SemblanceConfig()
         if path.suffix in (".yaml", ".yml"):
             data = _load_yaml(path)
             return _merge_config(data)
         if path.suffix == ".toml" or path.name == "pyproject.toml":
             data = _load_toml_section(path)
             return _merge_config(data)
-        return _DEFAULT
+        return SemblanceConfig()
 
     # Discovery: cwd and parent
     for directory in (Path.cwd(), Path.cwd().parent):
@@ -120,4 +124,4 @@ def load_config(config_path: str | Path | None = None) -> SemblanceConfig:
             data = _load_toml_section(pyproject)
             if data is not None:
                 return _merge_config(data)
-    return _DEFAULT
+    return SemblanceConfig()

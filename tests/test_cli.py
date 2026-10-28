@@ -26,7 +26,15 @@ from tests.example_models import User, UserQuery
 
 
 class TestLoadApp:
-    def test_help_without_optional_http_clients(self, tmp_path):
+    @pytest.mark.parametrize(
+        "cli_args",
+        [["--help"], ["export", "openapi", "app:api"]],
+        ids=["help", "schema-export"],
+    )
+    def test_cli_without_optional_http_clients(self, tmp_path, cli_args):
+        (tmp_path / "app.py").write_text(
+            "from semblance import SemblanceAPI\napi = SemblanceAPI()\n"
+        )
         script = textwrap.dedent(
             """\
             import importlib.abc
@@ -43,14 +51,17 @@ class TestLoadApp:
             """
         )
         result = subprocess.run(
-            [sys.executable, "-I", "-c", script, "--help"],
+            [sys.executable, "-I", "-c", script, *cli_args],
             cwd=tmp_path,
             capture_output=True,
             text=True,
             timeout=30,
         )
         assert result.returncode == 0, result.stderr
-        assert "usage:" in result.stdout
+        if cli_args == ["--help"]:
+            assert "usage:" in result.stdout
+        else:
+            assert json.loads(result.stdout)["paths"] == {}
 
     @pytest.mark.parametrize("target", ["app:api", "app"])
     def test_validate_imports_app_from_working_directory(self, tmp_path, target):

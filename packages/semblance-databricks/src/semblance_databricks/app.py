@@ -7,7 +7,7 @@ from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from fastapi import FastAPI
 
@@ -37,7 +37,7 @@ def _distribution_version() -> str:
     try:
         return pkg_version("semblance-databricks")
     except PackageNotFoundError:
-        return "0.1.2"
+        return "0.2.0"
 
 
 class DatabricksMock:
@@ -49,7 +49,7 @@ class DatabricksMock:
         self.page_token_codec = PageTokenCodec(token_secret(self.config.seed))
         self._rng = random.Random(self.config.seed)
 
-    def load_fixture(self, path: str | Path) -> DatabricksMock:
+    def load_fixture(self, path: str | Path) -> Self:
         doc = load_fixture_file(path)
         staged_state = DatabricksState(seed=self.config.seed)
         staged_state.statement_callbacks.update(self.state.statement_callbacks)
@@ -58,7 +58,7 @@ class DatabricksMock:
         self.state = staged_state
         return self
 
-    def load_bundled_fixture(self, name: str = "acme") -> DatabricksMock:
+    def load_bundled_fixture(self, name: str = "acme") -> Self:
         """Load a fixture shipped with the package (currently ``acme``)."""
         loader = _BUNDLED_FIXTURES.get(name)
         if loader is None:
