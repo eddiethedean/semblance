@@ -84,6 +84,27 @@ def test_computed_from():
     assert data["full"] == "Jane Smith"
 
 
+def test_nested_computed_from_uses_generated_sibling():
+    class Empty(BaseModel):
+        pass
+
+    class Inner(BaseModel):
+        value: int = 3
+        doubled: Annotated[int, ComputedFrom(("value",), lambda value: value * 2)]
+
+    class Outer(BaseModel):
+        inner: Inner
+
+    api = SemblanceAPI(seed=42)
+    api.get("/nested", input=Empty, output=Outer)(lambda: None)
+
+    response = make_client(api.as_fastapi()).get("/nested")
+
+    assert response.status_code == 200
+    inner = response.json()["inner"]
+    assert inner["doubled"] == inner["value"] * 2
+
+
 def test_filter_by_filters_generated_field():
     """filter_by must constrain a generated field, not a FromInput-bound one."""
     from typing import Literal

@@ -5,14 +5,20 @@ Export OpenAPI schema (optionally with response examples from live calls) and
 JSON fixtures per endpoint for MSW, fixtures, or OpenAPI-driven tooling.
 """
 
+from __future__ import annotations
+
 import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+
+from semblance.testing import test_client
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
 
 # JSON-serializable value from API response (dict, list, or scalar).
 JSONResponse = dict[str, object] | list[object] | object
@@ -85,7 +91,7 @@ def export_openapi(app: FastAPI, include_examples: bool = False) -> dict[str, An
     if not include_examples:
         return schema
 
-    with TestClient(app) as client:
+    with test_client(app) as client:
         for path, methods in schema.get("paths", {}).items():
             for method in ("get", "post", "put", "patch", "delete"):
                 op = methods.get(method)
@@ -124,7 +130,7 @@ def export_fixtures(app: FastAPI, output_path: str | Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     schema = cast(dict[str, Any], app.openapi())
-    with TestClient(app) as client:
+    with test_client(app) as client:
         for path, methods in schema.get("paths", {}).items():
             for method in ("get", "post", "put", "patch", "delete"):
                 op = methods.get(method)

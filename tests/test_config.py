@@ -1,5 +1,9 @@
 """Tests for config loading and SemblanceAPI.from_config."""
 
+import sys
+
+import pytest
+
 from semblance import SemblanceAPI
 from semblance.config import load_config
 from semblance.testing import test_client as make_client
@@ -24,10 +28,75 @@ def test_load_config_from_pyproject_toml(tmp_path):
     assert cfg.stateful is True
 
 
+def test_toml_config_loads_with_standard_library_parser(tmp_path, monkeypatch):
+    toml_path = tmp_path / "pyproject.toml"
+    toml_path.write_text("[tool.semblance]\nseed = 17\n", encoding="utf-8")
+    monkeypatch.setitem(sys.modules, "tomli", None)
+
+    cfg = load_config(toml_path)
+
+    assert cfg.seed == 17
+
+
 def test_load_config_missing_file_returns_defaults(tmp_path):
     cfg = load_config(tmp_path / "nonexistent.yaml")
     assert cfg.seed is None
     assert cfg.stateful is False
+
+
+@pytest.mark.parametrize(
+    "source", ["missing", "empty", "invalid", "unknown", "discovery"]
+)
+def test_default_config_mutation_does_not_affect_other_loads(
+    tmp_path, monkeypatch, source
+):
+    config_path = tmp_path / "missing.yaml"
+    if source == "empty":
+        config_path = tmp_path / "empty.yaml"
+        config_path.write_text("")
+    elif source == "invalid":
+        config_path = tmp_path / "invalid.toml"
+        config_path.write_text("[invalid")
+    elif source == "unknown":
+        config_path = tmp_path / "config.txt"
+        config_path.write_text("ignored")
+    elif source == "discovery":
+        work_dir = tmp_path / "work"
+        work_dir.mkdir()
+        monkeypatch.chdir(work_dir)
+        config_path = None
+
+    first = load_config(config_path)
+    monkeypatch.setattr(first, "list_count", 99)
+
+    assert load_config(config_path).list_count == 5
+    partial = tmp_path / "partial.toml"
+    partial.write_text("[tool.semblance]\nseed = 7\n")
+    assert load_config(partial).list_count == 5
+
+
+@pytest.mark.parametrize(
+    ("option", "attribute"),
+    [
+        ("stateful", "_store"),
+        ("validate_responses", "_validate_responses"),
+        ("validate_links", "_validate_links"),
+        ("verbose_errors", "_verbose_errors"),
+    ],
+)
+def test_explicit_false_overrides_enabled_config(tmp_path, option, attribute):
+    config_path = tmp_path / "pyproject.toml"
+    config_path.write_text(f"[tool.semblance]\n{option} = true\n")
+
+    inherited = SemblanceAPI(config_path=str(config_path))
+    overridden = SemblanceAPI(config_path=str(config_path), **{option: False})
+
+    if option == "stateful":
+        assert inherited._store is not None
+        assert overridden._store is None
+    else:
+        assert getattr(inherited, attribute) is True
+        assert getattr(overridden, attribute) is False
 
 
 def test_load_config_discovery_from_cwd(tmp_path, monkeypatch):

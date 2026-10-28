@@ -36,6 +36,16 @@ def test_create_job(client: TestClient) -> None:
     assert got.json()["settings"]["tasks"][0]["task_key"] == "t1"
 
 
+def test_create_job_with_invalid_json_encoding_returns_400(client: TestClient) -> None:
+    r = client.post(
+        "/api/2.2/jobs/create",
+        content=b"\xff",
+        headers={"Content-Type": "application/json"},
+    )
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "INVALID_PARAMETER_VALUE"
+
+
 def test_reset_job(client: TestClient) -> None:
     r = client.post(
         "/api/2.2/jobs/reset",

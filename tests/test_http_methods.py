@@ -4,7 +4,7 @@ import time
 from unittest.mock import patch
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, field_validator
 
 from semblance import SemblanceAPI
 from semblance.testing import test_client as make_client
@@ -19,7 +19,31 @@ class DeletePathInput(BaseModel):
     id: str = ""
 
 
+class PositiveIdPath(BaseModel):
+    id: int = 1
+
+    @field_validator("id")
+    @classmethod
+    def require_positive_id(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("must be positive")
+        return value
+
+
 class TestPutPatchDelete:
+    @pytest.mark.parametrize("method", ["get", "delete"])
+    def test_invalid_path_model_returns_422(self, method):
+        api = SemblanceAPI()
+        if method == "get":
+            api.get("/items/{id}", input=PositiveIdPath, output=User)(lambda: None)
+        else:
+            api.delete("/items/{id}", input=PositiveIdPath)(lambda: None)
+
+        response = getattr(make_client(api.as_fastapi()), method)("/items/-1")
+
+        assert response.status_code == 422
+        assert "must be positive" in response.json()["detail"][0]["ctx"]["error"]
+
     def test_put_returns_generated_response(self):
         api = SemblanceAPI(seed=42)
         api.put("/users/{id}", input=UpdateBody, output=User)(lambda: None)

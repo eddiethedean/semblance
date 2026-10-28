@@ -72,6 +72,7 @@ nav:
     - CLI: guides/cli.md
   - Project:
     - Roadmap: roadmap.md
+    - Python 3.11 migration (0.10.0): python_311_migration_plan.md
     - Foundry package plan: semblance_foundry_plan.md
     - Databricks package plan: semblance_databricks_plan.md
     - Publishing: publishing.md

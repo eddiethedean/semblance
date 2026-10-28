@@ -1,4 +1,4 @@
-packageVersion: "0.1.2"
+packageVersion: "0.2.0"
 documentedAt: "2026-08-19"
 source: "https://docs.databricks.com/api/workspace/"
 operations:

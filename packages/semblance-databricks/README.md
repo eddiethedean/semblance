@@ -6,13 +6,16 @@ This package is **not affiliated with, endorsed by, or equivalent to Databricks*
 
 Verified against public workspace REST documentation dated **2026-08-19**. See `compatibility.yaml` (also served at `/.well-known/semblance-databricks-compat.json`).
 
-Requires `semblance` 0.8.x or 0.9.x (`>=0.8.0,<1.0`).
+Requires Python 3.11+ and `semblance` 0.10.x (`>=0.10.0,<1.0`). Python 3.10 users can use Databricks 0.1.x with `semblance<0.10`.
 
 ## Install
 
 ```bash
-pip install semblance-databricks
+pip install "semblance-databricks[test]"
 ```
+
+The `[test]` extra installs the in-process HTTP client used in the quick start.
+For CLI-only use, `pip install semblance-databricks` is enough.
 
 From a clone of this repository:
 
@@ -74,7 +77,7 @@ YAML/JSON version 1. Extra fields are rejected. Fixtures are **data only**. Secr
 
 List endpoints use `page_size` or `limit` plus `page_token` / `next_page_token`. Tokens are opaque and checksummed. Tampering returns 400 `INVALID_PARAMETER_VALUE`.
 
-## Known unsupported (0.1.2)
+## Known unsupported (0.2.0)
 
 - Unity Catalog, Model Serving, DLT / Spark Declarative Pipelines
 - Jobs API 2.0 as primary (optional 2.1 aliases are representative)

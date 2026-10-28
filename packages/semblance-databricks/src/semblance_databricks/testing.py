@@ -4,13 +4,23 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from fastapi.testclient import TestClient
+from fastapi import FastAPI
 
 from semblance_databricks.app import DatabricksMock
 from semblance_databricks.config import DatabricksMockConfig
 from semblance_databricks.fixtures.loaders import bundled_acme_path
+
+if TYPE_CHECKING:
+    from fastapi.testclient import TestClient
+
+
+def _make_test_client(app: FastAPI) -> TestClient:
+    """Load the optional test client backend only when a helper is used."""
+    from fastapi.testclient import TestClient
+
+    return TestClient(app)
 
 
 class DatabricksMockContext:
@@ -31,7 +41,7 @@ class DatabricksMockContext:
         self._client: TestClient | None = None
 
     def __enter__(self) -> TestClient:
-        self._client = TestClient(self.mock.as_fastapi())
+        self._client = _make_test_client(self.mock.as_fastapi())
         return self._client
 
     def __exit__(self, *exc: Any) -> None:
@@ -50,7 +60,7 @@ def databricks_test_client(
     if mock is None:
         mock = DatabricksMock(config or DatabricksMockConfig())
         mock.load_fixture(fixture if fixture is not None else bundled_acme_path())
-    return TestClient(mock.as_fastapi())
+    return _make_test_client(mock.as_fastapi())
 
 
 def acme_client_iter(
@@ -58,7 +68,7 @@ def acme_client_iter(
 ) -> Iterator[tuple[DatabricksMock, TestClient]]:
     mock = DatabricksMock(config or DatabricksMockConfig(seed=42))
     mock.load_fixture(bundled_acme_path())
-    client = TestClient(mock.as_fastapi())
+    client = _make_test_client(mock.as_fastapi())
     try:
         yield mock, client
     finally:

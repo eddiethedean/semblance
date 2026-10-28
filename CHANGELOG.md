@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-27
+
+### Breaking
+
+- Require Python 3.11 or newer. Python 3.10 users must remain on Semblance 0.9.x.
+
+### Changed
+
+- Use Python 3.11 typing features, including `Self` for subclass-preserving
+  constructors and fluent methods, and `TypedDict` for configuration sections.
+- Read TOML configuration through the standard-library `tomllib` parser.
+- Ship the `py.typed` marker so downstream type checkers can use Semblance's
+  annotations.
+- Prepare the independently versioned adapters for the same Python minimum and
+  Semblance 0.10.x; see the [migration plan](docs/python_311_migration_plan.md).
+
+### Fixed
+
+- Config loads return independent defaults, so mutating one config cannot affect
+  other simulators or later loads.
+- Explicit `False` constructor options override enabled options in config files.
+- Middleware runs with the first registered middleware outermost, as documented.
+- Rate limits are isolated to each `SemblanceAPI` instance, preventing unrelated
+  simulators with the same routes from consuming each other's quotas.
+- Plain OpenAPI export works without optional HTTP test-client dependencies;
+  the client backend is loaded only when sampling responses or exporting fixtures.
+- Nested `ComputedFrom` fields can use values generated for their sibling fields.
+- Invalid path-parameter validation errors return a JSON `422` response instead
+  of failing while serializing the error details.
+- Foundry search rejects malformed AND clauses instead of silently ignoring them.
+- Databricks returns a client error for JSON bodies with invalid UTF-8 encoding.
+
 ## [0.9.2] - 2026-10-24 ([GitHub release](https://github.com/eddiethedean/semblance/releases/tag/v0.9.2))
 
 ### Fixed
@@ -232,7 +264,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation site (MkDocs)
 - Example galleries
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/eddiethedean/semblance/compare/v0.9.2...v0.10.0
 [0.9.2]: https://github.com/eddiethedean/semblance/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/eddiethedean/semblance/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/eddiethedean/semblance/compare/v0.8.0...v0.9.0

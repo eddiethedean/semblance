@@ -4,6 +4,18 @@ All notable changes to `semblance-foundry` are documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+### Changed
+
+- Require Python 3.11+ and Semblance `>=0.10.0,<1.0`. Python 3.10 users can
+  continue using adapter 0.1.x with Semblance 0.9.x.
+- Add a `[test]` extra for the public in-process test-client helpers.
+- Annotate fixture-loading methods with `typing.Self` so subclasses retain their
+  type through fluent calls.
+- Reject malformed non-object clauses in nested `and` search filters instead of
+  silently ignoring them.
+
 ## [0.1.3] - 2026-08-19
 
 ### Changed
@@ -42,7 +54,8 @@ Ontology-read MVP. Independently versioned from `semblance` 0.7.0.
 - CLI: `serve` (bundled acme if `--fixture` omitted), `validate`, `fixture init`, `operations`
 - HTTP contract tests; optional `sdk` extra (`foundry-platform-sdk==1.101.0`) skipped unless installed
 
-[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.3...HEAD
+[Unreleased]: https://github.com/eddiethedean/semblance/compare/foundry-v0.2.0...HEAD
+[0.2.0]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.3...foundry-v0.2.0
 [0.1.3]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.2...foundry-v0.1.3
 [0.1.2]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.1...foundry-v0.1.2
 [0.1.1]: https://github.com/eddiethedean/semblance/compare/foundry-v0.1.0...foundry-v0.1.1

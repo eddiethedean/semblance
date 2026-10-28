@@ -12,17 +12,18 @@ import hmac
 import random
 import re
 from collections.abc import Callable, Sequence
-from typing import Annotated, Any, cast, get_origin
+from typing import Annotated, Any, Self, cast, get_origin
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError
 
-from semblance.config import load_config
+from semblance.config import SemblanceConfig, load_config
 from semblance.errors import ErrorCase, ScenarioStep
 from semblance.factory import build_response, validate_response
 from semblance.pagination import PageTable, is_page_slice_output
-from semblance.rate_limit import get_limiter
+from semblance.rate_limit import RateLimiter
 from semblance.resolver import get_output_model_for_type
 from semblance.state import StatefulStore
 from semblance.validation import validate_specs
@@ -49,6 +50,14 @@ def _normalize_bearer_tokens(tokens: Sequence[str] | None) -> tuple[str, ...] | 
         else:
             normalized.append(str(token))
     return tuple(normalized)
+
+
+def _validation_error_detail(exc: ValidationError) -> list[dict[str, Any]]:
+    """Return JSON-safe Pydantic details, preserving exception context as text."""
+    return cast(
+        list[dict[str, Any]],
+        jsonable_encoder(exc.errors(), custom_encoder={Exception: str}),
+    )
 
 
 class EndpointSpec:
@@ -139,47 +148,46 @@ class SemblanceAPI:
             backward compatibility.
         verbose_errors: If True, stateful 404 responses include collection path
             and id field/value in the detail for easier debugging.
+        config_path: Optional configuration file. Omitted or None boolean
+            options inherit its values; explicit True or False overrides them.
+            Without a file, boolean options default to False.
     """
 
     def __init__(
         self,
         seed: int | None = None,
-        stateful: bool = False,
-        validate_responses: bool = False,
-        validate_links: bool = False,
-        verbose_errors: bool = False,
+        stateful: bool | None = None,
+        validate_responses: bool | None = None,
+        validate_links: bool | None = None,
+        verbose_errors: bool | None = None,
         config_path: str | None = None,
         list_count: int | None = None,
     ) -> None:
         self._specs: list[EndpointSpec] = []
-        cfg = load_config(config_path) if config_path is not None else None
-        self._seed = seed if seed is not None else (cfg.seed if cfg else None)
-        _stateful = stateful or (cfg.stateful if cfg else False)
+        cfg = load_config(config_path) if config_path is not None else SemblanceConfig()
+        self._seed = seed if seed is not None else cfg.seed
+        _stateful = cfg.stateful if stateful is None else stateful
         self._store = StatefulStore() if _stateful else None
-        self._validate_responses = validate_responses or (
-            cfg.validate_responses if cfg else False
+        self._validate_responses = (
+            cfg.validate_responses if validate_responses is None else validate_responses
         )
-        self._validate_links = validate_links or (
-            getattr(cfg, "validate_links", False) if cfg else False
+        self._validate_links = (
+            cfg.validate_links if validate_links is None else validate_links
         )
-        self._verbose_errors = verbose_errors or (
-            getattr(cfg, "verbose_errors", False) if cfg else False
+        self._verbose_errors = (
+            cfg.verbose_errors if verbose_errors is None else verbose_errors
         )
-        if list_count is not None:
-            self._default_list_count = list_count
-        elif cfg is not None:
-            self._default_list_count = cfg.list_count
-        else:
-            self._default_list_count = 5
+        self._default_list_count = cfg.list_count if list_count is None else list_count
         self._middleware: list[tuple[type[Any], dict[str, Any]]] = []
         self._scenario_index: dict[tuple[str, str], int] = {}
+        self._rate_limiter = RateLimiter()
 
     @classmethod
     def from_config(
         cls,
         config_path: str | None = None,
         **kwargs: Any,
-    ) -> "SemblanceAPI":
+    ) -> Self:
         """Build a SemblanceAPI with defaults from config. Keyword args override config."""
         cfg = load_config(config_path)
         return cls(
@@ -539,8 +547,8 @@ class SemblanceAPI:
             if link_errors:
                 raise ValueError("Link validation failed:\n" + "\n".join(link_errors))
         app = FastAPI()
-        for mw_class, mw_kwargs in self._middleware:
-            app.add_middleware(mw_class, **mw_kwargs)  # type: ignore[arg-type]
+        for mw_class, mw_kwargs in reversed(self._middleware):
+            app.add_middleware(mw_class, **mw_kwargs)
         seen: set[tuple[str, str]] = set()
         for spec in self._specs:
             if spec.page_table is None:
@@ -643,15 +651,16 @@ class SemblanceAPI:
         try:
             return input_model.model_validate(merged)
         except ValidationError as exc:
-            raise HTTPException(status_code=422, detail=exc.errors()) from exc
+            raise HTTPException(
+                status_code=422, detail=_validation_error_detail(exc)
+            ) from exc
 
     def _check_rate_limit(self, spec: EndpointSpec) -> None:
         """Raise HTTPException 429 if rate limit exceeded."""
         if spec.rate_limit is None or spec.rate_limit <= 0:
             return
-        limiter = get_limiter()
         method = spec.methods[0]
-        if not limiter.check_and_record(spec.path, method, spec.rate_limit):
+        if not self._rate_limiter.check_and_record(spec.path, method, spec.rate_limit):
             raise HTTPException(
                 status_code=429, detail="Rate limit exceeded (simulated)"
             )
@@ -1130,7 +1139,9 @@ class SemblanceAPI:
             try:
                 merged = input_model.model_validate({**data, **allowed})
             except ValidationError as exc:
-                raise HTTPException(status_code=422, detail=exc.errors()) from exc
+                raise HTTPException(
+                    status_code=422, detail=_validation_error_detail(exc)
+                ) from exc
             seed = await self._after_validated_input(spec, merged)
             if store is not None:
                 path_param_names = _parse_path_params(path)

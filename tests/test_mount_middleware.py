@@ -45,3 +45,35 @@ def test_add_middleware_adds_header():
     r = client.get("/users?name=x")
     assert r.status_code == 200
     assert r.headers.get("X-Semblance-Test") == "ok"
+
+
+def test_first_registered_middleware_is_outermost():
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    events = []
+
+    class RecordMiddleware(BaseHTTPMiddleware):
+        def __init__(self, app, name):
+            super().__init__(app)
+            self.name = name
+
+        async def dispatch(self, request, call_next):
+            events.append(f"{self.name}:request")
+            response = await call_next(request)
+            events.append(f"{self.name}:response")
+            return response
+
+    api = SemblanceAPI()
+    api.get("/users", input=UserQuery, output=User)(lambda: None)
+    api.add_middleware(RecordMiddleware, name="first")
+    api.add_middleware(RecordMiddleware, name="second")
+
+    with make_client(api.as_fastapi()) as client:
+        assert client.get("/users").status_code == 200
+
+    assert events == [
+        "first:request",
+        "second:request",
+        "second:response",
+        "first:response",
+    ]

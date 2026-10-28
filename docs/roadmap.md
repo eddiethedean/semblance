@@ -1,5 +1,24 @@
 # Roadmap
 
+## Phase 0.10 — Python 3.11 minimum and typing
+
+**Release:** Semblance 0.10.0; adapters 0.2.0. **Status:** implementation
+prepared; release gates await CI.
+
+This phase raises the minimum supported Python version to 3.11, adopts the
+Python 3.11 typing standards in public APIs, and ships PEP 561 typing markers
+for Semblance and its adapters.
+
+- [x] Update runtime metadata, tooling targets, package typing markers, docs,
+  changelogs, and compatibility guidance.
+- [x] Add typed public API consumer coverage, TOML config coverage, and wheel
+  artifact checks to CI and release workflows.
+- [ ] Pass the Python 3.11/3.12 CI matrix and confirm type, package, and
+  downstream adapter checks before creating the 0.10.0 and 0.2.0 tags.
+
+See the [Python 3.11 migration plan](python_311_migration_plan.md) for the
+implementation details, migration guidance, and release checklist.
+
 ## Phase 1 — MVP (Foundations) ✓
 
 - SemblanceAPI core

@@ -7,10 +7,12 @@ This adapter is **not affiliated with, endorsed by, or equivalent to Palantir**.
 Install it separately from core Semblance:
 
 ```bash
-pip install semblance-foundry
+pip install "semblance-foundry[test]"
 ```
 
-Requires `semblance` 0.8.x or 0.9.x. Verified against public API v2 documentation dated **2026-08-18**.
+For CLI-only use, install `semblance-foundry` without the `[test]` extra.
+
+Requires Python 3.11+ and `semblance` 0.10.x. Python 3.10 users can use Foundry 0.1.x with `semblance<0.10`. Verified against public API v2 documentation dated **2026-08-18**.
 
 ## Quick start
 

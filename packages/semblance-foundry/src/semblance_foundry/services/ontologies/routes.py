@@ -126,7 +126,14 @@ def _match_where(obj: dict[str, Any], where: dict[str, Any] | None) -> bool:
                 error_name="InvalidQuery",
                 parameters={"reason": "and.value must be a list"},
             )
-        return all(_match_where(obj, c) for c in clauses if isinstance(c, dict))
+        if any(not isinstance(clause, dict) for clause in clauses):
+            raise FoundryError(
+                status_code=400,
+                error_code="INVALID_ARGUMENT",
+                error_name="InvalidQuery",
+                parameters={"reason": "and.value must contain filter objects"},
+            )
+        return all(_match_where(obj, clause) for clause in clauses)
     raise FoundryError(
         status_code=400,
         error_code="INVALID_ARGUMENT",

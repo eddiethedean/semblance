@@ -7,10 +7,12 @@ This adapter is **not affiliated with, endorsed by, or equivalent to Databricks*
 Install it separately from core Semblance:
 
 ```bash
-pip install semblance-databricks
+pip install "semblance-databricks[test]"
 ```
 
-Requires `semblance` 0.8.x or 0.9.x. Verified against public workspace REST documentation dated **2026-08-19**.
+For CLI-only use, install `semblance-databricks` without the `[test]` extra.
+
+Requires Python 3.11+ and `semblance` 0.10.x. Python 3.10 users can use Databricks 0.1.x with `semblance<0.10`. Verified against public workspace REST documentation dated **2026-08-19**.
 
 ## Quick start
 

@@ -183,7 +183,7 @@ def users():
 ```
 
 - `rate_limit=N` — allow at most N requests per second for this (path, method). Additional requests in the same second get 429.
-- Per-process, in-memory; suitable for simulation and testing, not distributed production.
+- Limits are scoped to each `SemblanceAPI` instance; separate simulators do not share quotas. Storage is in-memory within the process, suitable for simulation and testing.
 - When `rate_limit` is set, the exported OpenAPI schema includes a 429 (rate limit exceeded) response description.
 
 ## Response Validation

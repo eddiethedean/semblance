@@ -6,12 +6,15 @@ We release patches for security vulnerabilities in the following versions:
 
 | Package | Version | Supported |
 |---|---|---|
+| semblance | 0.10.x | :white_check_mark: |
 | semblance | 0.9.x | :white_check_mark: |
 | semblance | 0.8.x | :white_check_mark: |
 | semblance | 0.7.x | :white_check_mark: |
 | semblance | 0.6.x | :white_check_mark: |
 | semblance | < 0.6 | :x: |
+| semblance-foundry | 0.2.x | :white_check_mark: |
 | semblance-foundry | 0.1.x | :white_check_mark: |
+| semblance-databricks | 0.2.x | :white_check_mark: |
 | semblance-databricks | 0.1.x | :white_check_mark: |
 
 ## Reporting a Vulnerability

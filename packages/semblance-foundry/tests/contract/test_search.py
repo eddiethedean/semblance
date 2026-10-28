@@ -37,6 +37,24 @@ def test_search_unsupported_filter(client: TestClient) -> None:
     assert r.json()["errorName"] == "InvalidQuery"
 
 
+def test_search_and_rejects_non_filter_clauses(client: TestClient) -> None:
+    r = client.post(
+        "/api/v2/ontologies/acme/objects/Employee/search",
+        json={"where": {"type": "and", "value": ["not a clause"]}},
+    )
+    assert r.status_code == 400
+    assert r.json()["errorName"] == "InvalidQuery"
+
+
+def test_search_and_rejects_nested_non_filter_clauses(client: TestClient) -> None:
+    r = client.post(
+        "/api/v2/ontologies/acme/objects/Employee/search",
+        json={"where": {"type": "and", "value": [{"type": "and", "value": [3]}]}},
+    )
+    assert r.status_code == 400
+    assert r.json()["errorName"] == "InvalidQuery"
+
+
 def test_search_page_token_does_not_reuse_across_filters(client: TestClient) -> None:
     first = client.post(
         "/api/v2/ontologies/acme/objects/Employee/search",

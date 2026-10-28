@@ -4,7 +4,7 @@ Thanks for your interest in contributing to Semblance. This document covers how 
 
 ## Development Setup
 
-From a clean clone:
+Use Python 3.11 or 3.12. From a clean clone:
 
 ```bash
 git clone https://github.com/eddiethedean/semblance.git
@@ -87,3 +87,9 @@ Please do not open public issues for security vulnerabilities. See [SECURITY.md]
 ## Code Style
 
 We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. Run `ruff check src tests packages/semblance-foundry packages/semblance-databricks` to verify style compliance.
+
+Use Python 3.11 typing in maintained code: built-in collection generics and `|`
+unions, `collections.abc` interfaces, `typing.Self` for subclass-preserving
+methods, and `TypedDict` with `NotRequired` / `Required` for fixed dictionary
+shapes. Keep dynamic `Any` at genuinely dynamic boundaries. Do not use Python
+3.12-only type parameter syntax while 3.11 is the minimum.

@@ -7,7 +7,7 @@ from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as pkg_version
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 from fastapi import FastAPI
 
@@ -31,7 +31,7 @@ def _distribution_version() -> str:
     try:
         return pkg_version("semblance-foundry")
     except PackageNotFoundError:
-        return "0.1.3"
+        return "0.2.0"
 
 
 class FoundryMock:
@@ -44,7 +44,7 @@ class FoundryMock:
         self._rng = random.Random(self.config.seed)
         self.ontologies = OntologyMutations(self.state)
 
-    def load_fixture(self, path: str | Path) -> FoundryMock:
+    def load_fixture(self, path: str | Path) -> Self:
         doc = load_fixture_file(path)
         staged_state = FoundryState(seed=self.config.seed)
         staged_state.query_callbacks.update(self.state.query_callbacks)
@@ -53,7 +53,7 @@ class FoundryMock:
         self.ontologies._state = staged_state
         return self
 
-    def load_bundled_fixture(self, name: str = "acme") -> FoundryMock:
+    def load_bundled_fixture(self, name: str = "acme") -> Self:
         """Load a fixture shipped with the package (currently ``acme``)."""
         loader = _BUNDLED_FIXTURES.get(name)
         if loader is None:

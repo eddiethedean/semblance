@@ -386,7 +386,9 @@ default; capped temp-dir opt-in for DBFS only.
 - **SDK extra:** pin one `databricks-sdk` version; `@pytest.mark.sdk` skipped in
   default CI (`-m "not sdk"`). If `WorkspaceClient` cannot target HTTP localhost,
   keep SDK non-blocking (Foundry rule).
-- No network in unit/contract tests. Python 3.10–3.12. Plug into existing root
+- No network in unit/contract tests. Historical interpreter matrix: Python
+  3.10–3.12; the current supported range begins at 3.11 (see the
+  [0.10.0 migration plan](python_311_migration_plan.md)). Plug into existing root
   lint/typecheck/test/security jobs.
 
 ## 13. Documentation Deliverables
@@ -484,7 +486,8 @@ Complete when:
   docs used
 - README, limitations, security guidance, and non-affiliation notice are complete
 - root lint, typecheck, tests, and security jobs include this package for Python
-  3.10–3.12
+  3.11–3.12 (the original 3.10–3.12 matrix is superseded by the
+  [0.10.0 migration plan](python_311_migration_plan.md))
 
 Adapter `1.0.0` is not part of this DoD.
 
